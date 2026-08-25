@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import '@workspace/ui/globals.css'
 
 import { AppShell } from '@/components/app-shell'
+import { QueryProvider } from '@/components/query-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
@@ -38,7 +39,9 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <QueryProvider>
+            <AppShell>{children}</AppShell>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

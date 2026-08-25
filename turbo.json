@@ -1,6 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalPassThroughEnv": [
+    "ALPACA_API_KEY_ID",
+    "ALPACA_API_SECRET_KEY",
+    "ALPACA_CRYPTO_LOCATION",
+    "ALPACA_DATA_BASE_URL",
+    "ALPACA_ENVIRONMENT",
+    "ALPACA_TRADING_BASE_URL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
