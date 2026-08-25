@@ -1,17 +1,12 @@
-import { Button } from '@workspace/ui/components/button'
-
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex min-w-0 max-w-md flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-muted-foreground text-xs">
-          (Press <kbd>d</kbd> to toggle dark mode)
+    <div className="flex flex-col gap-2">
+      
+      {/* Balance */}
+      <div className="w-full h-80 bg-primary rounded-3xl p-5 shadow-lg text-primary-foreground flex flex-col">
+        <div className="flex-1"></div>
+        <div className="text-5xl font-bold text-numeric">
+          $1000.00
         </div>
       </div>
     </div>

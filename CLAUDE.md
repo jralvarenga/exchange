@@ -22,6 +22,8 @@ init
 
 <!-- Write project specific instructions here -->
 
+- Don't look over the browser unless I ask you to and give you permission
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
