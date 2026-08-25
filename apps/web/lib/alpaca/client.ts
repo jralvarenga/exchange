@@ -4,15 +4,19 @@ import { z } from 'zod'
 
 import type {
   AlpacaAccount,
+  AlpacaAsset,
   AlpacaClientOptions,
   AlpacaCryptoSnapshotsResponse,
   AlpacaPortfolioHistory,
   AlpacaPosition,
+  AssetSearchOptions,
+  AssetSearchResponse,
   BalanceChange,
   BalanceChanges,
   BalanceChart,
   BalanceInterval,
   CurrentBalance,
+  GetAssetsOptions,
   GetBalanceChartOptions,
   GetCryptoSnapshotsOptions,
   GetPositionOptions,
@@ -24,11 +28,13 @@ import type {
 } from './schemas'
 import {
   alpacaAccountSchema,
+  alpacaAssetsSchema,
   alpacaCryptoSnapshotsResponseSchema,
   alpacaEnvironmentSchema,
   alpacaPortfolioHistorySchema,
   alpacaPositionSchema,
   alpacaPositionsSchema,
+  assetSearchResponseSchema,
   balanceChangeSchema,
   balanceChangesSchema,
   balanceChartSchema,
@@ -43,6 +49,7 @@ const DEFAULT_DATA_BASE_URL = 'https://data.alpaca.markets'
 const LIVE_TRADING_BASE_URL = 'https://api.alpaca.markets'
 const PAPER_TRADING_BASE_URL = 'https://paper-api.alpaca.markets'
 const DEFAULT_TIMEOUT_MS = 10_000
+const ASSET_CATALOG_TTL_MS = 5 * 60 * 1_000
 
 interface ResolvedClientOptions {
   apiKeyId: string
@@ -67,6 +74,18 @@ interface IntervalQuery {
   start?: string
   timeframe: PortfolioTimeframe
 }
+
+interface AssetCatalogCache {
+  expiresAt: number
+  promise: Promise<AlpacaAsset[]>
+}
+
+interface RankedAsset {
+  asset: AlpacaAsset
+  score: number
+}
+
+let assetCatalogCache: AssetCatalogCache | undefined
 
 const alpacaErrorBodySchema = z.object({
   code: z.number().optional(),
@@ -147,6 +166,51 @@ export async function getPortfolio(
     totalMarketValue: sum(positions, 'marketValue'),
     totalUnrealizedProfitLoss: sum(positions, 'unrealizedProfitLoss'),
   })
+}
+
+/** Returns active Alpaca assets for one searchable asset class. */
+export async function getAssets(
+  options: GetAssetsOptions
+): Promise<AlpacaAsset[]> {
+  const client = resolveClientOptions(options)
+  const query = new URLSearchParams({
+    asset_class: options.assetClass,
+    status: 'active',
+  })
+
+  return alpacaFetch({
+    baseUrl: client.tradingBaseUrl,
+    client,
+    path: '/v2/assets',
+    query,
+    schema: alpacaAssetsSchema,
+  })
+}
+
+/** Searches active tradable equities and crypto by symbol or asset name. */
+export async function searchAssets(
+  options: AssetSearchOptions
+): Promise<AssetSearchResponse> {
+  const query = options.query.trim()
+  const catalog = await getAssetCatalog(options)
+  const assets = catalog
+    .flatMap((asset) => {
+      const score = getAssetSearchScore(asset, query)
+
+      return score === undefined ? [] : [{ asset, score }]
+    })
+    .sort(compareRankedAssets)
+    .slice(0, options.limit)
+    .map(({ asset }) => ({
+      assetClass: asset.class,
+      exchange: asset.exchange,
+      fractionable: asset.fractionable,
+      id: asset.id,
+      name: asset.name,
+      symbol: asset.symbol,
+    }))
+
+  return assetSearchResponseSchema.parse({ assets, query })
 }
 
 /** Returns one open position by symbol or Alpaca asset ID. */
@@ -359,6 +423,108 @@ async function alpacaFetch<Schema extends z.ZodType>(
   } finally {
     clearTimeout(timeout)
   }
+}
+
+/** Returns a short-lived shared catalog to avoid refetching on each keystroke. */
+async function getAssetCatalog(
+  options: AlpacaClientOptions
+): Promise<AlpacaAsset[]> {
+  const now = Date.now()
+
+  if (assetCatalogCache && assetCatalogCache.expiresAt > now) {
+    return assetCatalogCache.promise
+  }
+
+  const promise = Promise.all([
+    getAssets({ ...options, assetClass: 'us_equity' }),
+    getAssets({ ...options, assetClass: 'crypto' }),
+  ]).then(([equities, crypto]) =>
+    [...equities, ...crypto].filter((asset) => asset.tradable)
+  )
+
+  assetCatalogCache = {
+    expiresAt: now + ASSET_CATALOG_TTL_MS,
+    promise,
+  }
+
+  try {
+    return await promise
+  } catch (error) {
+    if (assetCatalogCache?.promise === promise) {
+      assetCatalogCache = undefined
+    }
+
+    throw error
+  }
+}
+
+/** Scores exact symbol matches first, then prefixes and name matches. */
+function getAssetSearchScore(
+  asset: AlpacaAsset,
+  query: string
+): number | undefined {
+  const normalizedQuery = normalizeAssetSearchText(query)
+  const compactQuery = compactAssetSymbol(query)
+  const symbol = normalizeAssetSearchText(asset.symbol)
+  const compactSymbol = compactAssetSymbol(asset.symbol)
+  const name = normalizeAssetSearchText(asset.name)
+  const hasCompactQuery = compactQuery.length > 0
+
+  if (
+    symbol === normalizedQuery ||
+    (hasCompactQuery && compactSymbol === compactQuery)
+  ) {
+    return 0
+  }
+
+  if (
+    symbol.startsWith(normalizedQuery) ||
+    (hasCompactQuery && compactSymbol.startsWith(compactQuery))
+  ) {
+    return 1
+  }
+
+  if (name === normalizedQuery) {
+    return 2
+  }
+
+  if (name.startsWith(normalizedQuery)) {
+    return 3
+  }
+
+  if (
+    symbol.includes(normalizedQuery) ||
+    (hasCompactQuery && compactSymbol.includes(compactQuery))
+  ) {
+    return 4
+  }
+
+  if (name.includes(normalizedQuery)) {
+    return 5
+  }
+
+  const words = normalizedQuery.split(/\s+/u)
+
+  return words.every((word) => name.includes(word)) ? 6 : undefined
+}
+
+/** Sorts equally ranked assets predictably by symbol length and symbol. */
+function compareRankedAssets(left: RankedAsset, right: RankedAsset): number {
+  return (
+    left.score - right.score ||
+    left.asset.symbol.length - right.asset.symbol.length ||
+    left.asset.symbol.localeCompare(right.asset.symbol)
+  )
+}
+
+/** Normalizes search text for case-insensitive comparison. */
+function normalizeAssetSearchText(value: string): string {
+  return value.trim().toLocaleLowerCase('en-US')
+}
+
+/** Removes pair separators so BTCUSD also matches BTC/USD. */
+function compactAssetSymbol(value: string): string {
+  return normalizeAssetSearchText(value).replace(/[^a-z0-9]/gu, '')
 }
 
 /** Resolves explicit options first, then server-side environment variables. */

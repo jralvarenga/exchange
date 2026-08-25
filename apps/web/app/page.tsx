@@ -26,6 +26,7 @@ import {
   initialBalanceInterval,
   portfolioQueryKey,
 } from '@/lib/alpaca/query-keys'
+import { BuyAssetDialog } from '@/components/buy/buy-asset-dialog'
 
 export default async function Page() {
   const queryClient = new QueryClient()
@@ -65,14 +66,8 @@ export default async function Page() {
           </Suspense>
         </BalanceErrorBoundary>
 
-        <div>
-          <Button
-            className="flex w-full flex-row items-center justify-start rounded-2xl bg-input px-4 py-7 text-muted-foreground"
-            variant="ghost"
-          >
-            <SearchIcon className="size-4" />
-            <span className="font-bold text-sm">Search by symbols or name</span>
-          </Button>
+        <div className='w-full'>
+          <BuyAssetDialog />
         </div>
         <BalanceErrorBoundary
           fallback={

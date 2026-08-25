@@ -16,6 +16,27 @@ export const alpacaCryptoLocationSchema = z.enum([
   'us-2',
 ])
 
+export const alpacaOrderTypeSchema = z.enum([
+  'market',
+  'limit',
+  'stop',
+  'stop_limit',
+  'trailing_stop',
+])
+
+export const alpacaTimeInForceSchema = z.enum([
+  'day',
+  'gtc',
+  'opg',
+  'cls',
+  'ioc',
+  'fok',
+])
+
+export const alpacaQuantityModeSchema = z.enum(['qty', 'notional'])
+
+export const searchableAssetClassSchema = z.enum(['crypto', 'us_equity'])
+
 export const balanceIntervalSchema = z.enum([
   '1M',
   '1W',
@@ -51,6 +72,44 @@ export const alpacaClientOptionsSchema = z.object({
     .optional(),
   timeoutMs: z.number().int().positive().optional(),
   tradingBaseUrl: z.string().url().optional(),
+})
+
+export const alpacaAssetSchema = z
+  .object({
+    class: searchableAssetClassSchema,
+    exchange: z.string(),
+    fractionable: z.boolean(),
+    id: z.string(),
+    name: z.string(),
+    status: z.string(),
+    symbol: z.string(),
+    tradable: z.boolean(),
+  })
+  .passthrough()
+
+export const alpacaAssetsSchema = z.array(alpacaAssetSchema)
+
+export const getAssetsOptionsSchema = alpacaClientOptionsSchema.extend({
+  assetClass: searchableAssetClassSchema,
+})
+
+export const assetSearchResultSchema = z.object({
+  assetClass: searchableAssetClassSchema,
+  exchange: z.string(),
+  fractionable: z.boolean(),
+  id: z.string(),
+  name: z.string(),
+  symbol: z.string(),
+})
+
+export const assetSearchResponseSchema = z.object({
+  assets: z.array(assetSearchResultSchema),
+  query: z.string(),
+})
+
+export const assetSearchOptionsSchema = alpacaClientOptionsSchema.extend({
+  limit: z.number().int().min(1).max(20).default(8),
+  query: z.string().trim().min(1).max(80),
 })
 
 export const alpacaAccountSchema = z
@@ -310,8 +369,17 @@ export const cryptoSymbolsQuerySchema = z.object({
     .pipe(z.array(z.string().min(1)).min(1).max(100)),
 })
 
+export const assetSearchQuerySchema = z.object({
+  limit: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    z.coerce.number().int().min(1).max(20).default(8)
+  ),
+  query: z.string().trim().min(1).max(80),
+})
+
 export type AlpacaAccount = z.infer<typeof alpacaAccountSchema>
 export type AccountSummary = z.infer<typeof accountSummarySchema>
+export type AlpacaAsset = z.infer<typeof alpacaAssetSchema>
 export type AlpacaClientOptions = z.infer<typeof alpacaClientOptionsSchema>
 export type AlpacaCryptoSnapshotsResponse = z.infer<
   typeof alpacaCryptoSnapshotsResponseSchema
@@ -320,6 +388,12 @@ export type AlpacaPortfolioHistory = z.infer<
   typeof alpacaPortfolioHistorySchema
 >
 export type AlpacaPosition = z.infer<typeof alpacaPositionSchema>
+export type AlpacaOrderType = z.infer<typeof alpacaOrderTypeSchema>
+export type AlpacaQuantityMode = z.infer<typeof alpacaQuantityModeSchema>
+export type AlpacaTimeInForce = z.infer<typeof alpacaTimeInForceSchema>
+export type AssetSearchOptions = z.infer<typeof assetSearchOptionsSchema>
+export type AssetSearchResponse = z.infer<typeof assetSearchResponseSchema>
+export type AssetSearchResult = z.infer<typeof assetSearchResultSchema>
 export type BalanceChange = z.infer<typeof balanceChangeSchema>
 export type BalanceChanges = z.infer<typeof balanceChangesSchema>
 export type BalanceChart = z.infer<typeof balanceChartSchema>
@@ -331,6 +405,7 @@ export type GetBalanceChartOptions = z.infer<
 export type GetCryptoSnapshotsOptions = z.infer<
   typeof getCryptoSnapshotsOptionsSchema
 >
+export type GetAssetsOptions = z.infer<typeof getAssetsOptionsSchema>
 export type GetPositionOptions = z.infer<typeof getPositionOptionsSchema>
 export type Portfolio = z.infer<typeof portfolioSchema>
 export type PortfolioHistoryOptions = z.infer<
