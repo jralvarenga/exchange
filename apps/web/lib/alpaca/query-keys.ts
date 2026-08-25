@@ -1,6 +1,7 @@
 import type { BalanceInterval } from './schemas'
 
 export const balanceQueryKey = ['alpaca', 'balance'] as const
+export const portfolioQueryKey = ['alpaca', 'portfolio'] as const
 
 export const initialBalanceInterval = '1M' satisfies BalanceInterval
 

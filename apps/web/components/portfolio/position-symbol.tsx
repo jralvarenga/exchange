@@ -1,0 +1,46 @@
+'use client'
+
+import Image from 'next/image'
+import { useState } from 'react'
+
+import type { PortfolioPosition } from '@/lib/alpaca/schemas'
+
+interface Props {
+  assetClass: PortfolioPosition['assetClass']
+  symbol: string
+}
+
+/** Displays a trusted ticker logo with a text monogram fallback. */
+export function PositionSymbol({ assetClass, symbol }: Props) {
+  const [hasError, setHasError] = useState(false)
+  const primarySymbol = symbol.split('/')[0] ?? symbol
+  const logoSymbol =
+    assetClass === 'crypto'
+      ? primarySymbol.replace(/(?:USDC|USDT|USD)$/u, '')
+      : primarySymbol
+  const logoType = assetClass === 'crypto' ? 'crypto' : 'symbol'
+  const logoUrl = `https://assets.parqet.com/logos/${logoType}/${encodeURIComponent(logoSymbol)}?format=png&size=64`
+  const symbolMark = logoSymbol.slice(0, 2).toUpperCase() || '—'
+
+  return (
+    <span className="flex size-10 shrink-0 items-center justify-center">
+      {hasError ? (
+        <span
+          aria-hidden="true"
+          className="font-bold text-muted-foreground text-xs"
+        >
+          {symbolMark}
+        </span>
+      ) : (
+        <Image
+          alt=""
+          className="size-8 object-fill object-center rounded-lg"
+          height={32}
+          onError={() => setHasError(true)}
+          src={logoUrl}
+          width={32}
+        />
+      )}
+    </span>
+  )
+}
