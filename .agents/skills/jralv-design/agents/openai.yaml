@@ -1,0 +1,4 @@
+interface:
+  display_name: "My own design rules"
+  short_description: "Apply personal frontend design rules"
+  default_prompt: "Use $design to design this frontend component, page or feature according to my conventions."

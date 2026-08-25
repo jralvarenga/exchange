@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Guidelines"
+  short_description: "Apply personal code style and structure rules"
+  default_prompt: "Use $code-guidelines to write or revise this code according to my conventions."

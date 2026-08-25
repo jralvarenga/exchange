@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "jralv-code-guidelines": {
+      "source": "jralvarenga/skills",
+      "sourceType": "github",
+      "skillPath": "skills/jralv-code-guidelines/SKILL.md",
+      "computedHash": "faad8fd4abfaf240bf8f08b454e240bc3b71a45ab2145ca1c815facdf3b6e360"
+    },
+    "jralv-design": {
+      "source": "jralvarenga/skills",
+      "sourceType": "github",
+      "skillPath": "skills/jralv-design/SKILL.md",
+      "computedHash": "93a5caa87ec08cae1d75b0d4c0e4db711447bd1f3c12192f50a9dde38fd3309f"
+    },
+    "write-agents-file": {
+      "source": "jralvarenga/skills",
+      "sourceType": "github",
+      "skillPath": "skills/write-agents-file/SKILL.md",
+      "computedHash": "c200e61afd3357d1004f06cd9a7e29d4e7fbd236d9d633daf5e917cb54ec77f6"
+    }
+  }
+}
