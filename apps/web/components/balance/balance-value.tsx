@@ -11,7 +11,10 @@ export function BalanceValue() {
   }).format(balance.equity)
 
   return (
-    <h1 className="font-bold text-5xl text-numeric" aria-live="polite">
+    <h1
+      className="min-w-0 font-bold text-4xl text-numeric sm:text-5xl"
+      aria-live="polite"
+    >
       {formattedBalance}
     </h1>
   )

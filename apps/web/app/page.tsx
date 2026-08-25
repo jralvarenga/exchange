@@ -5,10 +5,15 @@ import {
 } from '@tanstack/react-query'
 
 import { BalanceCard } from '@/components/balance/balance-card'
-import { getBalanceChange, getCurrentBalance } from '@/lib/alpaca/client'
+import {
+  getBalanceChange,
+  getBalanceChart,
+  getCurrentBalance,
+} from '@/lib/alpaca/client'
 import {
   balanceQueryKey,
   getBalanceChangeQueryKey,
+  getBalanceHistoryQueryKey,
   initialBalanceInterval,
 } from '@/lib/alpaca/query-keys'
 
@@ -23,6 +28,10 @@ export default async function Page() {
     queryClient.fetchQuery({
       queryFn: () => getBalanceChange({ interval: initialBalanceInterval }),
       queryKey: getBalanceChangeQueryKey(initialBalanceInterval),
+    }),
+    queryClient.fetchQuery({
+      queryFn: () => getBalanceChart({ interval: initialBalanceInterval }),
+      queryKey: getBalanceHistoryQueryKey(initialBalanceInterval),
     }),
   ])
 

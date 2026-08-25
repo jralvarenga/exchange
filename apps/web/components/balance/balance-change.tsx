@@ -33,14 +33,14 @@ export function BalanceChange({ interval }: Props) {
       <span className="sr-only">{direction}: </span>
       <span
         className={cn(
-          'rounded-md bg-background/90 px-2 py-1 text-sm',
+          'rounded-md bg-background/90 px-2 py-1 text-sm font-bold',
           isGain ? 'text-success' : 'text-danger'
         )}
       >
         {formattedPercent}
       </span>
       <span className={cn(
-          'rounded-md bg-background/90 px-2 py-1 text-sm',
+          'rounded-md bg-background/90 px-2 py-1 text-sm font-bold',
           "text-primary-foreground",
           isGain ? 'text-success' : 'text-danger'
         )}
