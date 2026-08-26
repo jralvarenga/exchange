@@ -1,6 +1,7 @@
 'use client'
 
-import { Button } from '@workspace/ui/components/button'
+import { buttonVariants } from '@workspace/ui/components/button'
+import { cn } from '@workspace/ui/lib/utils'
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -20,10 +21,13 @@ export function TopPositions() {
         <h2 className="font-bold text-2xl" id="top-positions-title">
           Top positions
         </h2>
-        <Button render={<Link href="/portfolio" />} size="lg" variant="outline">
+        <Link
+          className={cn(buttonVariants({ size: 'lg', variant: 'outline' }))}
+          href="/portfolio"
+        >
           View portfolio
           <ArrowRight aria-hidden="true" />
-        </Button>
+        </Link>
       </div>
       <AssetsTable assets={positions} limitShown={5} />
     </section>

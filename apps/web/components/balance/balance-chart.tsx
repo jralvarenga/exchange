@@ -7,7 +7,7 @@ import {
   ChartTooltipContent,
 } from '@workspace/ui/components/chart'
 import { useId } from 'react'
-import { Area, AreaChart, YAxis } from 'recharts'
+import { Area, AreaChart, Line, YAxis } from 'recharts'
 
 import { useBalanceHistory } from '@/hooks/use-balance-history'
 import type { BalanceInterval } from '@/lib/alpaca/schemas'
@@ -100,7 +100,7 @@ export function BalanceChart({ interval }: Props) {
           cursor={false}
         />
         <defs>
-          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <Line id={gradientId} x1="0" x2="0" y1="0" y2="1">
             <stop
               offset="5%"
               stopColor="var(--color-equity)"
@@ -111,7 +111,7 @@ export function BalanceChart({ interval }: Props) {
               stopColor="var(--color-equity)"
               stopOpacity={0}
             />
-          </linearGradient>
+          </Line>
         </defs>
         <Area
           baseValue={equityDomain[0]}

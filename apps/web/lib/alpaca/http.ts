@@ -15,13 +15,18 @@ interface ApiErrorBody {
   }
 }
 
+interface CreateApiResponseOptions {
+  exposeAlpacaMessage?: boolean
+}
+
 const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
 }
 
 /** Runs an API handler and converts known failures into safe JSON responses. */
 export async function createApiResponse(
-  handler: ApiHandler
+  handler: ApiHandler,
+  options: CreateApiResponseOptions = {}
 ): Promise<Response> {
   try {
     const data = await handler()
@@ -29,14 +34,15 @@ export async function createApiResponse(
     return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
   } catch (error) {
     if (error instanceof AlpacaApiError) {
-      const status = getAlpacaErrorStatus(error)
+      const status = getAlpacaErrorStatus(error, options.exposeAlpacaMessage)
 
       return createErrorResponse(
         {
           error: {
             code: 'ALPACA_REQUEST_FAILED',
-            message:
-              status === 404
+            message: options.exposeAlpacaMessage
+              ? error.message
+              : status === 404
                 ? 'The requested Alpaca resource was not found.'
                 : 'Unable to retrieve data from Alpaca.',
             requestId: error.requestId,
@@ -93,13 +99,20 @@ function createErrorResponse(body: ApiErrorBody, status: number): Response {
 }
 
 /** Maps upstream Alpaca errors to safe application HTTP statuses. */
-function getAlpacaErrorStatus(error: AlpacaApiError): number {
+function getAlpacaErrorStatus(
+  error: AlpacaApiError,
+  exposeAlpacaMessage = false
+): number {
   if (error.status === 404) {
     return 404
   }
 
   if (error.status === 429) {
     return 503
+  }
+
+  if (exposeAlpacaMessage && error.status >= 400 && error.status < 500) {
+    return error.status
   }
 
   return 502

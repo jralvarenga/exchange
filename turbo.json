@@ -7,7 +7,10 @@
     "ALPACA_CRYPTO_LOCATION",
     "ALPACA_DATA_BASE_URL",
     "ALPACA_ENVIRONMENT",
-    "ALPACA_TRADING_BASE_URL"
+    "ALPACA_TRADING_BASE_URL",
+    "NEXT_PUBLIC_APP_URL",
+    "PORT",
+    "VERCEL_URL"
   ],
   "tasks": {
     "build": {

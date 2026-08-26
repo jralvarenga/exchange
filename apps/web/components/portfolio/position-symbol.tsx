@@ -34,7 +34,7 @@ export function PositionSymbol({ assetClass, symbol }: Props) {
       ) : (
         <Image
           alt=""
-          className="size-8 object-fill object-center rounded-lg"
+          className="size-8 rounded-lg object-fill object-center"
           height={32}
           onError={() => setHasError(true)}
           src={logoUrl}

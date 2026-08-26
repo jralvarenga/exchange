@@ -35,6 +35,8 @@ export const alpacaTimeInForceSchema = z.enum([
 
 export const alpacaQuantityModeSchema = z.enum(['qty', 'notional'])
 
+export const alpacaOrderSideSchema = z.enum(['buy', 'sell'])
+
 export const searchableAssetClassSchema = z.enum(['crypto', 'us_equity'])
 
 export const balanceIntervalSchema = z.enum([
@@ -110,6 +112,127 @@ export const assetSearchResponseSchema = z.object({
 export const assetSearchOptionsSchema = alpacaClientOptionsSchema.extend({
   limit: z.number().int().min(1).max(20).default(8),
   query: z.string().trim().min(1).max(80),
+})
+
+const positiveDecimalSchema = z
+  .string()
+  .trim()
+  .regex(/^\d+(?:\.\d{1,9})?$/u, 'Enter a valid number with up to 9 decimals.')
+  .refine((value) => Number(value) > 0, 'Enter an amount greater than zero.')
+
+const optionalPositiveDecimalSchema = z.union([
+  z.literal(''),
+  positiveDecimalSchema,
+])
+
+export const orderFormValuesSchema = z
+  .object({
+    amount: positiveDecimalSchema,
+    asset: assetSearchResultSchema.nullable(),
+    limitPrice: optionalPositiveDecimalSchema,
+    quantityMode: alpacaQuantityModeSchema,
+    stopPrice: optionalPositiveDecimalSchema,
+    timeInForce: alpacaTimeInForceSchema,
+    trailPercent: optionalPositiveDecimalSchema,
+    type: alpacaOrderTypeSchema,
+  })
+  .superRefine((values, context) => {
+    validateOrderValues(
+      {
+        ...values,
+        assetClass: values.asset?.assetClass,
+        fractionable: values.asset?.fractionable,
+      },
+      context
+    )
+
+    if (!values.asset) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Select an asset to place an order.',
+        path: ['asset'],
+      })
+    }
+  })
+
+export const createOrderRequestSchema = z
+  .object({
+    amount: positiveDecimalSchema,
+    assetClass: searchableAssetClassSchema,
+    clientOrderId: z.uuid().optional(),
+    fractionable: z.boolean(),
+    limitPrice: optionalPositiveDecimalSchema.optional(),
+    quantityMode: alpacaQuantityModeSchema,
+    side: alpacaOrderSideSchema,
+    stopPrice: optionalPositiveDecimalSchema.optional(),
+    symbol: z.string().trim().min(1).max(32),
+    timeInForce: alpacaTimeInForceSchema,
+    trailPercent: optionalPositiveDecimalSchema.optional(),
+    type: alpacaOrderTypeSchema,
+  })
+  .superRefine(validateOrderValues)
+
+export const alpacaOrderSchema = z
+  .object({
+    client_order_id: z.string(),
+    id: z.string(),
+    side: alpacaOrderSideSchema,
+    status: z.string(),
+    submitted_at: z.string().nullable(),
+    symbol: z.string(),
+    time_in_force: alpacaTimeInForceSchema,
+    type: alpacaOrderTypeSchema,
+  })
+  .passthrough()
+
+export const orderSchema = z.object({
+  clientOrderId: z.string(),
+  id: z.string(),
+  side: alpacaOrderSideSchema,
+  status: z.string(),
+  submittedAt: z.string().nullable(),
+  symbol: z.string(),
+  timeInForce: alpacaTimeInForceSchema,
+  type: alpacaOrderTypeSchema,
+})
+
+export const orderStatusFilterSchema = z.enum(['all', 'closed', 'open'])
+
+export const sortDirectionSchema = z.enum(['asc', 'desc'])
+
+export const alpacaAccountOrderSchema = alpacaOrderSchema.extend({
+  asset_class: alpacaAssetClassSchema.optional(),
+  created_at: z.string().optional(),
+  filled_avg_price: z.string().nullable().optional(),
+  filled_qty: z.string().optional(),
+  limit_price: z.string().nullable().optional(),
+  notional: z.string().nullable().optional(),
+  qty: z.string().nullable().optional(),
+  stop_price: z.string().nullable().optional(),
+})
+
+export const alpacaAccountOrdersSchema = z.array(alpacaAccountOrderSchema)
+
+export const accountOrderSchema = orderSchema.extend({
+  assetClass: alpacaAssetClassSchema.optional(),
+  createdAt: z.string().optional(),
+  filledAveragePrice: z.string().nullable().optional(),
+  filledQuantity: z.string().optional(),
+  limitPrice: z.string().nullable().optional(),
+  notional: z.string().nullable().optional(),
+  quantity: z.string().nullable().optional(),
+  stopPrice: z.string().nullable().optional(),
+})
+
+export const accountOrdersSchema = z.array(accountOrderSchema)
+
+export const getOrdersOptionsSchema = alpacaClientOptionsSchema.extend({
+  beforeOrderId: z.string().min(1).optional(),
+  direction: sortDirectionSchema.default('desc'),
+  limit: z.number().int().min(1).max(500).default(500),
+  nested: z.boolean().default(false),
+  status: orderStatusFilterSchema.default('all'),
+  symbols: z.array(z.string().trim().min(1)).max(100).optional(),
 })
 
 export const alpacaAccountSchema = z
@@ -215,6 +338,78 @@ export const portfolioSchema = z.object({
   totalMarketValue: z.number(),
   totalUnrealizedProfitLoss: z.number(),
 })
+
+export const ordersAndPositionsSchema = z.object({
+  orders: accountOrdersSchema,
+  portfolio: portfolioSchema,
+})
+
+export const activityCategorySchema = z.enum([
+  'non_trade_activity',
+  'trade_activity',
+])
+
+export const alpacaAccountActivitySchema = z
+  .object({
+    activity_type: z.string(),
+    cum_qty: z.string().optional(),
+    date: z.string().optional(),
+    id: z.string(),
+    leaves_qty: z.string().optional(),
+    net_amount: z.string().optional(),
+    order_id: z.string().optional(),
+    per_share_amount: z.string().optional(),
+    price: z.string().optional(),
+    qty: z.string().optional(),
+    side: alpacaOrderSideSchema.optional(),
+    symbol: z.string().optional(),
+    transaction_time: z.string().optional(),
+    type: z.string().optional(),
+  })
+  .passthrough()
+
+export const alpacaAccountActivitiesSchema = z.array(
+  alpacaAccountActivitySchema
+)
+
+export const accountActivitySchema = z.object({
+  activityType: z.string(),
+  cumulativeQuantity: z.string().optional(),
+  date: z.string().optional(),
+  id: z.string(),
+  leavesQuantity: z.string().optional(),
+  netAmount: z.string().optional(),
+  orderId: z.string().optional(),
+  perShareAmount: z.string().optional(),
+  price: z.string().optional(),
+  quantity: z.string().optional(),
+  side: alpacaOrderSideSchema.optional(),
+  symbol: z.string().optional(),
+  transactionTime: z.string().optional(),
+  type: z.string().optional(),
+})
+
+export const accountActivitiesSchema = z.object({
+  activities: z.array(accountActivitySchema),
+  nextPageToken: z.string().optional(),
+})
+
+export const getAccountActivitiesOptionsSchema = alpacaClientOptionsSchema
+  .extend({
+    activityTypes: z.array(z.string().trim().min(1)).max(50).optional(),
+    after: z.string().trim().min(1).max(40).optional(),
+    category: activityCategorySchema.optional(),
+    date: z.string().trim().min(1).max(40).optional(),
+    direction: sortDirectionSchema.default('desc'),
+    orderId: z.string().trim().min(1).optional(),
+    pageSize: z.number().int().min(1).max(100).default(100),
+    pageToken: z.string().trim().min(1).optional(),
+    until: z.string().trim().min(1).max(40).optional(),
+  })
+  .refine(
+    (options) => !(options.activityTypes && options.category),
+    'Use either activityTypes or category, not both.'
+  )
 
 export const portfolioHistoryOptionsSchema = alpacaClientOptionsSchema.extend({
   cashflowTypes: z.string().optional(),
@@ -377,8 +572,217 @@ export const assetSearchQuerySchema = z.object({
   query: z.string().trim().min(1).max(80),
 })
 
+export const ordersAndPositionsQuerySchema = z.object({
+  beforeOrderId: z.preprocess(
+    (value) => (value === null || value === '' ? undefined : value),
+    z.string().min(1).optional()
+  ),
+  direction: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    sortDirectionSchema.default('desc')
+  ),
+  limit: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    z.coerce.number().int().min(1).max(500).default(500)
+  ),
+  nested: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    z
+      .enum(['false', 'true'])
+      .transform((value) => value === 'true')
+      .default(false)
+  ),
+  status: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    orderStatusFilterSchema.default('all')
+  ),
+  symbols: z.preprocess(
+    (value) => (value === null || value === '' ? undefined : value),
+    z
+      .string()
+      .transform((value) =>
+        value
+          .split(',')
+          .map((symbol) => symbol.trim())
+          .filter(Boolean)
+      )
+      .pipe(z.array(z.string().min(1)).max(100))
+      .optional()
+  ),
+})
+
+export const accountActivitiesQuerySchema = z
+  .object({
+    activityTypes: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      z
+        .string()
+        .transform((value) =>
+          value
+            .split(',')
+            .map((activityType) => activityType.trim())
+            .filter(Boolean)
+        )
+        .pipe(z.array(z.string().min(1)).max(50))
+        .optional()
+    ),
+    after: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      z.string().trim().min(1).max(40).optional()
+    ),
+    category: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      activityCategorySchema.optional()
+    ),
+    date: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      z.string().trim().min(1).max(40).optional()
+    ),
+    direction: z.preprocess(
+      (value) => (value === null ? undefined : value),
+      sortDirectionSchema.default('desc')
+    ),
+    orderId: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      z.string().trim().min(1).optional()
+    ),
+    pageSize: z.preprocess(
+      (value) => (value === null ? undefined : value),
+      z.coerce.number().int().min(1).max(100).default(100)
+    ),
+    pageToken: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      z.string().trim().min(1).optional()
+    ),
+    until: z.preprocess(
+      (value) => (value === null || value === '' ? undefined : value),
+      z.string().trim().min(1).max(40).optional()
+    ),
+  })
+  .refine(
+    (query) => !(query.activityTypes && query.category),
+    'Use either activityTypes or category, not both.'
+  )
+
+interface OrderValidationValues {
+  amount: string
+  assetClass?: z.infer<typeof searchableAssetClassSchema>
+  fractionable?: boolean
+  limitPrice?: string
+  quantityMode: z.infer<typeof alpacaQuantityModeSchema>
+  stopPrice?: string
+  timeInForce: z.infer<typeof alpacaTimeInForceSchema>
+  trailPercent?: string
+  type: z.infer<typeof alpacaOrderTypeSchema>
+}
+
+/** Adds cross-field issues for Alpaca order combinations it cannot accept. */
+function validateOrderValues(
+  values: OrderValidationValues,
+  context: z.RefinementCtx
+): void {
+  if (
+    (values.type === 'limit' || values.type === 'stop_limit') &&
+    !values.limitPrice
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Enter a limit price for this order type.',
+      path: ['limitPrice'],
+    })
+  }
+
+  if (
+    (values.type === 'stop' || values.type === 'stop_limit') &&
+    !values.stopPrice
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Enter a stop price for this order type.',
+      path: ['stopPrice'],
+    })
+  }
+
+  if (values.type === 'trailing_stop' && !values.trailPercent) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Enter a trailing percentage.',
+      path: ['trailPercent'],
+    })
+  }
+
+  if (
+    values.assetClass === 'crypto' &&
+    !['market', 'limit', 'stop_limit'].includes(values.type)
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Crypto supports market, limit, and stop-limit orders.',
+      path: ['type'],
+    })
+  }
+
+  if (
+    values.assetClass === 'crypto' &&
+    !['gtc', 'ioc'].includes(values.timeInForce)
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Crypto orders must use GTC or IOC.',
+      path: ['timeInForce'],
+    })
+  }
+
+  if (
+    values.assetClass === 'us_equity' &&
+    (values.quantityMode === 'notional' || !isWholeDecimal(values.amount)) &&
+    values.timeInForce !== 'day'
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Fractional equity orders must use DAY.',
+      path: ['timeInForce'],
+    })
+  }
+
+  if (
+    values.assetClass === 'us_equity' &&
+    values.fractionable === false &&
+    (values.quantityMode === 'notional' || !isWholeDecimal(values.amount))
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'This asset only accepts whole-share quantities.',
+      path: ['amount'],
+    })
+  }
+
+  if (
+    ['ioc', 'fok', 'opg', 'cls'].includes(values.timeInForce) &&
+    !['market', 'limit'].includes(values.type)
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'This time in force only supports market or limit orders.',
+      path: ['timeInForce'],
+    })
+  }
+}
+
+/** Returns whether a decimal string represents a whole quantity. */
+function isWholeDecimal(value: string): boolean {
+  const decimals = value.split('.')[1]
+
+  return decimals === undefined || /^0+$/u.test(decimals)
+}
+
 export type AlpacaAccount = z.infer<typeof alpacaAccountSchema>
+export type AccountActivities = z.infer<typeof accountActivitiesSchema>
+export type AccountActivity = z.infer<typeof accountActivitySchema>
+export type AccountOrder = z.infer<typeof accountOrderSchema>
 export type AccountSummary = z.infer<typeof accountSummarySchema>
+export type AlpacaAccountActivity = z.infer<typeof alpacaAccountActivitySchema>
+export type AlpacaAccountOrder = z.infer<typeof alpacaAccountOrderSchema>
 export type AlpacaAsset = z.infer<typeof alpacaAssetSchema>
 export type AlpacaClientOptions = z.infer<typeof alpacaClientOptionsSchema>
 export type AlpacaCryptoSnapshotsResponse = z.infer<
@@ -389,6 +793,8 @@ export type AlpacaPortfolioHistory = z.infer<
 >
 export type AlpacaPosition = z.infer<typeof alpacaPositionSchema>
 export type AlpacaOrderType = z.infer<typeof alpacaOrderTypeSchema>
+export type AlpacaOrder = z.infer<typeof alpacaOrderSchema>
+export type AlpacaOrderSide = z.infer<typeof alpacaOrderSideSchema>
 export type AlpacaQuantityMode = z.infer<typeof alpacaQuantityModeSchema>
 export type AlpacaTimeInForce = z.infer<typeof alpacaTimeInForceSchema>
 export type AssetSearchOptions = z.infer<typeof assetSearchOptionsSchema>
@@ -399,18 +805,26 @@ export type BalanceChanges = z.infer<typeof balanceChangesSchema>
 export type BalanceChart = z.infer<typeof balanceChartSchema>
 export type BalanceInterval = z.infer<typeof balanceIntervalSchema>
 export type CurrentBalance = z.infer<typeof currentBalanceSchema>
+export type CreateOrderRequest = z.infer<typeof createOrderRequestSchema>
 export type GetBalanceChartOptions = z.infer<
   typeof getBalanceChartOptionsSchema
+>
+export type GetAccountActivitiesOptions = z.infer<
+  typeof getAccountActivitiesOptionsSchema
 >
 export type GetCryptoSnapshotsOptions = z.infer<
   typeof getCryptoSnapshotsOptionsSchema
 >
 export type GetAssetsOptions = z.infer<typeof getAssetsOptionsSchema>
 export type GetPositionOptions = z.infer<typeof getPositionOptionsSchema>
+export type GetOrdersOptions = z.infer<typeof getOrdersOptionsSchema>
 export type Portfolio = z.infer<typeof portfolioSchema>
 export type PortfolioHistoryOptions = z.infer<
   typeof portfolioHistoryOptionsSchema
 >
 export type PortfolioPosition = z.infer<typeof portfolioPositionSchema>
 export type PortfolioTimeframe = z.infer<typeof portfolioTimeframeSchema>
+export type Order = z.infer<typeof orderSchema>
+export type OrderFormValues = z.infer<typeof orderFormValuesSchema>
+export type OrdersAndPositions = z.infer<typeof ordersAndPositionsSchema>
 export type TokenPrice = z.infer<typeof tokenPriceSchema>

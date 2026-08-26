@@ -1,3 +1,4 @@
+import { Toaster } from '@workspace/ui/components/toast'
 import { cn } from '@workspace/ui/lib/utils'
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
@@ -39,9 +40,11 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <QueryProvider>
-            <AppShell>{children}</AppShell>
-          </QueryProvider>
+          <Toaster>
+            <QueryProvider>
+              <AppShell>{children}</AppShell>
+            </QueryProvider>
+          </Toaster>
         </ThemeProvider>
       </body>
     </html>

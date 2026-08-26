@@ -1,14 +1,12 @@
 import type { ReactNode } from 'react'
 
-import { AppSidebar } from '@/components/app-sidebar'
+import { Navbar } from '@/components/portfolio/navbar'
 
 interface Props {
   children: ReactNode
 }
 
-/**
- * Persistent app chrome: floating sidebar and main content.
- */
+/** Persistent app chrome: top navbar, mobile tab bar, and main content. */
 export function AppShell({ children }: Props) {
   return (
     <>
@@ -18,8 +16,8 @@ export function AppShell({ children }: Props) {
       >
         Skip to main content
       </a>
-      <AppSidebar />
-      <main id="main" className="min-h-svh p-6 pb-28 md:pb-6">
+      <Navbar />
+      <main id="main" className="mt-10 min-h-svh p-6 pb-28 md:pb-6">
         {children}
       </main>
     </>

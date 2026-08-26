@@ -4,10 +4,11 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { portfolioQueryKey } from '@/lib/alpaca/query-keys'
 import type { Portfolio } from '@/lib/alpaca/schemas'
 import { portfolioSchema } from '@/lib/alpaca/schemas'
+import { getApiUrl } from '@/lib/utils'
 
 /** Fetches and validates all current Alpaca portfolio positions. */
 async function fetchPortfolio(): Promise<Portfolio> {
-  const response = await fetch('/api/alpaca/portfolio', {
+  const response = await fetch(getApiUrl('/api/alpaca/portfolio'), {
     cache: 'no-store',
     headers: { Accept: 'application/json' },
   })

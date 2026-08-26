@@ -1,7 +1,7 @@
 'use client'
 
 import { Dialog as SheetPrimitive } from '@base-ui/react/dialog'
-import { Button } from '@workspace/ui/components/button'
+import { buttonVariants } from '@workspace/ui/components/button'
 import { cn } from '@workspace/ui/lib/utils'
 import { XIcon } from 'lucide-react'
 import type * as React from 'react'
@@ -61,13 +61,10 @@ function SheetContent({
         {showCloseButton && (
           <SheetPrimitive.Close
             data-slot="sheet-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-4 right-4 bg-secondary"
-                size="icon-sm"
-              />
-            }
+            className={cn(
+              buttonVariants({ size: 'icon-sm', variant: 'ghost' }),
+              'absolute top-4 right-4 bg-secondary'
+            )}
           >
             <XIcon />
             <span className="sr-only">Close</span>

@@ -3,7 +3,12 @@ import 'server-only'
 import { z } from 'zod'
 
 import type {
+  AccountActivities,
+  AccountActivity,
+  AccountOrder,
   AlpacaAccount,
+  AlpacaAccountActivity,
+  AlpacaAccountOrder,
   AlpacaAsset,
   AlpacaClientOptions,
   AlpacaCryptoSnapshotsResponse,
@@ -15,11 +20,16 @@ import type {
   BalanceChanges,
   BalanceChart,
   BalanceInterval,
+  CreateOrderRequest,
   CurrentBalance,
+  GetAccountActivitiesOptions,
   GetAssetsOptions,
   GetBalanceChartOptions,
   GetCryptoSnapshotsOptions,
+  GetOrdersOptions,
   GetPositionOptions,
+  Order,
+  OrdersAndPositions,
   Portfolio,
   PortfolioHistoryOptions,
   PortfolioPosition,
@@ -27,10 +37,16 @@ import type {
   TokenPrice,
 } from './schemas'
 import {
+  accountActivitiesSchema,
+  accountActivitySchema,
+  accountOrderSchema,
+  alpacaAccountActivitiesSchema,
+  alpacaAccountOrdersSchema,
   alpacaAccountSchema,
   alpacaAssetsSchema,
   alpacaCryptoSnapshotsResponseSchema,
   alpacaEnvironmentSchema,
+  alpacaOrderSchema,
   alpacaPortfolioHistorySchema,
   alpacaPositionSchema,
   alpacaPositionsSchema,
@@ -39,7 +55,12 @@ import {
   balanceChangesSchema,
   balanceChartSchema,
   balanceIntervalSchema,
+  createOrderRequestSchema,
   currentBalanceSchema,
+  getAccountActivitiesOptionsSchema,
+  getOrdersOptionsSchema,
+  orderSchema,
+  ordersAndPositionsSchema,
   portfolioPositionSchema,
   portfolioSchema,
   tokenPricesSchema,
@@ -63,7 +84,9 @@ interface ResolvedClientOptions {
 
 interface AlpacaFetchOptions<Schema extends z.ZodType> {
   baseUrl: string
+  body?: unknown
   client: ResolvedClientOptions
+  method?: 'GET' | 'POST'
   path: string
   query?: URLSearchParams
   schema: Schema
@@ -211,6 +234,133 @@ export async function searchAssets(
     }))
 
   return assetSearchResponseSchema.parse({ assets, query })
+}
+
+/** Submits a validated buy or sell order to the configured Alpaca account. */
+export async function createOrder(options: CreateOrderRequest): Promise<Order> {
+  const order = createOrderRequestSchema.parse(options)
+  const client = resolveClientOptions({})
+  const response = await alpacaFetch({
+    baseUrl: client.tradingBaseUrl,
+    body: {
+      client_order_id: order.clientOrderId,
+      limit_price: order.limitPrice || undefined,
+      notional: order.quantityMode === 'notional' ? order.amount : undefined,
+      qty: order.quantityMode === 'qty' ? order.amount : undefined,
+      side: order.side,
+      stop_price: order.stopPrice || undefined,
+      symbol: order.symbol,
+      time_in_force: order.timeInForce,
+      trail_percent: order.trailPercent || undefined,
+      type: order.type,
+    },
+    client,
+    method: 'POST',
+    path: '/v2/orders',
+    schema: alpacaOrderSchema,
+  })
+
+  return orderSchema.parse({
+    clientOrderId: response.client_order_id,
+    id: response.id,
+    side: response.side,
+    status: response.status,
+    submittedAt: response.submitted_at,
+    symbol: response.symbol,
+    timeInForce: response.time_in_force,
+    type: response.type,
+  })
+}
+
+/** Returns crypto and equity orders for the account in a single Alpaca request. */
+export async function getOrders(
+  options: Partial<GetOrdersOptions> = {}
+): Promise<AccountOrder[]> {
+  const queryOptions = getOrdersOptionsSchema.parse(options)
+  const client = resolveClientOptions(queryOptions)
+  const query = new URLSearchParams()
+
+  setQueryValue(query, 'before_order_id', queryOptions.beforeOrderId)
+  setQueryValue(query, 'direction', queryOptions.direction)
+  setQueryValue(query, 'limit', queryOptions.limit)
+  setQueryValue(query, 'nested', queryOptions.nested)
+  setQueryValue(query, 'status', queryOptions.status)
+  setQueryValue(
+    query,
+    'symbols',
+    queryOptions.symbols && queryOptions.symbols.length > 0
+      ? queryOptions.symbols.join(',')
+      : undefined
+  )
+
+  const response = await alpacaFetch({
+    baseUrl: client.tradingBaseUrl,
+    client,
+    path: '/v2/orders',
+    query,
+    schema: alpacaAccountOrdersSchema,
+  })
+
+  return response.map(normalizeOrder)
+}
+
+/** Returns open positions with crypto and equity orders in one app response. */
+export async function getOrdersAndPositions(
+  options: Partial<GetOrdersOptions> = {}
+): Promise<OrdersAndPositions> {
+  const queryOptions = getOrdersOptionsSchema.parse(options)
+  const [orders, portfolio] = await Promise.all([
+    getOrders(queryOptions),
+    getPortfolio(queryOptions),
+  ])
+
+  return ordersAndPositionsSchema.parse({
+    orders,
+    portfolio,
+  })
+}
+
+/** Returns a page of account activity covering trades, cash, and other events. */
+export async function getAccountActivities(
+  options: Partial<GetAccountActivitiesOptions> = {}
+): Promise<AccountActivities> {
+  const queryOptions = getAccountActivitiesOptionsSchema.parse(options)
+  const client = resolveClientOptions(queryOptions)
+  const query = new URLSearchParams()
+
+  setQueryValue(
+    query,
+    'activity_types',
+    queryOptions.activityTypes && queryOptions.activityTypes.length > 0
+      ? queryOptions.activityTypes.join(',')
+      : undefined
+  )
+  setQueryValue(query, 'after', queryOptions.after)
+  setQueryValue(query, 'category', queryOptions.category)
+  setQueryValue(query, 'date', queryOptions.date)
+  setQueryValue(query, 'direction', queryOptions.direction)
+  setQueryValue(query, 'order_id', queryOptions.orderId)
+  setQueryValue(query, 'page_size', queryOptions.pageSize)
+  setQueryValue(query, 'page_token', queryOptions.pageToken)
+  setQueryValue(query, 'until', queryOptions.until)
+
+  const response = await alpacaFetch({
+    baseUrl: client.tradingBaseUrl,
+    client,
+    path: '/v2/account/activities',
+    query,
+    schema: alpacaAccountActivitiesSchema,
+  })
+  const activities = response.map(normalizeActivity)
+  const lastActivity = activities.at(-1)
+
+  return accountActivitiesSchema.parse({
+    activities,
+    nextPageToken:
+      activities.length === queryOptions.pageSize
+        ? lastActivity?.id
+        : undefined,
+  })
 }
 
 /** Returns one open position by symbol or Alpaca asset ID. */
@@ -387,7 +537,7 @@ export async function getTokenPrices(
   )
 }
 
-/** Performs an authenticated GET request and validates its response. */
+/** Performs an authenticated Alpaca request and validates its response. */
 async function alpacaFetch<Schema extends z.ZodType>(
   options: AlpacaFetchOptions<Schema>
 ): Promise<z.infer<Schema>> {
@@ -398,13 +548,18 @@ async function alpacaFetch<Schema extends z.ZodType>(
 
   try {
     const response = await options.client.fetcher(url, {
+      body:
+        options.body === undefined ? undefined : JSON.stringify(options.body),
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
         'APCA-API-KEY-ID': options.client.apiKeyId,
         'APCA-API-SECRET-KEY': options.client.apiSecretKey,
+        ...(options.body === undefined
+          ? {}
+          : { 'Content-Type': 'application/json' }),
       },
-      method: 'GET',
+      method: options.method ?? 'GET',
       signal: controller.signal,
     })
 
@@ -618,6 +773,48 @@ function calculateBalanceChange(
   }
 }
 
+/** Converts an Alpaca order response to the application order shape. */
+function normalizeOrder(order: AlpacaAccountOrder): AccountOrder {
+  return accountOrderSchema.parse({
+    assetClass: order.asset_class,
+    clientOrderId: order.client_order_id,
+    createdAt: order.created_at,
+    filledAveragePrice: order.filled_avg_price,
+    filledQuantity: order.filled_qty,
+    id: order.id,
+    limitPrice: order.limit_price,
+    notional: order.notional,
+    quantity: order.qty,
+    side: order.side,
+    status: order.status,
+    stopPrice: order.stop_price,
+    submittedAt: order.submitted_at,
+    symbol: order.symbol,
+    timeInForce: order.time_in_force,
+    type: order.type,
+  })
+}
+
+/** Converts an Alpaca activity entry to the application activity shape. */
+function normalizeActivity(activity: AlpacaAccountActivity): AccountActivity {
+  return accountActivitySchema.parse({
+    activityType: activity.activity_type,
+    cumulativeQuantity: activity.cum_qty,
+    date: activity.date,
+    id: activity.id,
+    leavesQuantity: activity.leaves_qty,
+    netAmount: activity.net_amount,
+    orderId: activity.order_id,
+    perShareAmount: activity.per_share_amount,
+    price: activity.price,
+    quantity: activity.qty,
+    side: activity.side,
+    symbol: activity.symbol,
+    transactionTime: activity.transaction_time,
+    type: activity.type,
+  })
+}
+
 /** Converts an Alpaca position response to numeric application values. */
 function normalizePosition(position: AlpacaPosition): PortfolioPosition {
   return portfolioPositionSchema.parse({
@@ -664,10 +861,10 @@ function toDateString(value?: Date | string): string | undefined {
 function setQueryValue(
   query: URLSearchParams,
   key: string,
-  value?: string
+  value?: boolean | number | string
 ): void {
   if (value !== undefined) {
-    query.set(key, value)
+    query.set(key, String(value))
   }
 }
 

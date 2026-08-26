@@ -7,6 +7,7 @@ import {
 import { getAssetSearchQueryKey } from '@/lib/alpaca/query-keys'
 import type { AssetSearchResponse } from '@/lib/alpaca/schemas'
 import { assetSearchResponseSchema } from '@/lib/alpaca/schemas'
+import { getApiUrl } from '@/lib/utils'
 
 interface FetchAssetSearchOptions {
   query: string
@@ -18,11 +19,14 @@ async function fetchAssetSearch(
   options: FetchAssetSearchOptions
 ): Promise<AssetSearchResponse> {
   const parameters = new URLSearchParams({ limit: '8', query: options.query })
-  const response = await fetch(`/api/alpaca/assets/search?${parameters}`, {
-    cache: 'no-store',
-    headers: { Accept: 'application/json' },
-    signal: options.signal,
-  })
+  const response = await fetch(
+    getApiUrl(`/api/alpaca/assets/search?${parameters}`),
+    {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      signal: options.signal,
+    }
+  )
 
   if (!response.ok) {
     throw new Error('Unable to search Alpaca assets.')

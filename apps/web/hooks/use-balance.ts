@@ -4,10 +4,11 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { balanceQueryKey } from '@/lib/alpaca/query-keys'
 import type { CurrentBalance } from '@/lib/alpaca/schemas'
 import { currentBalanceSchema } from '@/lib/alpaca/schemas'
+import { getApiUrl } from '@/lib/utils'
 
 /** Fetches and validates the current Alpaca account balance. */
 async function fetchBalance(): Promise<CurrentBalance> {
-  const response = await fetch('/api/alpaca/balance', {
+  const response = await fetch(getApiUrl('/api/alpaca/balance'), {
     cache: 'no-store',
     headers: { Accept: 'application/json' },
   })

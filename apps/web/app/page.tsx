@@ -3,8 +3,6 @@ import {
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
-import { Button } from '@workspace/ui/components/button'
-import { SearchIcon } from 'lucide-react'
 import { Suspense } from 'react'
 
 import { AccountSummary } from '@/components/balance/account-summary'
@@ -26,7 +24,6 @@ import {
   initialBalanceInterval,
   portfolioQueryKey,
 } from '@/lib/alpaca/query-keys'
-import { BuyAssetDialog } from '@/components/buy/buy-asset-dialog'
 
 export default async function Page() {
   const queryClient = new QueryClient()
@@ -65,10 +62,6 @@ export default async function Page() {
             <AccountSummary />
           </Suspense>
         </BalanceErrorBoundary>
-
-        <div className='w-full'>
-          <BuyAssetDialog />
-        </div>
         <BalanceErrorBoundary
           fallback={
             <p className="mt-3 rounded-3xl bg-card p-5 text-muted-foreground ring-1 ring-foreground/5">

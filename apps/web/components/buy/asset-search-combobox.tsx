@@ -22,14 +22,16 @@ interface EmptyMessageOptions {
   query: string
 }
 
+interface Props {
+  onValueChange: (asset: AssetSearchResult | null) => void
+  value: AssetSearchResult | null
+}
+
 const SEARCH_DELAY_MS = 250
 
 /** Searches and selects active Alpaca equities and crypto assets. */
-export function AssetSearchCombobox() {
-  const [inputValue, setInputValue] = useState('')
-  const [selectedAsset, setSelectedAsset] = useState<AssetSearchResult | null>(
-    null
-  )
+export function AssetSearchCombobox({ onValueChange, value }: Props) {
+  const [inputValue, setInputValue] = useState(value?.symbol ?? '')
   const searchInput = inputValue.trim()
   const normalizedInput = searchInput.toLocaleLowerCase('en-US')
   const debouncedQuery = useDebouncedValue(normalizedInput, SEARCH_DELAY_MS)
@@ -54,15 +56,21 @@ export function AssetSearchCombobox() {
       isItemEqualToValue={(asset, value) => asset.id === value.id}
       itemToStringLabel={(asset) => asset.symbol}
       items={assets}
-      onInputValueChange={setInputValue}
+      onInputValueChange={(nextInput) => {
+        setInputValue(nextInput)
+
+        if (value && nextInput !== value.symbol) {
+          onValueChange(null)
+        }
+      }}
       onValueChange={(asset) => {
-        setSelectedAsset(asset)
+        onValueChange(asset)
 
         if (asset) {
           setInputValue(asset.symbol)
         }
       }}
-      value={selectedAsset}
+      value={value}
     >
       <ComboboxInput
         aria-label="Search Alpaca assets"
@@ -73,7 +81,7 @@ export function AssetSearchCombobox() {
       />
       <ComboboxContent
         aria-busy={isSearching}
-        className="min-w-(--anchor-width) max-w-(--anchor-width) w-full"
+        className="w-full min-w-(--anchor-width) max-w-(--anchor-width)"
       >
         <ComboboxEmpty>
           <span className="flex items-center gap-2">
@@ -95,16 +103,12 @@ export function AssetSearchCombobox() {
               />
               <span className="flex flex-1 flex-col">
                 <span className="flex items-center justify-between gap-3">
-                  <span className="font-bold">
-                    {asset.symbol}
-                  </span>
+                  <span className="font-bold">{asset.symbol}</span>
                   <span className="text-muted-foreground text-xs">
                     {asset.assetClass === 'crypto' ? 'Crypto' : asset.exchange}
                   </span>
                 </span>
-                <span className="text-muted-foreground">
-                  {asset.name}
-                </span>
+                <span className="text-muted-foreground">{asset.name}</span>
               </span>
             </ComboboxItem>
           ))}

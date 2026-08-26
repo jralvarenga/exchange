@@ -6,5 +6,8 @@ declare namespace NodeJS {
     ALPACA_DATA_BASE_URL?: string
     ALPACA_ENVIRONMENT?: 'live' | 'paper'
     ALPACA_TRADING_BASE_URL?: string
+    NEXT_PUBLIC_APP_URL?: string
+    PORT?: string
+    VERCEL_URL?: string
   }
 }
