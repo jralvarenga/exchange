@@ -40,6 +40,7 @@ export const alpacaOrderSideSchema = z.enum(['buy', 'sell'])
 export const searchableAssetClassSchema = z.enum(['crypto', 'us_equity'])
 
 export const balanceIntervalSchema = z.enum([
+  '1D',
   '1M',
   '1W',
   '1Y',
@@ -463,6 +464,7 @@ export const balanceChangeSchema = z.object({
 
 export const balanceChangesSchema = z.object({
   allTime: balanceChangeSchema,
+  oneDay: balanceChangeSchema,
   oneMonth: balanceChangeSchema,
   oneWeek: balanceChangeSchema,
   oneYear: balanceChangeSchema,

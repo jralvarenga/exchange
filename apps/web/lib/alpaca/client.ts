@@ -448,7 +448,15 @@ export async function getBalanceChanges(
   options: AlpacaClientOptions = {}
 ): Promise<BalanceChanges> {
   const account = await getAccount(options)
-  const intervals: BalanceInterval[] = ['1W', '1M', '3M', '1Y', 'YTD', 'ALL']
+  const intervals: BalanceInterval[] = [
+    '1D',
+    '1W',
+    '1M',
+    '3M',
+    '1Y',
+    'YTD',
+    'ALL',
+  ]
   const intervalCharts = await Promise.all(
     intervals.map(async (interval) => ({
       chart: await getBalanceChart({ ...options, interval }),
@@ -469,6 +477,7 @@ export async function getBalanceChanges(
 
   return balanceChangesSchema.parse({
     allTime: changes.ALL,
+    oneDay: changes['1D'],
     oneMonth: changes['1M'],
     oneWeek: changes['1W'],
     oneYear: changes['1Y'],
@@ -728,6 +737,10 @@ function resolveClientOptions(
 
 /** Maps a dashboard interval to valid Alpaca portfolio-history parameters. */
 function getIntervalQuery(interval: BalanceInterval): IntervalQuery {
+  if (interval === '1D') {
+    return { period: '1D', timeframe: '5Min' }
+  }
+
   if (interval === '1W') {
     return { period: '1W', timeframe: '1H' }
   }
