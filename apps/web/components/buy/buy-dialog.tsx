@@ -38,11 +38,12 @@ import {
   type AlpacaOrderSide,
   type AlpacaOrderType,
   type AlpacaTimeInForce,
-  AssetSearchResult,
+  type AssetSearchResult,
   type CreateOrderRequest,
   type OrderFormValues,
   orderFormValuesSchema,
 } from '@/lib/alpaca/schemas'
+import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
 
 interface Props {
   assetIdentifier?: string
@@ -51,11 +52,6 @@ interface Props {
 interface SelectOption<Value extends string> {
   label: string
   value: Value
-}
-
-interface OrderFeedback {
-  kind: 'error' | 'success'
-  message: string
 }
 
 const orderTypes: Array<SelectOption<AlpacaOrderType>> = [
@@ -94,7 +90,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
 
 /** Opens a schema-validated Alpaca order ticket for an optional asset. */
 export function BuyDialog({ assetIdentifier }: Props) {
-  const [feedback, setFeedback] = useState<OrderFeedback | null>(null)
+  const [open, setOpen] = useState(false)
   const createOrder = useCreateOrder()
   const form = useForm({
     defaultValues,
@@ -112,17 +108,16 @@ export function BuyDialog({ assetIdentifier }: Props) {
 
       try {
         await createOrder.mutateAsync(request)
-        setFeedback({
-          kind: 'success',
-          message: `${side} order for ${request.symbol.toLocaleLowerCase('en-US')} was submitted.`,
+        showSuccessToast({
+          title: `${side} order submitted`,
+          description: `${request.symbol.toLocaleLowerCase('en-US')} was sent to Alpaca.`,
         })
+        setOpen(false)
       } catch (error) {
-        setFeedback({
-          kind: 'error',
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Unable to place the order.',
+        showErrorToast({
+          title: 'Unable to place order',
+          description:
+            error instanceof Error ? error.message : 'Try again in a moment.',
         })
       }
     },
@@ -148,12 +143,13 @@ export function BuyDialog({ assetIdentifier }: Props) {
 
   return (
     <Dialog
-      onOpenChange={(open) => {
-        if (!open) {
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen)
+
+        if (!nextOpen) {
           return
         }
 
-        setFeedback(null)
         form.setFieldValue('asset', null)
 
         const normalizedIdentifier = assetIdentifier
@@ -191,6 +187,7 @@ export function BuyDialog({ assetIdentifier }: Props) {
             // The combobox remains available for a manual search.
           })
       }}
+      open={open}
     >
       <DialogTrigger
         render={
@@ -235,7 +232,6 @@ export function BuyDialog({ assetIdentifier }: Props) {
                         ...form.state.values,
                         asset,
                       })
-                      setFeedback(null)
                     }}
                     value={field.state.value}
                   />
@@ -311,7 +307,6 @@ export function BuyDialog({ assetIdentifier }: Props) {
                             ...form.state.values,
                             amount: event.target.value,
                           })
-                          setFeedback(null)
                         }}
                         step="any"
                         type="number"
@@ -557,19 +552,6 @@ export function BuyDialog({ assetIdentifier }: Props) {
                       </dd>
                     </div>
                   </dl>
-
-                  {feedback ? (
-                    <p
-                      className={
-                        feedback.kind === 'error'
-                          ? 'text-danger text-sm'
-                          : 'text-sm text-success'
-                      }
-                      role={feedback.kind === 'error' ? 'alert' : 'status'}
-                    >
-                      {feedback.message}
-                    </p>
-                  ) : null}
 
                   <div className="grid grid-cols-2 gap-3">
                     <Button
