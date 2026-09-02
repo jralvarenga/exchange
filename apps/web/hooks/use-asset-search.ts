@@ -9,14 +9,14 @@ import type { AssetSearchResponse } from '@/lib/alpaca/schemas'
 import { assetSearchResponseSchema } from '@/lib/alpaca/schemas'
 import { getApiUrl } from '@/lib/utils'
 
-interface FetchAssetSearchOptions {
+interface SearchAssetsOptions {
   query: string
   signal: AbortSignal
 }
 
 /** Requests and validates ranked Alpaca asset search results. */
-async function fetchAssetSearch(
-  options: FetchAssetSearchOptions
+export async function searchAssets(
+  options: SearchAssetsOptions
 ): Promise<AssetSearchResponse> {
   const parameters = new URLSearchParams({ limit: '8', query: options.query })
   const response = await fetch(
@@ -43,7 +43,7 @@ export function useAssetSearch(
     enabled: query.length > 0,
     gcTime: 10 * 60 * 1_000,
     placeholderData: keepPreviousData,
-    queryFn: ({ signal }) => fetchAssetSearch({ query, signal }),
+    queryFn: ({ signal }) => searchAssets({ query, signal }),
     queryKey: getAssetSearchQueryKey(query),
     staleTime: 5 * 60 * 1_000,
   })
