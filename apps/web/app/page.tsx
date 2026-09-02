@@ -1,4 +1,13 @@
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@workspace/ui/components/card'
+
+import { ActivityCard } from '@/components/activity/activity-card'
 import { Balance } from '@/components/balance/balance'
+import { Balances } from '@/components/balance/balances'
 
 /** Renders the initial shell landing surface. */
 export default function Home() {
@@ -15,42 +24,20 @@ export default function Home() {
           <Balance />
         </section>
 
-        {/* activity */}
-        <section
-          aria-labelledby="activity-title"
-          className="row-span-2 flex flex-col rounded-2xl bg-background p-4 md:h-full md:min-h-0"
-        >
-          <h2 id="activity-title" className="font-medium">
-            Activity
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Recent orders and fills will live here.
-          </p>
-        </section>
+        <ActivityCard className="row-span-2 md:h-full md:min-h-0" />
 
-        <section
-          aria-labelledby="orders-title"
-          className="flex min-h-48 flex-col rounded-2xl bg-background p-4 md:h-full md:min-h-0"
+        <Card
+          aria-labelledby="balances-title"
+          className="col-span-2"
+          role="region"
         >
-          <h2 id="orders-title" className="font-medium">
-            Orders
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Working and recent orders will live here.
-          </p>
-        </section>
-
-        <section
-          aria-labelledby="news-title"
-          className="flex min-h-48 flex-col rounded-2xl bg-background p-4 md:h-full md:min-h-0"
-        >
-          <h2 id="news-title" className="font-medium">
-            News
-          </h2>
-          <p className="mt-2 text-muted-foreground">
-            Headlines and catalysts will live here.
-          </p>
-        </section>
+          <CardHeader>
+            <CardTitle id="balances-title">Balances</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Balances />
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
