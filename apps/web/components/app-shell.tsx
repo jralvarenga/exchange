@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { AssetCombobox } from '@/components/assets/asset-combobox'
@@ -8,6 +8,7 @@ import { MobileTabBar } from '@/components/mobile-tab-bar'
 import { Navbar } from '@/components/navbar'
 import { Sidebar } from '@/components/sidebar'
 import type { AssetSearchResult } from '@/lib/alpaca/schemas'
+import { getActiveAssetIdentifier } from '@/lib/navigation'
 
 interface Props {
   children: ReactNode
@@ -15,7 +16,9 @@ interface Props {
 
 /** Frames every route with the persistent desktop and mobile navigation. */
 export function AppShell({ children }: Props) {
+  const pathname = usePathname()
   const router = useRouter()
+  const assetIdentifier = getActiveAssetIdentifier(pathname)
 
   /** Navigates to the selected asset's detail route. */
   function handleAssetSelect(asset: AssetSearchResult | null): void {
@@ -36,6 +39,7 @@ export function AppShell({ children }: Props) {
         <Sidebar />
         <div className="flex min-h-0 min-w-0 flex-col">
           <Navbar
+            assetIdentifier={assetIdentifier}
             search={
               <AssetCombobox
                 className="bg-card"
@@ -48,9 +52,7 @@ export function AppShell({ children }: Props) {
             id="main"
             className="flex min-h-0 flex-1 flex-col overflow-x-hidden px-4 pt-2 pb-28 sm:px-6 md:px-4 md:pt-0 md:pr-5 md:pb-5"
           >
-            <div className="flex min-h-0 flex-1 flex-col">
-              {children}
-            </div>
+            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           </main>
         </div>
         <MobileTabBar />

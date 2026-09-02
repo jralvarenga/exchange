@@ -1,4 +1,5 @@
 import type {
+  AssetInterval,
   BalanceInterval,
   GetAccountActivitiesOptions,
   GetOrdersOptions,
@@ -15,6 +16,19 @@ export const ordersAndPositionsQueryKey = [
   'orders-and-positions',
 ] as const
 export const portfolioQueryKey = ['alpaca', 'portfolio'] as const
+
+/** Returns the cache key for one asset's live summary. */
+export function getAssetDetailQueryKey(identifier: string) {
+  return ['alpaca', 'assets', 'detail', identifier] as const
+}
+
+/** Returns the cache key for one asset's bounded price history. */
+export function getAssetHistoryQueryKey(
+  identifier: string,
+  interval: AssetInterval
+) {
+  return ['alpaca', 'assets', 'history', identifier, interval] as const
+}
 
 export const initialBalanceInterval = '1M' satisfies BalanceInterval
 

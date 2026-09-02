@@ -10,7 +10,7 @@ import {
 } from '@workspace/ui/components/combobox'
 import { cn } from '@workspace/ui/lib/utils'
 import { LoaderCircle } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 import { AssetIcon } from '@/components/assets/asset-icon'
 import { useAssetSearch } from '@/hooks/use-asset-search'
@@ -47,10 +47,10 @@ export function AssetCombobox({
     null
   )
   const [inputValue, setInputValue] = useState(
-    () => initialSymbol?.trim().toLocaleLowerCase('en-US') ?? ''
+    () => initialSymbol?.trim() ?? ''
   )
   const selectedValue = value === undefined ? internalValue : value
-  const normalizedInput = inputValue.trim().toLocaleLowerCase('en-US')
+  const normalizedInput = inputValue.trim()
   const debouncedQuery = useDebouncedValue(normalizedInput, SEARCH_DELAY_MS)
   const search = useAssetSearch(debouncedQuery)
   const isSearching = normalizedInput !== debouncedQuery || search.isFetching
@@ -62,13 +62,19 @@ export function AssetCombobox({
     query: inputValue,
   })
 
+  useEffect(() => {
+    if (value) {
+      setInputValue(value.symbol)
+    }
+  }, [value])
+
   /** Synchronizes internal and external consumers after a selection changes. */
   function handleValueChange(asset: AssetSearchResult | null): void {
     setInternalValue(asset)
     onValueChange?.(asset)
 
     if (asset) {
-      setInputValue(asset.symbol.toLocaleLowerCase('en-US'))
+      setInputValue(asset.symbol)
     }
   }
 
@@ -80,15 +86,15 @@ export function AssetCombobox({
       isItemEqualToValue={(asset, selectedAsset) =>
         asset.id === selectedAsset.id
       }
-      itemToStringLabel={(asset) => asset.symbol.toLocaleLowerCase('en-US')}
+      itemToStringLabel={(asset) => asset.symbol}
       items={assets}
       onInputValueChange={(nextInput) => {
         setInputValue(nextInput)
 
         if (
           selectedValue &&
-          nextInput.toLocaleLowerCase('en-US') !==
-            selectedValue.symbol.toLocaleLowerCase('en-US')
+          nextInput !==
+            selectedValue.symbol
         ) {
           handleValueChange(null)
         }
@@ -125,9 +131,7 @@ export function AssetCombobox({
               <AssetIcon assetClass={asset.assetClass} symbol={asset.symbol} />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="flex items-center justify-between gap-3">
-                  <span className="font-medium">
-                    {asset.symbol}
-                  </span>
+                  <span className="font-medium">{asset.symbol}</span>
                   <span className="text-muted-foreground text-xs">
                     {asset.assetClass === 'crypto' ? 'Crypto' : asset.exchange}
                   </span>

@@ -49,6 +49,8 @@ export const balanceIntervalSchema = z.enum([
   'YTD',
 ])
 
+export const assetIntervalSchema = z.enum(['1D', '1W', '1M', '3M', '1Y'])
+
 export const portfolioTimeframeSchema = z.enum([
   '1D',
   '1H',
@@ -113,6 +115,29 @@ export const assetSearchResponseSchema = z.object({
 export const assetSearchOptionsSchema = alpacaClientOptionsSchema.extend({
   limit: z.number().int().min(1).max(20).default(8),
   query: z.string().trim().min(1).max(80),
+})
+
+export const assetDetailOptionsSchema = alpacaClientOptionsSchema.extend({
+  identifier: z.string().trim().min(1).max(120),
+})
+
+export const assetHistoryOptionsSchema = assetDetailOptionsSchema.extend({
+  interval: assetIntervalSchema,
+})
+
+export const assetBarSchema = z.object({
+  close: z.number(),
+  high: z.number(),
+  low: z.number(),
+  open: z.number(),
+  timestamp: z.string(),
+  volume: z.number(),
+})
+
+export const assetHistorySchema = z.object({
+  bars: z.array(assetBarSchema),
+  interval: assetIntervalSchema,
+  symbol: z.string(),
 })
 
 const positiveDecimalSchema = z
@@ -333,6 +358,16 @@ export const portfolioPositionSchema = z.object({
   unrealizedProfitLossPercent: z.number(),
 })
 
+export const assetDetailSchema = z.object({
+  asset: assetSearchResultSchema,
+  change: z.number(),
+  changePercent: z.number(),
+  currency: z.literal('USD'),
+  position: portfolioPositionSchema.nullable(),
+  price: z.number(),
+  updatedAt: z.string(),
+})
+
 export const portfolioSchema = z.object({
   positions: z.array(portfolioPositionSchema),
   totalCostBasis: z.number(),
@@ -527,6 +562,25 @@ export const alpacaCryptoSnapshotSchema = z
   })
   .passthrough()
 
+export const alpacaStockSnapshotSchema = z.looseObject({
+  dailyBar: alpacaCryptoBarSchema.optional(),
+  latestQuote: alpacaCryptoQuoteSchema.optional(),
+  latestTrade: alpacaCryptoTradeSchema.optional(),
+  minuteBar: alpacaCryptoBarSchema.optional(),
+  prevDailyBar: alpacaCryptoBarSchema.optional(),
+})
+
+export const alpacaStockBarsResponseSchema = z.looseObject({
+  bars: z.array(alpacaCryptoBarSchema).nullable(),
+  next_page_token: z.string().nullable().optional(),
+  symbol: z.string().optional(),
+})
+
+export const alpacaCryptoBarsResponseSchema = z.looseObject({
+  bars: z.record(z.string(), z.array(alpacaCryptoBarSchema)).nullable(),
+  next_page_token: z.string().nullable().optional(),
+})
+
 export const alpacaCryptoSnapshotsResponseSchema = z
   .object({
     snapshots: z.record(z.string(), alpacaCryptoSnapshotSchema),
@@ -572,6 +626,17 @@ export const assetSearchQuerySchema = z.object({
     z.coerce.number().int().min(1).max(20).default(8)
   ),
   query: z.string().trim().min(1).max(80),
+})
+
+export const assetDetailQuerySchema = z.object({
+  identifier: z.string().trim().min(1).max(120),
+})
+
+export const assetHistoryQuerySchema = assetDetailQuerySchema.extend({
+  interval: z.preprocess(
+    (value) => (value === null ? undefined : value),
+    assetIntervalSchema.default('1D')
+  ),
 })
 
 export const ordersAndPositionsQuerySchema = z.object({
@@ -802,6 +867,12 @@ export type AlpacaTimeInForce = z.infer<typeof alpacaTimeInForceSchema>
 export type AssetSearchOptions = z.infer<typeof assetSearchOptionsSchema>
 export type AssetSearchResponse = z.infer<typeof assetSearchResponseSchema>
 export type AssetSearchResult = z.infer<typeof assetSearchResultSchema>
+export type AssetBar = z.infer<typeof assetBarSchema>
+export type AssetDetail = z.infer<typeof assetDetailSchema>
+export type AssetDetailOptions = z.infer<typeof assetDetailOptionsSchema>
+export type AssetHistory = z.infer<typeof assetHistorySchema>
+export type AssetHistoryOptions = z.infer<typeof assetHistoryOptionsSchema>
+export type AssetInterval = z.infer<typeof assetIntervalSchema>
 export type BalanceChange = z.infer<typeof balanceChangeSchema>
 export type BalanceChanges = z.infer<typeof balanceChangesSchema>
 export type BalanceChart = z.infer<typeof balanceChartSchema>

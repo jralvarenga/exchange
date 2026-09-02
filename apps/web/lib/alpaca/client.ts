@@ -14,8 +14,15 @@ import type {
   AlpacaCryptoSnapshotsResponse,
   AlpacaPortfolioHistory,
   AlpacaPosition,
+  AssetBar,
+  AssetDetail,
+  AssetDetailOptions,
+  AssetHistory,
+  AssetHistoryOptions,
+  AssetInterval,
   AssetSearchOptions,
   AssetSearchResponse,
+  AssetSearchResult,
   BalanceChange,
   BalanceChanges,
   BalanceChart,
@@ -44,12 +51,19 @@ import {
   alpacaAccountOrdersSchema,
   alpacaAccountSchema,
   alpacaAssetsSchema,
+  alpacaCryptoBarsResponseSchema,
   alpacaCryptoSnapshotsResponseSchema,
   alpacaEnvironmentSchema,
   alpacaOrderSchema,
   alpacaPortfolioHistorySchema,
   alpacaPositionSchema,
   alpacaPositionsSchema,
+  alpacaStockBarsResponseSchema,
+  alpacaStockSnapshotSchema,
+  assetDetailOptionsSchema,
+  assetDetailSchema,
+  assetHistoryOptionsSchema,
+  assetHistorySchema,
   assetSearchResponseSchema,
   balanceChangeSchema,
   balanceChangesSchema,
@@ -106,6 +120,50 @@ interface AssetCatalogCache {
 interface RankedAsset {
   asset: AlpacaAsset
   score: number
+}
+
+interface AssetIntervalQuery {
+  cryptoStart?: Date
+  start: Date
+  timeframe: string
+}
+
+interface AssetSnapshot {
+  dailyBar?: {
+    c: number
+    o: number
+    t: string
+  }
+  latestQuote?: {
+    ap: number
+    bp: number
+    t: string
+  }
+  latestTrade?: {
+    p: number
+    t: string
+  }
+  minuteBar?: {
+    c: number
+    t: string
+  }
+  prevDailyBar?: {
+    c: number
+    t: string
+  }
+}
+
+interface AssetRawBar {
+  c: number
+  h: number
+  l: number
+  o: number
+  t: string
+  v: number
+}
+
+interface AssetRequestOptions extends AlpacaClientOptions {
+  identifier: string
 }
 
 let assetCatalogCache: AssetCatalogCache | undefined
@@ -234,6 +292,88 @@ export async function searchAssets(
     }))
 
   return assetSearchResponseSchema.parse({ assets, query })
+}
+
+/** Returns normalized market and portfolio details for one asset. */
+export async function getAssetDetail(
+  options: AssetDetailOptions
+): Promise<AssetDetail> {
+  const parsedOptions = assetDetailOptionsSchema.parse(options)
+  const asset = await resolveAsset(parsedOptions)
+  const [portfolio, snapshot] = await Promise.all([
+    getPortfolio(parsedOptions),
+    getAssetSnapshot(asset, parsedOptions),
+  ])
+  const quoteMidpoint = getQuoteMidpoint(snapshot)
+  let price =
+    snapshot.latestTrade?.p ??
+    quoteMidpoint ??
+    snapshot.minuteBar?.c ??
+    snapshot.dailyBar?.c
+  let fallbackTimestamp: string | undefined
+
+  if (price === undefined) {
+    const intervalQuery = getAssetIntervalQuery('1D')
+    const fallbackBars =
+      asset.class === 'crypto'
+        ? await getCryptoBars(asset, intervalQuery, parsedOptions)
+        : await getStockBars(asset, intervalQuery, parsedOptions)
+    const fallbackBar = fallbackBars.at(-1)
+
+    if (!fallbackBar) {
+      throw new AlpacaApiError('Asset price is unavailable.', 404)
+    }
+
+    price = fallbackBar.c
+    fallbackTimestamp = fallbackBar.t
+  }
+
+  const previousClose =
+    snapshot.prevDailyBar?.c ?? snapshot.dailyBar?.o ?? price
+  const change = price - previousClose
+  const changePercent = previousClose === 0 ? 0 : (change / previousClose) * 100
+  const normalizedSymbol = normalizeAssetSearchText(asset.symbol)
+  const position =
+    portfolio.positions.find(
+      (candidate) =>
+        candidate.assetId === asset.id ||
+        normalizeAssetSearchText(candidate.symbol) === normalizedSymbol
+    ) ?? null
+
+  return assetDetailSchema.parse({
+    asset: toAssetSearchResult(asset),
+    change,
+    changePercent,
+    currency: 'USD',
+    position,
+    price,
+    updatedAt:
+      snapshot.latestTrade?.t ??
+      snapshot.latestQuote?.t ??
+      snapshot.minuteBar?.t ??
+      snapshot.dailyBar?.t ??
+      fallbackTimestamp ??
+      new Date().toISOString(),
+  })
+}
+
+/** Returns normalized OHLC history for one asset and display interval. */
+export async function getAssetHistory(
+  options: AssetHistoryOptions
+): Promise<AssetHistory> {
+  const parsedOptions = assetHistoryOptionsSchema.parse(options)
+  const asset = await resolveAsset(parsedOptions)
+  const intervalQuery = getAssetIntervalQuery(parsedOptions.interval)
+  const bars =
+    asset.class === 'crypto'
+      ? await getCryptoBars(asset, intervalQuery, parsedOptions)
+      : await getStockBars(asset, intervalQuery, parsedOptions)
+
+  return assetHistorySchema.parse({
+    bars: trimAssetBars(bars, parsedOptions.interval).map(toAssetBar),
+    interval: parsedOptions.interval,
+    symbol: asset.symbol,
+  })
 }
 
 /** Submits a validated buy or sell order to the configured Alpaca account. */
@@ -507,6 +647,86 @@ export async function getCryptoSnapshots(
   })
 }
 
+/** Fetches the latest stock or crypto snapshot through the matching data API. */
+async function getAssetSnapshot(
+  asset: AlpacaAsset,
+  options: AlpacaClientOptions
+): Promise<AssetSnapshot> {
+  if (asset.class === 'crypto') {
+    const response = await getCryptoSnapshots({
+      ...options,
+      symbols: [asset.symbol],
+    })
+
+    return alpacaStockSnapshotSchema.parse(
+      response.snapshots[asset.symbol] ?? {}
+    )
+  }
+
+  const client = resolveClientOptions(options)
+  const query = new URLSearchParams({ feed: 'iex' })
+
+  return alpacaFetch({
+    baseUrl: client.dataBaseUrl,
+    client,
+    path: `/v2/stocks/${encodeURIComponent(asset.symbol)}/snapshot`,
+    query,
+    schema: alpacaStockSnapshotSchema,
+  })
+}
+
+/** Fetches one page of historical stock bars for the selected range. */
+async function getStockBars(
+  asset: AlpacaAsset,
+  intervalQuery: AssetIntervalQuery,
+  options: AlpacaClientOptions
+): Promise<AssetRawBar[]> {
+  const client = resolveClientOptions(options)
+  const query = new URLSearchParams({
+    adjustment: 'raw',
+    feed: 'iex',
+    limit: '500',
+    sort: 'asc',
+    start: intervalQuery.start.toISOString(),
+    timeframe: intervalQuery.timeframe,
+  })
+  const response = await alpacaFetch({
+    baseUrl: client.dataBaseUrl,
+    client,
+    path: `/v2/stocks/${encodeURIComponent(asset.symbol)}/bars`,
+    query,
+    schema: alpacaStockBarsResponseSchema,
+  })
+
+  return response.bars ?? []
+}
+
+/** Fetches one page of historical crypto bars for the selected range. */
+async function getCryptoBars(
+  asset: AlpacaAsset,
+  intervalQuery: AssetIntervalQuery,
+  options: AlpacaClientOptions
+): Promise<AssetRawBar[]> {
+  const client = resolveClientOptions(options)
+  const location = options.cryptoLocation ?? client.cryptoLocation
+  const query = new URLSearchParams({
+    limit: '500',
+    sort: 'asc',
+    start: (intervalQuery.cryptoStart ?? intervalQuery.start).toISOString(),
+    symbols: asset.symbol,
+    timeframe: intervalQuery.timeframe,
+  })
+  const response = await alpacaFetch({
+    baseUrl: client.dataBaseUrl,
+    client,
+    path: `/v1beta3/crypto/${location}/bars`,
+    query,
+    schema: alpacaCryptoBarsResponseSchema,
+  })
+
+  return response.bars?.[asset.symbol] ?? []
+}
+
 /** Returns current crypto prices using latest trades with quote midpoints as fallback. */
 export async function getTokenPrices(
   options: GetCryptoSnapshotsOptions
@@ -634,6 +854,10 @@ function getAssetSearchScore(
   const name = normalizeAssetSearchText(asset.name)
   const hasCompactQuery = compactQuery.length > 0
 
+  if (normalizeAssetSearchText(asset.id) === normalizedQuery) {
+    return 0
+  }
+
   if (
     symbol === normalizedQuery ||
     (hasCompactQuery && compactSymbol === compactQuery)
@@ -670,6 +894,111 @@ function getAssetSearchScore(
   const words = normalizedQuery.split(/\s+/u)
 
   return words.every((word) => name.includes(word)) ? 6 : undefined
+}
+
+/** Resolves a tradable asset by exact Alpaca ID or normalized symbol. */
+async function resolveAsset(
+  options: AssetRequestOptions
+): Promise<AlpacaAsset> {
+  const catalog = await getAssetCatalog(options)
+  const identifier = normalizeAssetSearchText(options.identifier)
+  const compactIdentifier = compactAssetSymbol(options.identifier)
+  const asset = catalog.find(
+    (candidate) =>
+      normalizeAssetSearchText(candidate.id) === identifier ||
+      normalizeAssetSearchText(candidate.symbol) === identifier ||
+      compactAssetSymbol(candidate.symbol) === compactIdentifier
+  )
+
+  if (!asset) {
+    throw new AlpacaApiError('Asset was not found.', 404)
+  }
+
+  return asset
+}
+
+/** Maps the Alpaca catalog shape to the app's public asset shape. */
+function toAssetSearchResult(asset: AlpacaAsset): AssetSearchResult {
+  return {
+    assetClass: asset.class,
+    exchange: asset.exchange,
+    fractionable: asset.fractionable,
+    id: asset.id,
+    name: asset.name,
+    symbol: asset.symbol,
+  }
+}
+
+/** Maps an Alpaca OHLC bar to the chart-facing bar contract. */
+function toAssetBar(bar: AssetRawBar): AssetBar {
+  return {
+    close: bar.c,
+    high: bar.h,
+    low: bar.l,
+    open: bar.o,
+    timestamp: bar.t,
+    volume: bar.v,
+  }
+}
+
+/** Returns the midpoint of a complete bid and ask quote. */
+function getQuoteMidpoint(snapshot: AssetSnapshot): number | undefined {
+  const bidPrice = snapshot.latestQuote?.bp
+  const askPrice = snapshot.latestQuote?.ap
+
+  if (bidPrice === undefined || askPrice === undefined) {
+    return undefined
+  }
+
+  return (bidPrice + askPrice) / 2
+}
+
+/** Maps a display range to a bounded Alpaca history query. */
+function getAssetIntervalQuery(interval: AssetInterval): AssetIntervalQuery {
+  const now = Date.now()
+  const day = 24 * 60 * 60 * 1_000
+
+  if (interval === '1D') {
+    return {
+      cryptoStart: new Date(now - day),
+      start: new Date(now - 4 * day),
+      timeframe: '5Min',
+    }
+  }
+
+  if (interval === '1W') {
+    return { start: new Date(now - 7 * day), timeframe: '30Min' }
+  }
+
+  if (interval === '1M') {
+    return { start: new Date(now - 31 * day), timeframe: '2Hour' }
+  }
+
+  if (interval === '3M') {
+    return { start: new Date(now - 93 * day), timeframe: '1Day' }
+  }
+
+  return { start: new Date(now - 366 * day), timeframe: '1Day' }
+}
+
+/** Trims the padded intraday request to the latest rolling day of bars. */
+function trimAssetBars(
+  bars: AssetRawBar[],
+  interval: AssetInterval
+): AssetRawBar[] {
+  if (interval !== '1D' || bars.length === 0) {
+    return bars
+  }
+
+  const latestTimestamp = new Date(bars.at(-1)?.t ?? '').getTime()
+
+  if (!Number.isFinite(latestTimestamp)) {
+    return bars
+  }
+
+  const oneDayAgo = latestTimestamp - 24 * 60 * 60 * 1_000
+
+  return bars.filter((bar) => new Date(bar.t).getTime() > oneDayAgo)
 }
 
 /** Sorts equally ranked assets predictably by symbol length and symbol. */

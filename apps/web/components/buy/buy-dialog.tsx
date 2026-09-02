@@ -28,21 +28,34 @@ import { useState } from 'react'
 
 import { AssetCombobox } from '@/components/assets/asset-combobox'
 import { searchAssets } from '@/hooks/use-asset-search'
+import { useCreateOrder } from '@/hooks/use-create-order'
+import {
+  getAllowedOrderTypes,
+  getAllowedTimesInForce,
+  getCompatibleOrderSettings,
+} from '@/lib/alpaca/order-constraints'
 import {
   type AlpacaOrderSide,
   type AlpacaOrderType,
   type AlpacaTimeInForce,
+  AssetSearchResult,
+  type CreateOrderRequest,
   type OrderFormValues,
   orderFormValuesSchema,
 } from '@/lib/alpaca/schemas'
 
 interface Props {
-  symbol?: string
+  assetIdentifier?: string
 }
 
 interface SelectOption<Value extends string> {
   label: string
   value: Value
+}
+
+interface OrderFeedback {
+  kind: 'error' | 'success'
+  message: string
 }
 
 const orderTypes: Array<SelectOption<AlpacaOrderType>> = [
@@ -79,27 +92,59 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
 })
 
-/** Opens a schema-validated Alpaca order ticket for an optional asset symbol. */
-export function BuyDialog({ symbol }: Props) {
-  const [status, setStatus] = useState('')
+/** Opens a schema-validated Alpaca order ticket for an optional asset. */
+export function BuyDialog({ assetIdentifier }: Props) {
+  const [feedback, setFeedback] = useState<OrderFeedback | null>(null)
+  const createOrder = useCreateOrder()
   const form = useForm({
     defaultValues,
-    onSubmit: ({ meta, value }) => {
-      if (!value.asset) {
+    onSubmit: async ({ meta, value }) => {
+      const request = toCreateOrderRequest({
+        side: meta.side,
+        values: value,
+      })
+
+      if (!request) {
         return
       }
 
-      const side = meta.side === 'sell' ? 'Sell' : 'Buy'
+      const side = request.side === 'sell' ? 'Sell' : 'Buy'
 
-      setStatus(
-        `${side} order for ${value.asset.symbol.toLocaleLowerCase('en-US')} is ready.`
-      )
+      try {
+        await createOrder.mutateAsync(request)
+        setFeedback({
+          kind: 'success',
+          message: `${side} order for ${request.symbol.toLocaleLowerCase('en-US')} was submitted.`,
+        })
+      } catch (error) {
+        setFeedback({
+          kind: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Unable to place the order.',
+        })
+      }
     },
     onSubmitMeta: { side: 'buy' as AlpacaOrderSide },
     validators: {
       onSubmit: orderFormValuesSchema,
     },
   })
+
+  /** Keeps order type and time in force on values Alpaca accepts for this asset. */
+  function syncCompatibleOrderFields(values: OrderFormValues): void {
+    const compatible = getCompatibleOrderSettings({
+      amount: values.amount,
+      assetClass: values.asset?.assetClass,
+      quantityMode: values.quantityMode,
+      timeInForce: values.timeInForce,
+      type: values.type,
+    })
+
+    form.setFieldValue('type', compatible.type)
+    form.setFieldValue('timeInForce', compatible.timeInForce)
+  }
 
   return (
     <Dialog
@@ -108,30 +153,39 @@ export function BuyDialog({ symbol }: Props) {
           return
         }
 
-        setStatus('')
+        setFeedback(null)
         form.setFieldValue('asset', null)
 
-        const normalizedSymbol = symbol?.trim().toLocaleLowerCase('en-US')
+        const normalizedIdentifier = assetIdentifier
+          ?.trim()
+          .toLocaleLowerCase('en-US')
 
-        if (!normalizedSymbol) {
+        if (!normalizedIdentifier) {
           return
         }
 
         const controller = new AbortController()
 
         void searchAssets({
-          query: normalizedSymbol,
+          query: normalizedIdentifier,
           signal: controller.signal,
         })
           .then((response) => {
             const exactAsset = response.assets.find(
               (asset) =>
-                asset.symbol.toLocaleLowerCase('en-US') === normalizedSymbol
+                asset.id.toLocaleLowerCase('en-US') === normalizedIdentifier ||
+                asset.symbol.toLocaleLowerCase('en-US') === normalizedIdentifier
             )
 
-            if (exactAsset) {
-              form.setFieldValue('asset', exactAsset)
+            if (!exactAsset) {
+              return
             }
+
+            form.setFieldValue('asset', exactAsset)
+            syncCompatibleOrderFields({
+              ...form.state.values,
+              asset: exactAsset,
+            })
           })
           .catch(() => {
             // The combobox remains available for a manual search.
@@ -173,11 +227,15 @@ export function BuyDialog({ symbol }: Props) {
                 <Field data-invalid={!field.state.meta.isValid}>
                   <FieldLabel className="sr-only">Symbol</FieldLabel>
                   <AssetCombobox
-                    initialSymbol={symbol}
-                    key={symbol ?? 'asset-search'}
-                    onValueChange={(asset) => {
+                    initialSymbol={assetIdentifier}
+                    key={assetIdentifier ?? 'asset-search'}
+                    onValueChange={(asset: AssetSearchResult | null) => {
                       field.handleChange(asset)
-                      setStatus('')
+                      syncCompatibleOrderFields({
+                        ...form.state.values,
+                        asset,
+                      })
+                      setFeedback(null)
                     }}
                     value={field.state.value}
                   />
@@ -203,9 +261,13 @@ export function BuyDialog({ symbol }: Props) {
                             aria-label="Enter a number of shares"
                             aria-pressed={quantityMode === 'qty'}
                             className="size-8 rounded-full"
-                            onClick={() =>
+                            onClick={() => {
                               form.setFieldValue('quantityMode', 'qty')
-                            }
+                              syncCompatibleOrderFields({
+                                ...form.state.values,
+                                quantityMode: 'qty',
+                              })
+                            }}
                             size="icon-sm"
                             type="button"
                             variant={
@@ -218,9 +280,13 @@ export function BuyDialog({ symbol }: Props) {
                             aria-label="Enter a dollar amount"
                             aria-pressed={quantityMode === 'notional'}
                             className="size-8 rounded-full"
-                            onClick={() =>
+                            onClick={() => {
                               form.setFieldValue('quantityMode', 'notional')
-                            }
+                              syncCompatibleOrderFields({
+                                ...form.state.values,
+                                quantityMode: 'notional',
+                              })
+                            }}
                             size="icon-sm"
                             type="button"
                             variant={
@@ -241,7 +307,11 @@ export function BuyDialog({ symbol }: Props) {
                         onBlur={field.handleBlur}
                         onChange={(event) => {
                           field.handleChange(event.target.value)
-                          setStatus('')
+                          syncCompatibleOrderFields({
+                            ...form.state.values,
+                            amount: event.target.value,
+                          })
+                          setFeedback(null)
                         }}
                         step="any"
                         type="number"
@@ -256,164 +326,206 @@ export function BuyDialog({ symbol }: Props) {
               )}
             </form.Subscribe>
 
-            <form.Field name="type">
-              {(field) => (
-                <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="order-type">Order type</FieldLabel>
-                  <Select
-                    items={orderTypes}
-                    onValueChange={(value) =>
-                      field.handleChange(value as AlpacaOrderType)
-                    }
-                    value={field.state.value}
-                  >
-                    <SelectTrigger
-                      aria-invalid={!field.state.meta.isValid}
-                      className="h-12 w-full px-4 text-base"
-                      id="order-type"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent align="start">
-                      {orderTypes.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FieldError
-                    errors={getFieldErrors(field.state.meta.errors)}
-                  />
-                </Field>
-              )}
-            </form.Field>
+            <form.Subscribe
+              selector={(state) =>
+                [
+                  state.values.amount,
+                  state.values.asset,
+                  state.values.quantityMode,
+                  state.values.type,
+                ] as const
+              }
+            >
+              {([amount, asset, quantityMode, orderType]) => {
+                const allowedOrderTypes = getAllowedOrderTypes(
+                  asset?.assetClass
+                )
+                const allowedTimesInForce = getAllowedTimesInForce({
+                  amount,
+                  assetClass: asset?.assetClass,
+                  quantityMode,
+                  type: orderType,
+                })
+                const visibleOrderTypes = orderTypes.filter((option) =>
+                  allowedOrderTypes.includes(option.value)
+                )
+                const visibleTimesInForce = timesInForce.filter((option) =>
+                  allowedTimesInForce.includes(option.value)
+                )
 
-            <form.Subscribe selector={(state) => state.values.type}>
-              {(orderType) => (
-                <>
-                  {orderType === 'limit' || orderType === 'stop_limit' ? (
-                    <form.Field name="limitPrice">
+                return (
+                  <>
+                    <form.Field name="type">
                       {(field) => (
                         <Field data-invalid={!field.state.meta.isValid}>
-                          <FieldLabel htmlFor="limit-price">
-                            Limit price
+                          <FieldLabel htmlFor="order-type">
+                            Order type
                           </FieldLabel>
-                          <Input
-                            aria-invalid={!field.state.meta.isValid}
-                            className="h-12 px-4 text-base"
-                            id="limit-price"
-                            inputMode="decimal"
-                            min="0"
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                            step="any"
-                            type="number"
+                          <Select
+                            items={visibleOrderTypes}
+                            onValueChange={(value) => {
+                              const type = value as AlpacaOrderType
+                              field.handleChange(type)
+                              syncCompatibleOrderFields({
+                                ...form.state.values,
+                                type,
+                              })
+                            }}
                             value={field.state.value}
-                          />
+                          >
+                            <SelectTrigger
+                              aria-invalid={!field.state.meta.isValid}
+                              className="h-12 w-full px-4 text-base"
+                              id="order-type"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                              {visibleOrderTypes.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FieldError
                             errors={getFieldErrors(field.state.meta.errors)}
                           />
                         </Field>
                       )}
                     </form.Field>
-                  ) : null}
 
-                  {orderType === 'stop' || orderType === 'stop_limit' ? (
-                    <form.Field name="stopPrice">
+                    {orderType === 'limit' || orderType === 'stop_limit' ? (
+                      <form.Field name="limitPrice">
+                        {(field) => (
+                          <Field data-invalid={!field.state.meta.isValid}>
+                            <FieldLabel htmlFor="limit-price">
+                              Limit price
+                            </FieldLabel>
+                            <Input
+                              aria-invalid={!field.state.meta.isValid}
+                              className="h-12 px-4 text-base"
+                              id="limit-price"
+                              inputMode="decimal"
+                              min="0"
+                              onBlur={field.handleBlur}
+                              onChange={(event) =>
+                                field.handleChange(event.target.value)
+                              }
+                              step="any"
+                              type="number"
+                              value={field.state.value}
+                            />
+                            <FieldError
+                              errors={getFieldErrors(field.state.meta.errors)}
+                            />
+                          </Field>
+                        )}
+                      </form.Field>
+                    ) : null}
+
+                    {orderType === 'stop' || orderType === 'stop_limit' ? (
+                      <form.Field name="stopPrice">
+                        {(field) => (
+                          <Field data-invalid={!field.state.meta.isValid}>
+                            <FieldLabel htmlFor="stop-price">
+                              Stop price
+                            </FieldLabel>
+                            <Input
+                              aria-invalid={!field.state.meta.isValid}
+                              className="h-12 px-4 text-base"
+                              id="stop-price"
+                              inputMode="decimal"
+                              min="0"
+                              onBlur={field.handleBlur}
+                              onChange={(event) =>
+                                field.handleChange(event.target.value)
+                              }
+                              step="any"
+                              type="number"
+                              value={field.state.value}
+                            />
+                            <FieldError
+                              errors={getFieldErrors(field.state.meta.errors)}
+                            />
+                          </Field>
+                        )}
+                      </form.Field>
+                    ) : null}
+
+                    {orderType === 'trailing_stop' ? (
+                      <form.Field name="trailPercent">
+                        {(field) => (
+                          <Field data-invalid={!field.state.meta.isValid}>
+                            <FieldLabel htmlFor="trail-percent">
+                              Trail percent
+                            </FieldLabel>
+                            <Input
+                              aria-invalid={!field.state.meta.isValid}
+                              className="h-12 px-4 text-base"
+                              id="trail-percent"
+                              inputMode="decimal"
+                              min="0"
+                              onBlur={field.handleBlur}
+                              onChange={(event) =>
+                                field.handleChange(event.target.value)
+                              }
+                              step="any"
+                              type="number"
+                              value={field.state.value}
+                            />
+                            <FieldError
+                              errors={getFieldErrors(field.state.meta.errors)}
+                            />
+                          </Field>
+                        )}
+                      </form.Field>
+                    ) : null}
+
+                    <form.Field name="timeInForce">
                       {(field) => (
                         <Field data-invalid={!field.state.meta.isValid}>
-                          <FieldLabel htmlFor="stop-price">
-                            Stop price
+                          <FieldLabel htmlFor="time-in-force">
+                            Time in force
                           </FieldLabel>
-                          <Input
-                            aria-invalid={!field.state.meta.isValid}
-                            className="h-12 px-4 text-base"
-                            id="stop-price"
-                            inputMode="decimal"
-                            min="0"
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
+                          <Select
+                            items={visibleTimesInForce}
+                            onValueChange={(value) =>
+                              field.handleChange(value as AlpacaTimeInForce)
                             }
-                            step="any"
-                            type="number"
                             value={field.state.value}
-                          />
+                          >
+                            <SelectTrigger
+                              aria-invalid={!field.state.meta.isValid}
+                              className="h-12 w-full px-4 text-base"
+                              id="time-in-force"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="start">
+                              {visibleTimesInForce.map((option) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FieldError
                             errors={getFieldErrors(field.state.meta.errors)}
                           />
                         </Field>
                       )}
                     </form.Field>
-                  ) : null}
-
-                  {orderType === 'trailing_stop' ? (
-                    <form.Field name="trailPercent">
-                      {(field) => (
-                        <Field data-invalid={!field.state.meta.isValid}>
-                          <FieldLabel htmlFor="trail-percent">
-                            Trail percent
-                          </FieldLabel>
-                          <Input
-                            aria-invalid={!field.state.meta.isValid}
-                            className="h-12 px-4 text-base"
-                            id="trail-percent"
-                            inputMode="decimal"
-                            min="0"
-                            onBlur={field.handleBlur}
-                            onChange={(event) =>
-                              field.handleChange(event.target.value)
-                            }
-                            step="any"
-                            type="number"
-                            value={field.state.value}
-                          />
-                          <FieldError
-                            errors={getFieldErrors(field.state.meta.errors)}
-                          />
-                        </Field>
-                      )}
-                    </form.Field>
-                  ) : null}
-                </>
-              )}
+                  </>
+                )
+              }}
             </form.Subscribe>
-
-            <form.Field name="timeInForce">
-              {(field) => (
-                <Field data-invalid={!field.state.meta.isValid}>
-                  <FieldLabel htmlFor="time-in-force">Time in force</FieldLabel>
-                  <Select
-                    items={timesInForce}
-                    onValueChange={(value) =>
-                      field.handleChange(value as AlpacaTimeInForce)
-                    }
-                    value={field.state.value}
-                  >
-                    <SelectTrigger
-                      aria-invalid={!field.state.meta.isValid}
-                      className="h-12 w-full px-4 text-base"
-                      id="time-in-force"
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent align="start">
-                      {timesInForce.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FieldError
-                    errors={getFieldErrors(field.state.meta.errors)}
-                  />
-                </Field>
-              )}
-            </form.Field>
           </FieldGroup>
 
           <form.Subscribe
@@ -427,6 +539,7 @@ export function BuyDialog({ symbol }: Props) {
                 values.quantityMode === 'notional'
                   ? currencyFormatter.format(Number(values.amount) || 0)
                   : '—'
+              const isBusy = isSubmitting || createOrder.isPending
 
               return (
                 <>
@@ -445,23 +558,30 @@ export function BuyDialog({ symbol }: Props) {
                     </div>
                   </dl>
 
-                  {status ? (
-                    <p className="text-sm text-success" role="status">
-                      {status}
+                  {feedback ? (
+                    <p
+                      className={
+                        feedback.kind === 'error'
+                          ? 'text-danger text-sm'
+                          : 'text-sm text-success'
+                      }
+                      role={feedback.kind === 'error' ? 'alert' : 'status'}
+                    >
+                      {feedback.message}
                     </p>
                   ) : null}
 
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       className="h-12 text-base"
-                      disabled={!canSubmit || !isReady || isSubmitting}
+                      disabled={!canSubmit || !isReady || isBusy}
                       type="submit"
                     >
-                      Buy
+                      {isBusy ? 'Submitting…' : 'Buy'}
                     </Button>
                     <Button
                       className="h-12 text-base"
-                      disabled={!canSubmit || !isReady || isSubmitting}
+                      disabled={!canSubmit || !isReady || isBusy}
                       onClick={() => void form.handleSubmit({ side: 'sell' })}
                       type="button"
                       variant="outline"
@@ -477,6 +597,34 @@ export function BuyDialog({ symbol }: Props) {
       </DialogContent>
     </Dialog>
   )
+}
+
+interface ToCreateOrderRequestOptions {
+  side: AlpacaOrderSide
+  values: OrderFormValues
+}
+
+/** Maps ticket values to the API payload when an asset is selected. */
+function toCreateOrderRequest(
+  options: ToCreateOrderRequestOptions
+): CreateOrderRequest | undefined {
+  if (!options.values.asset) {
+    return undefined
+  }
+
+  return {
+    amount: options.values.amount,
+    assetClass: options.values.asset.assetClass,
+    fractionable: options.values.asset.fractionable,
+    limitPrice: options.values.limitPrice,
+    quantityMode: options.values.quantityMode,
+    side: options.side,
+    stopPrice: options.values.stopPrice,
+    symbol: options.values.asset.symbol,
+    timeInForce: options.values.timeInForce,
+    trailPercent: options.values.trailPercent,
+    type: options.values.type,
+  }
 }
 
 /** Converts TanStack Form and Zod errors to the shared Field error shape. */
