@@ -1,10 +1,11 @@
 'use client'
 
 import { cn } from '@workspace/ui/lib/utils'
-import { Bell, Dices, LogOut, Settings } from 'lucide-react'
+import { Dices, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { logout } from '@/app/login/actions'
 import { isNavItemActive, navItems } from '@/lib/navigation'
 
 /** Renders the grouped, icon-first desktop navigation rail. */
@@ -51,14 +52,16 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <button
-        type="button"
-        aria-label="Sign out"
-        title="Sign out"
-        className="mt-auto flex size-12 items-center justify-center rounded-full bg-card text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring"
-      >
-        <LogOut aria-hidden="true" className="size-5" />
-      </button>
+      <form action={logout} className="mt-auto">
+        <button
+          type="submit"
+          aria-label="Sign out"
+          title="Sign out"
+          className="flex size-12 items-center justify-center rounded-full bg-card text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring"
+        >
+          <LogOut aria-hidden="true" className="size-5" />
+        </button>
+      </form>
     </aside>
   )
 }

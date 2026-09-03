@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "auth:setup": "bun run scripts/setup-auth.ts",
     "build": "turbo build",
     "dev": "turbo dev",
     "check": "biome check .",

@@ -1,7 +1,9 @@
 import 'server-only'
 
+import { cookies } from 'next/headers'
 import { z } from 'zod'
 
+import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/token'
 import { AlpacaApiError } from './client'
 
 type ApiHandler = () => Promise<unknown>
@@ -28,6 +30,20 @@ export async function createApiResponse(
   handler: ApiHandler,
   options: CreateApiResponseOptions = {}
 ): Promise<Response> {
+  const session = (await cookies()).get(SESSION_COOKIE_NAME)?.value
+
+  if (!(await verifySessionToken(session))) {
+    return createErrorResponse(
+      {
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'A valid dashboard session is required.',
+        },
+      },
+      401
+    )
+  }
+
   try {
     const data = await handler()
 
