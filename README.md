@@ -60,7 +60,9 @@ backslashes. The escaping is required only in `.env*` files parsed by Next.js.
 ## HTTPS deployment
 
 The `dev` and `start` scripts bind Next.js to `127.0.0.1`, so it is not exposed
-directly. Put an HTTPS reverse proxy in front of it. A minimal Caddy site is:
+directly. Run the HTTPS reverse proxy on the same host so it can connect to
+`127.0.0.1:3000`. You cannot place the proxy on a different machine when the
+app binds to loopback. A minimal Caddy site is:
 
 ```caddyfile
 dashboard.example.com {

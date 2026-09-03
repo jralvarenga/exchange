@@ -14,8 +14,13 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
     "@workspace/typescript-config": "workspace:*",
+    "dotenv": "^16.4.5",
+    "dotenv-expand": "^10.0.0",
     "turbo": "^2.9.18",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
   },
   "packageManager": "bun@1.2.23",
   "engines": {

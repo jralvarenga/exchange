@@ -10,6 +10,7 @@ import { createSession, deleteSession } from '@/lib/auth/session'
 
 interface LoginState {
   message?: string
+  passwordInvalid?: boolean
 }
 
 const loginSchema = z.object({
@@ -19,16 +20,12 @@ const loginSchema = z.object({
 /** Resolves the reverse proxy's client address for login throttling. */
 async function getClientIdentifier(): Promise<string> {
   const requestHeaders = await headers()
-  const realIp = requestHeaders.get('x-real-ip')
-
-  if (realIp) {
-    return realIp
-  }
-
   const forwardedFor = requestHeaders.get('x-forwarded-for')
 
   if (forwardedFor) {
-    return forwardedFor.split(',').at(-1)?.trim() || 'unknown'
+    // Trust only the proxy-provided X-Forwarded-For header and use the
+    // left-most value, which represents the original client address.
+    return forwardedFor.split(',')[0]?.trim() || 'unknown'
   }
 
   return 'unknown'
@@ -53,7 +50,10 @@ export async function login(
   const input = loginSchema.safeParse({ password: formData.get('password') })
 
   if (!input.success) {
-    return { message: 'Enter the dashboard password to continue.' }
+    return {
+      message: 'Enter the dashboard password to continue.',
+      passwordInvalid: true,
+    }
   }
 
   try {
@@ -62,6 +62,7 @@ export async function login(
     if (!passwordMatches) {
       return {
         message: 'That password did not match. Check it and try again.',
+        passwordInvalid: true,
       }
     }
 

@@ -47,7 +47,7 @@ export function LoginForm({ className, ...props }: Props) {
                 placeholder="Enter password"
                 autoComplete="current-password"
                 aria-describedby={state.message ? 'login-error' : undefined}
-                aria-invalid={state.message ? true : undefined}
+                aria-invalid={state.passwordInvalid ? true : undefined}
                 disabled={pending}
                 required
               />
