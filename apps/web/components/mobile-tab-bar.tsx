@@ -1,9 +1,11 @@
 'use client'
 
 import { cn } from '@workspace/ui/lib/utils'
+import { LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { logout } from '@/app/login/actions'
 import { isNavItemActive, navItems } from '@/lib/navigation'
 
 /** Adapts the desktop navigation capsule into a mobile bottom tab bar. */
@@ -39,6 +41,21 @@ export function MobileTabBar() {
             </li>
           )
         })}
+        <li>
+          <form action={logout}>
+            <button
+              type="submit"
+              aria-label="Sign out"
+              title="Sign out"
+              className={cn(
+                'flex size-12 touch-manipulation items-center justify-center rounded-full text-muted-foreground outline-none transition-colors',
+                'focus-visible:ring-3 focus-visible:ring-ring active:bg-muted'
+              )}
+            >
+              <LogOut aria-hidden="true" className="size-5" />
+            </button>
+          </form>
+        </li>
       </ul>
     </nav>
   )
