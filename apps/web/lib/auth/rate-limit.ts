@@ -23,17 +23,6 @@ function sweepExpired(now: number): void {
       loginAttempts.delete(key)
     }
   }
-  // Very conservative cap to avoid unbounded growth under identifier rotation.
-  if (loginAttempts.size > MAX_RECORDS) {
-    // Drop oldest-looking entries based on resetAt ordering.
-    const entries = Array.from(loginAttempts.entries()).sort(
-      (a, b) => a[1].resetAt - b[1].resetAt
-    )
-    const excess = loginAttempts.size - MAX_RECORDS
-    for (let i = 0; i < excess; i += 1) {
-      loginAttempts.delete(entries[i][0])
-    }
-  }
 }
 
 /** Consumes one login attempt from the caller's fixed-window allowance. */
@@ -44,6 +33,23 @@ export function consumeLoginAttempt(
   const now = options.now ?? Date.now()
   sweepExpired(now)
   const existingRecord = loginAttempts.get(identifier)
+
+  // When at capacity and this is a brand-new identifier, reject instead of
+  // evicting active windows. This prevents blocked clients from being reset.
+  if (!existingRecord && loginAttempts.size >= MAX_RECORDS) {
+    // Estimate the time until any window frees up. Use the soonest resetAt.
+    let nextResetAt = now + LOGIN_WINDOW_MS
+    for (const record of loginAttempts.values()) {
+      if (record.resetAt > now && record.resetAt < nextResetAt) {
+        nextResetAt = record.resetAt
+      }
+    }
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((nextResetAt - now) / 1000)),
+    }
+  }
+
   const record =
     existingRecord && existingRecord.resetAt > now
       ? existingRecord

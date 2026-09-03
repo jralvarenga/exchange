@@ -11,7 +11,7 @@ export function getDashboardPasswordHash(): string {
 
   if (!passwordHash || !BCRYPT_REGEX.test(passwordHash)) {
     throw new Error(
-      'DASHBOARD_PASSWORD_HASH must be a valid bcrypt hash (e.g. $2b$12$...). In .env files, escape each $ as \\\\$ or rerun `bun run auth:setup`.'
+      'DASHBOARD_PASSWORD_HASH must be a valid bcrypt hash (e.g. $2b$12$...). In .env files, escape each $ as \\$ or rerun `bun run auth:setup`.'
     )
   }
 

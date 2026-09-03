@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, test } from 'bun:test'
 
 import {
   clearLoginAttempts,
@@ -10,6 +10,10 @@ import {
 } from './rate-limit'
 
 describe('login rate limiter', () => {
+  afterEach(() => {
+    __test__clearAll()
+  })
+
   test('blocks attempts over the fixed-window limit', () => {
     const identifier = 'rate-limit-test-client'
     const now = Date.UTC(2026, 8, 3)
@@ -42,7 +46,6 @@ describe('login rate limiter', () => {
   })
 
   test('sweeps expired records to avoid unbounded growth', () => {
-    __test__clearAll()
     const base = Date.UTC(2026, 8, 3)
 
     // Fill with many unique identifiers that all expire in the first window.
@@ -59,5 +62,33 @@ describe('login rate limiter', () => {
 
     // Only the new id should remain.
     expect(__test__getLoginAttemptsSize()).toBe(1)
+  })
+
+  test('does not evict active windows at capacity and preserves blocked identifiers', () => {
+    const base = Date.UTC(2026, 8, 3)
+
+    // Fill the map to capacity with active, blocked windows.
+    for (let i = 0; i < 10_000; i += 1) {
+      const id = `cap-client-${i}`
+      // Open a fresh record
+      expect(consumeLoginAttempt(id, { now: base }).allowed).toBe(true)
+      // Consume remaining attempts until blocked
+      for (let a = 1; a < LOGIN_ATTEMPT_LIMIT; a += 1) {
+        consumeLoginAttempt(id, { now: base })
+      }
+      // Now it should be blocked within the same window
+      const blocked = consumeLoginAttempt(id, { now: base })
+      expect(blocked.allowed).toBe(false)
+    }
+
+    expect(__test__getLoginAttemptsSize()).toBe(10_000)
+
+    // Existing blocked identifier must remain blocked (no reset by eviction).
+    const stillBlocked = consumeLoginAttempt('cap-client-0', { now: base })
+    expect(stillBlocked.allowed).toBe(false)
+
+    // New identifiers must be rejected while at capacity.
+    const overCap = consumeLoginAttempt('new-client-over-cap', { now: base })
+    expect(overCap.allowed).toBe(false)
   })
 })

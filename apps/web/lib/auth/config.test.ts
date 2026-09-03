@@ -7,8 +7,17 @@ const ORIGINAL_PASSWORD_HASH = process.env.DASHBOARD_PASSWORD_HASH
 const ORIGINAL_AUTH_SECRET = process.env.AUTH_SECRET
 
 afterEach(() => {
-  process.env.DASHBOARD_PASSWORD_HASH = ORIGINAL_PASSWORD_HASH
-  process.env.AUTH_SECRET = ORIGINAL_AUTH_SECRET
+  if (ORIGINAL_PASSWORD_HASH === undefined) {
+    delete process.env.DASHBOARD_PASSWORD_HASH
+  } else {
+    process.env.DASHBOARD_PASSWORD_HASH = ORIGINAL_PASSWORD_HASH
+  }
+
+  if (ORIGINAL_AUTH_SECRET === undefined) {
+    delete process.env.AUTH_SECRET
+  } else {
+    process.env.AUTH_SECRET = ORIGINAL_AUTH_SECRET
+  }
 })
 
 describe('auth config', () => {

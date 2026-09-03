@@ -16,6 +16,7 @@
     "@workspace/typescript-config": "workspace:*",
     "dotenv": "^16.4.5",
     "dotenv-expand": "^10.0.0",
+    "@next/env": "^16.2.6",
     "turbo": "^2.9.18",
     "typescript": "^5"
   },
