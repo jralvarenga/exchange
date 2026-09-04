@@ -6,6 +6,8 @@ declare namespace NodeJS {
     ALPACA_DATA_BASE_URL?: string
     ALPACA_ENVIRONMENT?: 'live' | 'paper'
     ALPACA_TRADING_BASE_URL?: string
+    AUTH_SECRET?: string
+    DASHBOARD_PASSWORD_HASH?: string
     ADDRESS_ETHEREUM_USDC?: string
     ADDRESS_ETHEREUM_USDT?: string
     ADDRESS_SOLANA_USDC?: string

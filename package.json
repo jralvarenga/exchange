@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "auth:setup": "bun run scripts/setup-auth.ts",
     "build": "turbo build",
     "dev": "turbo dev",
     "check": "biome check .",
@@ -13,8 +14,14 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
     "@workspace/typescript-config": "workspace:*",
+    "dotenv": "^16.4.5",
+    "dotenv-expand": "^10.0.0",
+    "@next/env": "^16.2.6",
     "turbo": "^2.9.18",
     "typescript": "^5"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3"
   },
   "packageManager": "bun@1.2.23",
   "engines": {

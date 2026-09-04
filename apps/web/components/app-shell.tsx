@@ -20,6 +20,10 @@ export function AppShell({ children }: Props) {
   const router = useRouter()
   const assetIdentifier = getActiveAssetIdentifier(pathname)
 
+  if (pathname === '/login') {
+    return children
+  }
+
   /** Navigates to the selected asset's detail route. */
   function handleAssetSelect(asset: AssetSearchResult | null): void {
     if (asset) {
