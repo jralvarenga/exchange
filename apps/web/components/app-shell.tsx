@@ -39,7 +39,7 @@ export function AppShell({ children }: Props) {
       >
         Skip to main content
       </a>
-      <div className="mx-auto grid h-dvh max-w-[100rem] overflow-hidden bg-background text-foreground md:h-[calc(100dvh-2rem)] md:grid-cols-[5.5rem_minmax(0,1fr)] md:rounded-[2.5rem]">
+      <div className="mx-auto grid min-h-dvh max-w-[100rem] overflow-x-hidden bg-background text-foreground md:h-[calc(100dvh-2rem)] md:grid-cols-[5.5rem_minmax(0,1fr)] md:overflow-hidden md:rounded-[2.5rem]">
         <Sidebar />
         <div className="flex min-h-0 min-w-0 flex-col">
           <Navbar
@@ -54,7 +54,7 @@ export function AppShell({ children }: Props) {
           />
           <main
             id="main"
-            className="flex min-h-0 flex-1 flex-col overflow-x-hidden px-4 pt-2 pb-28 sm:px-6 md:px-4 md:pt-0 md:pr-5 md:pb-5"
+            className="flex min-h-0 flex-1 flex-col overflow-x-hidden px-4 pt-2 pb-28 sm:px-6 md:overflow-hidden md:px-4 md:pt-0 md:pr-5 md:pb-5"
           >
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           </main>

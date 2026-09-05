@@ -22,7 +22,7 @@ export function ActivityCard({ className }: Props) {
   return (
     <Card
       aria-labelledby="activity-title"
-      className={cn('flex min-h-0 flex-col', className)}
+      className={cn('flex min-h-80 flex-col', className)}
       role="region"
     >
       <CardHeader>
