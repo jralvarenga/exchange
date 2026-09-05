@@ -54,7 +54,7 @@ export function AppShell({ children }: Props) {
           />
           <main
             id="main"
-            className="flex min-h-0 flex-1 flex-col overflow-x-clip px-4 pt-2 pb-28 sm:px-6 md:overflow-hidden md:px-4 md:pt-0 md:pr-5 md:pb-5"
+            className="flex min-h-0 flex-1 flex-col overflow-x-clip px-4 pt-2 pb-28 sm:px-6 md:overflow-x-hidden md:px-4 md:pt-0 md:pr-5 md:pb-5"
           >
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           </main>
