@@ -24,7 +24,7 @@ export default function Home() {
           <Balance />
         </section>
 
-        <ActivityCard className="row-span-2 min-h-80 md:h-full md:min-h-0" />
+        <ActivityCard className="row-span-2 md:h-full md:min-h-0" />
 
         <Card
           aria-labelledby="balances-title"

@@ -22,13 +22,13 @@ export function ActivityCard({ className }: Props) {
   return (
     <Card
       aria-labelledby="activity-title"
-      className={cn('flex min-h-80 flex-col', className)}
+      className={cn('flex flex-col', className)}
       role="region"
     >
       <CardHeader>
         <CardTitle id="activity-title">Activity</CardTitle>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto">
+      <CardContent className="min-h-72 flex-1 overflow-y-auto md:min-h-0">
         <Activity limit={8} />
       </CardContent>
       <CardFooter className="mt-auto">
