@@ -19,8 +19,10 @@ Sign-up policy, in order:
   local development. `AUTH_DISABLE_SIGNUP` does not override the list.
 - With no allowlist, `AUTH_DISABLE_SIGNUP=true` closes sign-up and
   `AUTH_DISABLE_SIGNUP=false` opens it.
-- With neither set, production (`NODE_ENV=production` or
-  `VERCEL_ENV=production`) stays closed and other environments stay open.
+- With neither set, Vercel production (`VERCEL_ENV=production`) stays
+  closed. Previews (`VERCEL_ENV=preview`) stay open even though Next.js
+  sets `NODE_ENV=production` there. Without `VERCEL_ENV`,
+  `NODE_ENV=production` stays closed and other environments stay open.
 
 Owner migration writes the user directly, so it still works when sign-up is
 closed. Google sign-in for an existing allowed or migrated user still
@@ -164,7 +166,8 @@ AUTH_DISABLE_SIGNUP
 A non-empty `AUTH_ALLOWED_EMAILS` restricts sign-up to those addresses in
 every environment. `AUTH_DISABLE_SIGNUP=false` reopens sign-up only when no
 allowlist is set. `AUTH_DISABLE_SIGNUP=true` closes it. Production defaults
-to closed.
+to closed. Preview deploys stay open unless `AUTH_DISABLE_SIGNUP` or
+`AUTH_ALLOWED_EMAILS` is set.
 
 `BETTER_AUTH_URL` must be the public production HTTPS origin, for example
 `https://dashboard.example.com`. Preview deploys set Better Auth's base URL

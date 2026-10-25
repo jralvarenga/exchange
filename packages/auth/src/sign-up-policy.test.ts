@@ -25,6 +25,18 @@ describe('resolveSignUpPolicy', () => {
     })
   })
 
+  test('keeps preview sign-up open when NODE_ENV is production', () => {
+    expect(
+      resolveSignUpPolicy({
+        NODE_ENV: 'production',
+        VERCEL_ENV: 'preview',
+      })
+    ).toEqual({
+      allowedEmails: undefined,
+      disableSignUp: false,
+    })
+  })
+
   test('keeps sign-up open in development by default', () => {
     expect(
       resolveSignUpPolicy({
