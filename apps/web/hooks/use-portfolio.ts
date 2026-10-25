@@ -4,6 +4,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { portfolioQueryKey } from '@/lib/alpaca/query-keys'
 import type { Portfolio } from '@/lib/alpaca/schemas'
 import { portfolioSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 /** Fetches and validates all current Alpaca portfolio positions. */
@@ -13,11 +14,11 @@ async function fetchPortfolio(): Promise<Portfolio> {
     headers: { Accept: 'application/json' },
   })
 
-  if (!response.ok) {
-    throw new Error('Unable to retrieve the portfolio.')
-  }
-
-  return portfolioSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    portfolioSchema,
+    'Unable to retrieve the portfolio.'
+  )
 }
 
 /** Suspends while loading the portfolio and refreshes it every 30 seconds. */

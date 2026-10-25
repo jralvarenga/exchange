@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { ArrowDownToLine, House, PiggyBank, Wallet } from 'lucide-react'
+import { House, PiggyBank, Settings, Wallet } from 'lucide-react'
 
 export type NavItem = {
   href: string
@@ -22,6 +22,11 @@ export const navItems: NavItem[] = [
     href: '/funds-wallet',
     icon: PiggyBank,
     title: 'Funds & Wallet',
+  },
+  {
+    href: '/settings',
+    icon: Settings,
+    title: 'Settings',
   },
 ]
 

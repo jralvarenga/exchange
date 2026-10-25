@@ -1,19 +1,21 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    ALPACA_API_KEY_ID?: string
-    ALPACA_API_SECRET_KEY?: string
     ALPACA_CRYPTO_LOCATION?: 'bs-1' | 'eu-1' | 'us' | 'us-1' | 'us-2'
     ALPACA_DATA_BASE_URL?: string
-    ALPACA_ENVIRONMENT?: 'live' | 'paper'
-    ALPACA_TRADING_BASE_URL?: string
-    AUTH_SECRET?: string
-    DASHBOARD_PASSWORD_HASH?: string
-    ADDRESS_ETHEREUM_USDC?: string
-    ADDRESS_ETHEREUM_USDT?: string
-    ADDRESS_SOLANA_USDC?: string
-    ADDRESS_SOLANA_USDT?: string
+    AUTH_ALLOWED_EMAILS?: string
+    AUTH_DISABLE_SIGNUP?: string
+    BETTER_AUTH_SECRET?: string
+    BETTER_AUTH_TRUSTED_ORIGINS?: string
+    BETTER_AUTH_URL?: string
+    CREDENTIALS_ENCRYPTION_KEYS?: string
+    DATABASE_URL?: string
+    EMAIL_FROM?: string
+    GOOGLE_CLIENT_ID?: string
+    GOOGLE_CLIENT_SECRET?: string
+    RESEND_API_KEY?: string
     NEXT_PUBLIC_APP_URL?: string
     PORT?: string
+    VERCEL_ENV?: 'development' | 'preview' | 'production'
     VERCEL_URL?: string
   }
 }

@@ -91,11 +91,7 @@ export function AssetCombobox({
       onInputValueChange={(nextInput) => {
         setInputValue(nextInput)
 
-        if (
-          selectedValue &&
-          nextInput !==
-            selectedValue.symbol
-        ) {
+        if (selectedValue && nextInput !== selectedValue.symbol) {
           handleValueChange(null)
         }
       }}

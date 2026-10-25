@@ -43,6 +43,7 @@ import {
   type OrderFormValues,
   orderFormValuesSchema,
 } from '@/lib/alpaca/schemas'
+import { isAlpacaCredentialError } from '@/lib/api/error'
 import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
 
 interface Props {
@@ -114,6 +115,10 @@ export function BuyDialog({ assetIdentifier }: Props) {
         })
         setOpen(false)
       } catch (error) {
+        if (isAlpacaCredentialError(error)) {
+          return
+        }
+
         showErrorToast({
           title: 'Unable to place order',
           description:

@@ -5,6 +5,7 @@ import { AssetDataError } from '@/lib/alpaca/errors'
 import { getAssetDetailQueryKey } from '@/lib/alpaca/query-keys'
 import type { AssetDetail } from '@/lib/alpaca/schemas'
 import { assetDetailSchema } from '@/lib/alpaca/schemas'
+import { apiRequestErrorFrom, isAlpacaCredentialError } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface FetchAssetDetailOptions {
@@ -27,10 +28,19 @@ async function fetchAssetDetail(
   )
 
   if (!response.ok) {
+    const error = await apiRequestErrorFrom(
+      response,
+      'Unable to retrieve this asset.'
+    )
+
+    if (isAlpacaCredentialError(error)) {
+      throw error
+    }
+
     throw new AssetDataError(
       response.status === 404
         ? 'This asset could not be found.'
-        : 'Unable to retrieve this asset.',
+        : error.message,
       response.status
     )
   }

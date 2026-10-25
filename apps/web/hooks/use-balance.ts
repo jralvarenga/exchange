@@ -4,6 +4,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { balanceQueryKey } from '@/lib/alpaca/query-keys'
 import type { CurrentBalance } from '@/lib/alpaca/schemas'
 import { currentBalanceSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 /** Fetches and validates the current Alpaca account balance. */
@@ -13,11 +14,11 @@ async function fetchBalance(): Promise<CurrentBalance> {
     headers: { Accept: 'application/json' },
   })
 
-  if (!response.ok) {
-    throw new Error('Unable to retrieve the current balance.')
-  }
-
-  return currentBalanceSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    currentBalanceSchema,
+    'Unable to retrieve the current balance.'
+  )
 }
 
 /** Suspends while loading the balance and refreshes it every 30 seconds. */

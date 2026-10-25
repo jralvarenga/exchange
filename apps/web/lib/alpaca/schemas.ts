@@ -68,15 +68,15 @@ export const intradayReportingSchema = z.enum([
 export const pnlResetSchema = z.enum(['no_reset', 'per_day'])
 
 export const alpacaClientOptionsSchema = z.object({
-  apiKeyId: z.string().min(1).optional(),
-  apiSecretKey: z.string().min(1).optional(),
+  apiKeyId: z.string().min(1),
+  apiSecretKey: z.string().min(1),
   cryptoLocation: alpacaCryptoLocationSchema.optional(),
   dataBaseUrl: z.string().url().optional(),
+  environment: alpacaEnvironmentSchema,
   fetcher: z
     .custom<typeof fetch>((value) => typeof value === 'function')
     .optional(),
   timeoutMs: z.number().int().positive().optional(),
-  tradingBaseUrl: z.string().url().optional(),
 })
 
 export const alpacaAssetSchema = z

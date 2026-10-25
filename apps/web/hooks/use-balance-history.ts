@@ -4,6 +4,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { getBalanceHistoryQueryKey } from '@/lib/alpaca/query-keys'
 import type { BalanceChart, BalanceInterval } from '@/lib/alpaca/schemas'
 import { balanceChartSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface UseBalanceHistoryOptions {
@@ -23,11 +24,11 @@ async function fetchBalanceHistory(
     }
   )
 
-  if (!response.ok) {
-    throw new Error('Unable to retrieve balance history.')
-  }
-
-  return balanceChartSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    balanceChartSchema,
+    'Unable to retrieve balance history.'
+  )
 }
 
 /** Suspends while loading balance history for the selected interval. */

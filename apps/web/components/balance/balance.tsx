@@ -1,11 +1,12 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { useState } from 'react'
 
 import { BalanceChart } from '@/components/balance/balance-chart'
 import { BalanceChartFallback } from '@/components/balance/balance-chart-fallback'
 import { BalanceDetails } from '@/components/balance/balance-details'
 import { BalanceErrorBoundary } from '@/components/balance/balance-error-boundary'
+import { ClientSuspense } from '@/components/client-suspense'
 import { initialBalanceInterval } from '@/lib/alpaca/query-keys'
 import type { BalanceInterval } from '@/lib/alpaca/schemas'
 
@@ -26,9 +27,9 @@ export function Balance() {
           }
           resetKey={interval}
         >
-          <Suspense fallback={<BalanceChartFallback />}>
+          <ClientSuspense fallback={<BalanceChartFallback />}>
             <BalanceChart interval={interval} />
-          </Suspense>
+          </ClientSuspense>
         </BalanceErrorBoundary>
       </div>
       <div className="px-4 pt-4 pb-4">

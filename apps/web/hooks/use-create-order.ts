@@ -3,7 +3,6 @@ import {
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query'
-import { z } from 'zod'
 
 import {
   accountActivitiesQueryKey,
@@ -17,11 +16,8 @@ import {
   type Order,
   orderSchema,
 } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
-
-const apiErrorSchema = z.object({
-  error: z.object({ message: z.string() }),
-})
 
 /** Sends a validated Alpaca order without automatic transaction retries. */
 export function useCreateOrder(): UseMutationResult<
@@ -60,15 +56,5 @@ async function submitOrder(order: CreateOrderRequest): Promise<Order> {
     method: 'POST',
   })
 
-  if (!response.ok) {
-    const body = apiErrorSchema.safeParse(
-      await response.json().catch(() => null)
-    )
-
-    throw new Error(
-      body.success ? body.data.error.message : 'Unable to place the order.'
-    )
-  }
-
-  return orderSchema.parse(await response.json())
+  return parseApiJson(response, orderSchema, 'Unable to place the order.')
 }

@@ -8,6 +8,7 @@ import { AssetDataError } from '@/lib/alpaca/errors'
 import { getAssetHistoryQueryKey } from '@/lib/alpaca/query-keys'
 import type { AssetHistory, AssetInterval } from '@/lib/alpaca/schemas'
 import { assetHistorySchema } from '@/lib/alpaca/schemas'
+import { apiRequestErrorFrom, isAlpacaCredentialError } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface FetchAssetHistoryOptions {
@@ -39,10 +40,19 @@ async function fetchAssetHistory(
   )
 
   if (!response.ok) {
+    const error = await apiRequestErrorFrom(
+      response,
+      'Unable to retrieve price history.'
+    )
+
+    if (isAlpacaCredentialError(error)) {
+      throw error
+    }
+
     throw new AssetDataError(
       response.status === 404
         ? 'Price history is unavailable for this asset.'
-        : 'Unable to retrieve price history.',
+        : error.message,
       response.status
     )
   }

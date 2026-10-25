@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 export const depositChains = ['ethereum', 'solana'] as const
 export const depositAssets = ['USDC', 'USDT'] as const
 
@@ -28,67 +30,145 @@ interface GetDepositAssetsOptions {
   methods: DepositMethod[]
 }
 
-interface DepositEnvBinding {
+export interface DepositSlot {
   asset: DepositAsset
   chain: DepositChain
   chainLabel: string
-  envName: keyof NodeJS.ProcessEnv
   tokenStandard: string
 }
 
-const depositEnvBindings: DepositEnvBinding[] = [
+interface StoredDepositAddress {
+  address: string
+  asset: string
+  chain: string
+}
+
+/** Every network and stablecoin pair a user can add a deposit address for. */
+export const depositSlots: DepositSlot[] = [
   {
     asset: 'USDC',
     chain: 'ethereum',
     chainLabel: 'Ethereum',
-    envName: 'ADDRESS_ETHEREUM_USDC',
     tokenStandard: 'ERC-20',
   },
   {
     asset: 'USDT',
     chain: 'ethereum',
     chainLabel: 'Ethereum',
-    envName: 'ADDRESS_ETHEREUM_USDT',
     tokenStandard: 'ERC-20',
   },
   {
     asset: 'USDC',
     chain: 'solana',
     chainLabel: 'Solana',
-    envName: 'ADDRESS_SOLANA_USDC',
     tokenStandard: 'Solana',
   },
   {
     asset: 'USDT',
     chain: 'solana',
     chainLabel: 'Solana',
-    envName: 'ADDRESS_SOLANA_USDT',
     tokenStandard: 'Solana',
   },
 ]
 
-/** Reads configured deposit wallets from the environment, skipping empty values. */
-export function getConfiguredDepositMethods(): DepositMethod[] {
-  return depositEnvBindings.flatMap((binding) => {
-    const address = readDepositAddress(process.env[binding.envName])
+const ETHEREUM_ADDRESS = /^0x[0-9a-fA-F]{40}$/u
+const SOLANA_ADDRESS_CHARS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/u
+const BASE58_ALPHABET =
+  '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+const SOLANA_PUBLIC_KEY_BYTES = 32
 
-    if (!address) {
-      return []
+/** Validates one deposit address submission against its network's format. */
+export const depositAddressInputSchema = z
+  .object({
+    address: z.string().trim(),
+    asset: z.enum(depositAssets),
+    chain: z.enum(depositChains),
+  })
+  .refine((input) => isValidDepositAddress(input.chain, input.address), {
+    message: 'Enter a valid address for this network.',
+    path: ['address'],
+  })
+
+/** Returns whether an address matches the selected network. */
+export function isValidDepositAddress(
+  chain: DepositChain,
+  address: string
+): boolean {
+  if (chain === 'ethereum') {
+    return ETHEREUM_ADDRESS.test(address)
+  }
+
+  return isSolanaPublicKey(address)
+}
+
+/** True when the value decodes to a 32-byte Solana public key. */
+function isSolanaPublicKey(address: string): boolean {
+  if (!SOLANA_ADDRESS_CHARS.test(address)) {
+    return false
+  }
+
+  return decodeBase58(address)?.length === SOLANA_PUBLIC_KEY_BYTES
+}
+
+/** Decodes a Base58 string. Returns undefined when a character is invalid. */
+function decodeBase58(value: string): Uint8Array | undefined {
+  const bytes = [0]
+
+  for (const character of value) {
+    let carry = BASE58_ALPHABET.indexOf(character)
+
+    if (carry === -1) {
+      return undefined
     }
 
-    return [
-      {
-        address,
-        asset: binding.asset,
-        chain: binding.chain,
-        chainLabel: binding.chainLabel,
-        tokenStandard: binding.tokenStandard,
-      },
-    ]
+    for (let index = 0; index < bytes.length; index += 1) {
+      const current = bytes[index]
+
+      if (current === undefined) {
+        break
+      }
+
+      carry += current * 58
+      bytes[index] = carry % 256
+      carry = Math.floor(carry / 256)
+    }
+
+    while (carry > 0) {
+      bytes.push(carry % 256)
+      carry = Math.floor(carry / 256)
+    }
+  }
+
+  let leadingZeros = 0
+
+  for (const character of value) {
+    if (character !== '1') {
+      break
+    }
+
+    leadingZeros += 1
+  }
+
+  const decoded = new Uint8Array(leadingZeros + bytes.length)
+  decoded.set(Uint8Array.from(bytes.reverse()), leadingZeros)
+
+  return decoded
+}
+
+/** Maps stored addresses onto deposit methods in the fixed slot order. */
+export function toDepositMethods(
+  addresses: StoredDepositAddress[]
+): DepositMethod[] {
+  return depositSlots.flatMap((slot) => {
+    const stored = addresses.find(
+      (address) => address.chain === slot.chain && address.asset === slot.asset
+    )
+
+    return stored ? [{ ...slot, address: stored.address }] : []
   })
 }
 
-/** Returns the deposit method for a chain and asset when that env var is set. */
+/** Returns the deposit method for a chain and asset when the user saved one. */
 export function getDepositMethod(
   options: GetDepositMethodOptions
 ): DepositMethod | undefined {
@@ -121,11 +201,4 @@ export function getDepositAssets(
   return options.methods.flatMap((method) =>
     method.chain === options.chain ? [method.asset] : []
   )
-}
-
-/** Returns a trimmed address, or undefined when the env value is missing. */
-function readDepositAddress(value: string | undefined): string | undefined {
-  const address = value?.trim()
-
-  return address ? address : undefined
 }

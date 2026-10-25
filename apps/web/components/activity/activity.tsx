@@ -1,10 +1,9 @@
 'use client'
 
-import { Suspense } from 'react'
-
 import { ActivityFallback } from '@/components/activity/activity-fallback'
 import { ActivityList } from '@/components/activity/activity-list'
 import { BalanceErrorBoundary } from '@/components/balance/balance-error-boundary'
+import { ClientSuspense } from '@/components/client-suspense'
 
 interface Props {
   limit?: number
@@ -21,9 +20,9 @@ export function Activity({ limit, pageSize }: Props) {
         </p>
       }
     >
-      <Suspense fallback={<ActivityFallback />}>
+      <ClientSuspense fallback={<ActivityFallback />}>
         <ActivityList limit={limit} pageSize={pageSize} />
-      </Suspense>
+      </ClientSuspense>
     </BalanceErrorBoundary>
   )
 }

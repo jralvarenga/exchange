@@ -1,26 +1,48 @@
+import { getSessionCookie } from 'better-auth/cookies'
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/token'
+const PUBLIC_PATHS = new Set([
+  '/forgot-password',
+  '/login',
+  '/reset-password',
+  '/sign-up',
+  '/verify-email',
+])
 
-/** Gates dashboard pages and APIs with a verified signed session. */
-export async function proxy(request: NextRequest): Promise<NextResponse> {
+/** Optimistically gates pages on the session cookie. Handlers verify the session. */
+export function proxy(request: NextRequest): NextResponse {
   const pathname = request.nextUrl.pathname
-  const session = request.cookies.get(SESSION_COOKIE_NAME)?.value
-  const isAuthenticated = await verifySessionToken(session)
 
-  if (pathname === '/login') {
-    return isAuthenticated
-      ? NextResponse.redirect(new URL('/', request.url))
-      : NextResponse.next()
+  if (pathname === '/api/auth' || pathname.startsWith('/api/auth/')) {
+    return NextResponse.next()
   }
 
-  if (isAuthenticated) {
+  if (PUBLIC_PATHS.has(pathname)) {
+    if (
+      getSessionCookie(request) &&
+      (pathname === '/login' || pathname === '/sign-up')
+    ) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
+    return NextResponse.next()
+  }
+
+  if (getSessionCookie(request)) {
     return NextResponse.next()
   }
 
   if (pathname.startsWith('/api/')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json(
+      {
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'A valid dashboard session is required.',
+        },
+      },
+      { status: 401 }
+    )
   }
 
   return NextResponse.redirect(new URL('/login', request.url))

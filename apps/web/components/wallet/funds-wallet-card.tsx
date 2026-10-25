@@ -25,7 +25,7 @@ interface Props {
   methods: DepositMethod[]
 }
 
-/** Renders deposit options for every chain and asset that has an env address. */
+/** Renders deposit options for every chain and asset the user saved an address for. */
 export function FundsWalletCard({ methods }: Props) {
   const chainOptions = getDepositChainOptions(methods)
   const [chain, setChain] = useState<DepositChain>(

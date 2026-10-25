@@ -1,12 +1,11 @@
+import { AuthPage } from '@/components/login/auth-page'
 import { LoginForm } from '@/components/login/login-form'
 
-/** Renders the existing login page layout. */
+/** Renders email, password, and Google sign-in. */
 export default function LoginPage() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <LoginForm />
-      </div>
-    </div>
+    <AuthPage>
+      <LoginForm />
+    </AuthPage>
   )
 }

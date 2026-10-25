@@ -16,7 +16,7 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getChange() {
-    return getBalanceChange({ interval: query.data.interval })
+  return createApiResponse(async function getChange({ alpaca }) {
+    return getBalanceChange({ ...alpaca, interval: query.data.interval })
   })
 }

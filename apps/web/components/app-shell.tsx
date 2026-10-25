@@ -20,7 +20,13 @@ export function AppShell({ children }: Props) {
   const router = useRouter()
   const assetIdentifier = getActiveAssetIdentifier(pathname)
 
-  if (pathname === '/login') {
+  if (
+    pathname === '/login' ||
+    pathname === '/sign-up' ||
+    pathname === '/forgot-password' ||
+    pathname === '/verify-email' ||
+    pathname === '/reset-password'
+  ) {
     return children
   }
 

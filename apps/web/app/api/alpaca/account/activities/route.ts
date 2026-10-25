@@ -24,7 +24,9 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getAlpacaAccountActivities() {
-    return getAccountActivities(query.data)
+  return createApiResponse(async function getAlpacaAccountActivities({
+    alpaca,
+  }) {
+    return getAccountActivities({ ...query.data, ...alpaca })
   })
 }

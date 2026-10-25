@@ -3,12 +3,16 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "auth:setup": "bun run scripts/setup-auth.ts",
+    "auth:migrate-owner": "bun run scripts/migrate-owner.ts",
+    "auth:secrets": "bun run scripts/generate-secrets.ts",
+    "db:generate": "bun run --filter @workspace/db db:generate",
+    "db:migrate": "bun run --filter @workspace/db db:migrate",
     "build": "turbo build",
     "dev": "turbo dev",
     "check": "biome check .",
     "lint": "biome check .",
     "format": "biome check --write --unsafe .",
+    "test": "bun run --filter web test && bun run --filter @workspace/auth test",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
@@ -19,9 +23,6 @@
     "@next/env": "^16.2.6",
     "turbo": "^2.9.18",
     "typescript": "^5"
-  },
-  "dependencies": {
-    "bcryptjs": "^3.0.3"
   },
   "packageManager": "bun@1.2.23",
   "engines": {

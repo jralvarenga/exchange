@@ -1,0 +1,46 @@
+name: Migrate database
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two migrations against the same database at once, and never cancel
+# one that has started.
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Apply Drizzle migrations
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Holds the DATABASE_URL secret. Required reviewers should be set on this
+    # environment in the repository settings so each migration is approved by hand.
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply migrations
+        working-directory: packages/db
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Set the DATABASE_URL secret on the production environment."
+            exit 1
+          fi
+          bun run db:migrate

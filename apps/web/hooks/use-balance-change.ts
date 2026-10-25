@@ -4,6 +4,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { getBalanceChangeQueryKey } from '@/lib/alpaca/query-keys'
 import type { BalanceChange, BalanceInterval } from '@/lib/alpaca/schemas'
 import { balanceChangeSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface UseBalanceChangeOptions {
@@ -23,11 +24,11 @@ async function fetchBalanceChange(
     }
   )
 
-  if (!response.ok) {
-    throw new Error('Unable to retrieve the balance change.')
-  }
-
-  return balanceChangeSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    balanceChangeSchema,
+    'Unable to retrieve the balance change.'
+  )
 }
 
 /** Suspends while loading the selected interval's balance change. */

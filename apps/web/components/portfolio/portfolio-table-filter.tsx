@@ -1,7 +1,6 @@
 'use client'
 
 import { Input } from '@workspace/ui/components/input'
-import { Label } from '@workspace/ui/components/label'
 
 interface Props {
   id: string

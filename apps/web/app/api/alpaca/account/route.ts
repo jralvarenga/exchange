@@ -4,8 +4,8 @@ import { accountSummarySchema } from '@/lib/alpaca/schemas'
 
 /** Returns safe account status metadata without exposing account identifiers. */
 export async function GET(): Promise<Response> {
-  return createApiResponse(async function getAccountSummary() {
-    const account = await getAccount()
+  return createApiResponse(async function getAccountSummary({ alpaca }) {
+    const account = await getAccount(alpaca)
 
     return accountSummarySchema.parse({
       accountBlocked: account.account_blocked,
