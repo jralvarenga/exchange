@@ -99,4 +99,59 @@ describe('secret box', () => {
       }).startsWith('v1:k2:')
     ).toBe(true)
   })
+
+  test('round-trips empty plaintext', () => {
+    const encryptionKeys = keys(['k1'])
+    const payload = encryptSecret({
+      aad: 'user-1:paper:secret',
+      keys: encryptionKeys,
+      plaintext: '',
+    })
+
+    expect(
+      decryptSecret({
+        aad: 'user-1:paper:secret',
+        keys: encryptionKeys,
+        payload,
+      })
+    ).toBe('')
+  })
+
+  test('rejects a truncated authentication tag', () => {
+    const encryptionKeys = keys(['k1'])
+    const payload = encryptSecret({
+      aad: 'user-1:paper:secret',
+      keys: encryptionKeys,
+      plaintext: 'alpaca-secret',
+    })
+    const parts = payload.split(':')
+    parts[3] = Buffer.from('short').toString('base64url')
+
+    expect(() =>
+      decryptSecret({
+        aad: 'user-1:paper:secret',
+        keys: encryptionKeys,
+        payload: parts.join(':'),
+      })
+    ).toThrow('Unable to decrypt credential.')
+  })
+
+  test('rejects duplicate encryption key ids', () => {
+    const original = keys(['k1'])
+    const duplicate = keys(['k1'])
+
+    expect(() =>
+      parseEncryptionKeys(
+        [...duplicate, ...original]
+          .map((key) => `${key.id}:${key.key.toString('base64url')}`)
+          .join(',')
+      )
+    ).toThrow('CREDENTIALS_ENCRYPTION_KEYS contains duplicate key ids.')
+  })
+
+  test('rejects a key with invalid base64 characters', () => {
+    expect(() => parseEncryptionKeys('k1:not-valid-base64!!!!')).toThrow(
+      'CREDENTIALS_ENCRYPTION_KEYS entry is invalid.'
+    )
+  })
 })

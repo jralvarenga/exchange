@@ -37,7 +37,8 @@ docker compose up -d
 `DATABASE_URL` for that database is
 `postgresql://exchange:exchange@127.0.0.1:5432/exchange`. Production uses a Neon
 pooled connection string in the same variable. Apply migrations as a deploy
-step. Do not use `drizzle-kit push`.
+step. Do not use `drizzle-kit push`. `bun run db:migrate` reads `DATABASE_URL`
+from the environment, `packages/db/.env`, or `apps/web/.env.local`.
 
 ```bash
 bun run db:migrate
@@ -60,9 +61,10 @@ bun run auth:secrets
 
 Paste `BETTER_AUTH_SECRET` and `CREDENTIALS_ENCRYPTION_KEYS` into
 `apps/web/.env.local` and the deployment environment. The encryption value is
-one or more `keyId:base64` pairs. The first key encrypts new credentials. Every
-listed key can decrypt. To rotate, generate another key, prepend it, and keep
-the previous keys until every stored row has been saved again.
+one or more `keyId:base64` pairs. Each generated key id is unique. The first
+key encrypts new credentials. Every listed key can decrypt. To rotate, generate
+another key, prepend it, and keep the previous keys until every stored row has
+been saved again. Duplicate key ids are rejected.
 
 ### Deposit wallets
 
@@ -122,6 +124,30 @@ dashboard.example.com {
 
 Sign-in rate limits are stored in Postgres. A reverse proxy can add its own
 limit in front of them.
+
+## Vercel
+
+Set these on the project before the first production or preview deploy. Trading
+no longer reads `ALPACA_API_KEY_ID` or `ALPACA_API_SECRET_KEY` at runtime; each
+user stores their own keys under Settings.
+
+```text
+DATABASE_URL
+BETTER_AUTH_SECRET
+BETTER_AUTH_URL
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+RESEND_API_KEY
+EMAIL_FROM
+CREDENTIALS_ENCRYPTION_KEYS
+```
+
+`BETTER_AUTH_URL` must be the public HTTPS origin, for example
+`https://dashboard.example.com`. Preview deploys also trust `VERCEL_URL`. Add
+extra origins with a comma-separated `BETTER_AUTH_TRUSTED_ORIGINS` if needed.
+`ALPACA_CRYPTO_LOCATION` and `ALPACA_DATA_BASE_URL` stay optional. After
+`bun run auth:migrate-owner` succeeds, remove the legacy password, Alpaca, and
+`ADDRESS_*` variables from Vercel.
 
 ## Adding components
 

@@ -125,22 +125,30 @@ export async function updateAlpacaCredentialStatus(
     )
 }
 
+interface MarkAlpacaCredentialInvalidInput extends AlpacaCredentialIdentity {
+  updatedAt?: Date
+}
+
 /** Marks a stored key pair invalid without changing the last successful check. */
 export async function markAlpacaCredentialInvalid(
-  input: AlpacaCredentialIdentity
+  input: MarkAlpacaCredentialInvalidInput
 ): Promise<void> {
+  const conditions = [
+    eq(alpacaCredentials.userId, input.userId),
+    eq(alpacaCredentials.environment, input.environment),
+  ]
+
+  if (input.updatedAt) {
+    conditions.push(eq(alpacaCredentials.updatedAt, input.updatedAt))
+  }
+
   await db
     .update(alpacaCredentials)
     .set({
       status: 'invalid',
       updatedAt: new Date(),
     })
-    .where(
-      and(
-        eq(alpacaCredentials.userId, input.userId),
-        eq(alpacaCredentials.environment, input.environment)
-      )
-    )
+    .where(and(...conditions))
 }
 
 /** Reads the trading environment selected for a user. */

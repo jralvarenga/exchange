@@ -1,6 +1,8 @@
 import path from 'node:path'
 import { loadEnvConfig } from '@next/env'
 
+import { isValidDepositAddress } from '../apps/web/lib/wallet/deposit-addresses'
+
 loadEnvConfig(path.resolve('apps/web'))
 
 const email = readEmail(process.argv)
@@ -50,9 +52,9 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
     let userId = existing[0]?.id
 
     if (!userId) {
-      if (!passwordHash?.startsWith('$2')) {
+      if (!isUsableBcryptHash(passwordHash)) {
         throw new Error(
-          'DASHBOARD_PASSWORD_HASH must be the existing bcrypt hash to create the owner.'
+          'DASHBOARD_PASSWORD_HASH must be a bcrypt hash with cost 10 or higher to create the owner.'
         )
       }
 
@@ -86,9 +88,9 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       .limit(1)
 
     if (!credentialAccount) {
-      if (!passwordHash?.startsWith('$2')) {
+      if (!isUsableBcryptHash(passwordHash)) {
         throw new Error(
-          'DASHBOARD_PASSWORD_HASH must be the existing bcrypt hash to create the password login.'
+          'DASHBOARD_PASSWORD_HASH must be a bcrypt hash with cost 10 or higher to create the password login.'
         )
       }
 
@@ -280,6 +282,29 @@ function readDepositAddressEnv(): DepositAddressEnv[] {
   return entries.flatMap(({ asset, chain, value }) => {
     const address = value?.trim()
 
-    return address ? [{ address, asset, chain }] : []
+    if (!address) {
+      return []
+    }
+
+    if (!isValidDepositAddress(chain, address)) {
+      throw new Error(
+        `ADDRESS_${chain.toUpperCase()}_${asset} is not a valid ${chain} address.`
+      )
+    }
+
+    return [{ address, asset, chain }]
   })
+}
+
+const BCRYPT_HASH = /^\$2[aby]\$(\d{2})\$[./A-Za-z0-9]{53}$/u
+
+/** True when the value is a bcrypt hash the owner can actually sign in with. */
+function isUsableBcryptHash(value: string | undefined): value is string {
+  const match = value?.match(BCRYPT_HASH)
+
+  if (!match) {
+    return false
+  }
+
+  return Number(match[1]) >= 10
 }

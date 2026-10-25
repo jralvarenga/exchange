@@ -1,5 +1,4 @@
 import { db } from '@workspace/db/client'
-import { alpacaCredentials } from '@workspace/db/schema/alpaca-credentials'
 import {
   accounts,
   rateLimits,
@@ -35,7 +34,6 @@ function createAuth() {
       provider: 'pg',
       schema: {
         accounts,
-        alpacaCredentials,
         rateLimits,
         sessions,
         users,
@@ -50,12 +48,14 @@ function createAuth() {
       },
       requireEmailVerification: true,
       sendResetPassword: async function sendResetPassword({ url, user }) {
-        await sendAuthEmail({
+        // Do not await delivery. Existing addresses would otherwise take
+        // longer than unknown ones and leak whether the account exists.
+        void sendAuthEmail({
           html: `<p>Reset the password for your Exchange account.</p><p><a href="${escapeHtml(url)}">Choose a new password</a></p>`,
           subject: 'Reset your Exchange password',
           text: `Reset your Exchange password: ${url}`,
           to: user.email,
-        })
+        }).catch(() => undefined)
       },
     },
     emailVerification: {
@@ -91,9 +91,7 @@ function createAuth() {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
       },
     },
-    trustedOrigins: process.env.BETTER_AUTH_URL
-      ? [process.env.BETTER_AUTH_URL]
-      : [],
+    trustedOrigins: authTrustedOrigins(),
     user: {
       additionalFields: {
         activeAlpacaEnvironment: {
@@ -138,6 +136,37 @@ export const auth: Auth = new Proxy({} as Auth, {
     return property in getAuth()
   },
 })
+
+/**
+ * Origins allowed for CSRF and OAuth callbacks.
+ * BETTER_AUTH_URL is required. Preview hosts can be added with
+ * BETTER_AUTH_TRUSTED_ORIGINS or VERCEL_URL.
+ */
+function authTrustedOrigins(): string[] {
+  const origins = new Set<string>()
+
+  if (process.env.BETTER_AUTH_URL) {
+    origins.add(process.env.BETTER_AUTH_URL)
+  }
+
+  if (process.env.VERCEL_URL) {
+    origins.add(`https://${process.env.VERCEL_URL}`)
+  }
+
+  const extra = process.env.BETTER_AUTH_TRUSTED_ORIGINS
+
+  if (extra) {
+    for (const origin of extra.split(',')) {
+      const trimmed = origin.trim()
+
+      if (trimmed.length > 0) {
+        origins.add(trimmed)
+      }
+    }
+  }
+
+  return [...origins]
+}
 
 /** Escapes a URL before it is placed in an HTML email body. */
 function escapeHtml(value: string): string {

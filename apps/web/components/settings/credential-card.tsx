@@ -58,21 +58,37 @@ export function CredentialCard({
   useEffect(() => {
     if (state.credential) {
       setEditing(false)
+      setShowsSecret(false)
     }
   }, [state.credential])
 
+  useEffect(() => {
+    if (!editing) {
+      setShowsSecret(false)
+    }
+  }, [editing])
+
   async function handleTest(): Promise<void> {
     setBusy(true)
-    await onTest()
-    setBusy(false)
+
+    try {
+      await onTest()
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function handleRemove(): Promise<void> {
     setBusy(true)
-    await onRemove()
-    setConfirmingRemove(false)
-    setEditing(true)
-    setBusy(false)
+
+    try {
+      await onRemove()
+      setConfirmingRemove(false)
+      setEditing(true)
+      setShowsSecret(false)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (

@@ -52,7 +52,13 @@ export function parseEncryptionKeys(value: string): EncryptionKey[] {
     throw new Error('CREDENTIALS_ENCRYPTION_KEYS is empty.')
   }
 
-  return entries.map(parseEncryptionKey)
+  const parsed = entries.map(parseEncryptionKey)
+
+  if (new Set(parsed.map((entry) => entry.id)).size !== parsed.length) {
+    throw new Error('CREDENTIALS_ENCRYPTION_KEYS contains duplicate key ids.')
+  }
+
+  return parsed
 }
 
 /**
@@ -100,7 +106,7 @@ export function decryptSecret(input: DecryptSecretInput): string {
 
   const [, keyId, ivPart, tagPart, ciphertextPart] = parts
 
-  if (!keyId || !ivPart || !tagPart || !ciphertextPart) {
+  if (!keyId || !ivPart || !tagPart || ciphertextPart === undefined) {
     throw new Error('Unable to decrypt credential.')
   }
 
@@ -111,13 +117,19 @@ export function decryptSecret(input: DecryptSecretInput): string {
   }
 
   try {
+    const authTag = Buffer.from(tagPart, 'base64url')
+
+    if (authTag.length !== TAG_BYTES) {
+      throw new Error('Unable to decrypt credential.')
+    }
+
     const decipher = createDecipheriv(
       'aes-256-gcm',
       encryptionKey.key,
       Buffer.from(ivPart, 'base64url')
     )
     decipher.setAAD(Buffer.from(input.aad, 'utf8'))
-    decipher.setAuthTag(Buffer.from(tagPart, 'base64url'))
+    decipher.setAuthTag(authTag)
 
     return Buffer.concat([
       decipher.update(Buffer.from(ciphertextPart, 'base64url')),
@@ -151,12 +163,20 @@ function parseEncryptionKey(entry: string): EncryptionKey {
   }
 }
 
+const STANDARD_BASE64 = /^[A-Za-z0-9+/]+=*$/u
+const URL_SAFE_BASE64 = /^[A-Za-z0-9_-]+$/u
+
 /** Decodes a standard or URL-safe base64 AES key. */
 function decodeKey(encoded: string): Buffer {
   const encoding =
     encoded.includes('+') || encoded.includes('/') || encoded.includes('=')
       ? 'base64'
       : 'base64url'
+  const alphabet = encoding === 'base64' ? STANDARD_BASE64 : URL_SAFE_BASE64
+
+  if (!alphabet.test(encoded)) {
+    throw new Error('CREDENTIALS_ENCRYPTION_KEYS entry is invalid.')
+  }
 
   return Buffer.from(encoded, encoding)
 }

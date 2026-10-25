@@ -2,13 +2,26 @@ import { z } from 'zod'
 
 import { parseEncryptionKeys } from '@/lib/crypto/secret-box'
 
+/** Treats a blank env-file assignment (`VAR=`) as unset. */
+function emptyToUndefined(value: unknown): unknown {
+  return value === '' ? undefined : value
+}
+
 const envSchema = z
   .object({
-    ALPACA_CRYPTO_LOCATION: z
-      .enum(['bs-1', 'eu-1', 'us', 'us-1', 'us-2'])
-      .optional(),
-    ALPACA_DATA_BASE_URL: z.string().url().optional(),
+    ALPACA_CRYPTO_LOCATION: z.preprocess(
+      emptyToUndefined,
+      z.enum(['bs-1', 'eu-1', 'us', 'us-1', 'us-2']).optional()
+    ),
+    ALPACA_DATA_BASE_URL: z.preprocess(
+      emptyToUndefined,
+      z.string().url().optional()
+    ),
     BETTER_AUTH_SECRET: z.string().min(32),
+    BETTER_AUTH_TRUSTED_ORIGINS: z.preprocess(
+      emptyToUndefined,
+      z.string().optional()
+    ),
     BETTER_AUTH_URL: z.string().url(),
     CREDENTIALS_ENCRYPTION_KEYS: z.string().min(1),
     DATABASE_URL: z.string().url(),
@@ -42,7 +55,38 @@ const envSchema = z
     }
   })
 
-/** Validated server environment. Importing this module fails fast when it is wrong. */
-export const env = envSchema.parse(process.env)
-
 export type Env = z.infer<typeof envSchema>
+
+let parsedEnv: Env | undefined
+
+/**
+ * Validates a process-env-shaped object.
+ * Used by tests and by the lazy `env` export so `next build` can collect
+ * routes without requiring every runtime secret at module load.
+ */
+export function parseEnv(source: Record<string, string | undefined>): Env {
+  return envSchema.parse(source)
+}
+
+/** Parses and caches `process.env` on first use. */
+export function assertEnv(): Env {
+  if (!parsedEnv) {
+    parsedEnv = parseEnv(process.env)
+  }
+
+  return parsedEnv
+}
+
+/**
+ * Validated server environment.
+ * Property access parses once. Importing the module does not throw.
+ */
+export const env: Env = new Proxy({} as Env, {
+  get(_target, property) {
+    if (typeof property !== 'string') {
+      return undefined
+    }
+
+    return assertEnv()[property as keyof Env]
+  },
+})

@@ -32,20 +32,26 @@ export function LoginForm({ className, ...props }: Props) {
     setMessage(undefined)
     const email = String(formData.get('email') ?? '')
     const password = String(formData.get('password') ?? '')
-    const result = await authClient.signIn.email({
-      callbackURL: '/',
-      email,
-      password,
-    })
 
-    if (result.error) {
-      setMessage(result.error.message ?? 'That sign-in did not work.')
+    try {
+      const result = await authClient.signIn.email({
+        callbackURL: '/',
+        email,
+        password,
+      })
+
+      if (result.error) {
+        setMessage(result.error.message ?? 'That sign-in did not work.')
+        return
+      }
+
+      router.push('/')
+      router.refresh()
+    } catch {
+      setMessage('That sign-in did not work.')
+    } finally {
       setPending(false)
-      return
     }
-
-    router.push('/')
-    router.refresh()
   }
 
   return (
@@ -57,13 +63,9 @@ export function LoginForm({ className, ...props }: Props) {
           </div>
           <h1 className="font-bold text-xl">Welcome to Exchange.</h1>
         </div>
-        <GoogleSignInButton />
+        <GoogleSignInButton disabled={pending} onBusyChange={setPending} />
         <AuthDivider />
-        <form
-          action={(formData) => {
-            void handleSubmit(formData)
-          }}
-        >
+        <form action={(formData) => handleSubmit(formData)}>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="email">Email</FieldLabel>

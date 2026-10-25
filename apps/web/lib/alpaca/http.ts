@@ -57,10 +57,13 @@ export async function createApiResponse(
   }
 
   let environment: 'live' | 'paper' | undefined
+  let credentialUpdatedAt: Date | undefined
 
   try {
-    const alpaca = await resolveAlpacaClientOptions(session.user.id)
+    const resolved = await resolveAlpacaClientOptions(session.user.id)
+    const { credentialUpdatedAt: resolvedUpdatedAt, ...alpaca } = resolved
     environment = alpaca.environment
+    credentialUpdatedAt = resolvedUpdatedAt
     const data = await handler({ alpaca })
 
     return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
@@ -78,6 +81,7 @@ export async function createApiResponse(
     ) {
       await markCredentialInvalid({
         environment,
+        updatedAt: credentialUpdatedAt,
         userId: session.user.id,
       })
 

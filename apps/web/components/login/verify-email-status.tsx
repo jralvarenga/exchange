@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+const requestedTokens = new Set<string>()
+
 /** Confirms the address from the verification email and opens the dashboard. */
 export function VerifyEmailStatus() {
   const router = useRouter()
@@ -17,39 +19,35 @@ export function VerifyEmailStatus() {
   )
 
   useEffect(() => {
-    if (!token) {
+    if (!token || requestedTokens.has(token)) {
       return
     }
 
-    let active = true
+    requestedTokens.add(token)
 
     async function confirmEmail(): Promise<void> {
-      const result = await authClient.verifyEmail({
-        query: {
-          token,
-        },
-      })
+      try {
+        const result = await authClient.verifyEmail({
+          query: {
+            token,
+          },
+        })
 
-      if (!active) {
-        return
+        if (result.error) {
+          setMessage(
+            result.error.message ?? 'This verification link could not be used.'
+          )
+          return
+        }
+
+        router.push('/')
+        router.refresh()
+      } catch {
+        setMessage('This verification link could not be used.')
       }
-
-      if (result.error) {
-        setMessage(
-          result.error.message ?? 'This verification link could not be used.'
-        )
-        return
-      }
-
-      router.push('/')
-      router.refresh()
     }
 
     void confirmEmail()
-
-    return () => {
-      active = false
-    }
   }, [router, token])
 
   return (

@@ -54,7 +54,12 @@ describe('alpaca credentials', () => {
       return
     }
 
-    await migrate(db, { migrationsFolder: 'packages/db/src/migrations' })
+    await migrate(db, {
+      migrationsFolder: new URL(
+        '../../../../packages/db/src/migrations',
+        import.meta.url
+      ).pathname,
+    })
     const now = new Date()
     await db.insert(users).values([
       {

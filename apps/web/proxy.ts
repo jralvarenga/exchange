@@ -19,6 +19,13 @@ export function proxy(request: NextRequest): NextResponse {
   }
 
   if (PUBLIC_PATHS.has(pathname) || pathname.startsWith('/reset-password/')) {
+    if (
+      getSessionCookie(request) &&
+      (pathname === '/login' || pathname === '/sign-up')
+    ) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+
     return NextResponse.next()
   }
 

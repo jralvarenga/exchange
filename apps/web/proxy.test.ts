@@ -35,6 +35,21 @@ describe('authentication proxy', () => {
     expect(response.status).toBe(200)
   })
 
+  test('sends a signed-in user from login or sign-up to the dashboard', () => {
+    for (const pathname of ['/login', '/sign-up']) {
+      const response = proxy(
+        new NextRequest(`https://dashboard.example.com${pathname}`, {
+          headers: { cookie: 'better-auth.session_token=present' },
+        })
+      )
+
+      expect(response.status).toBe(307)
+      expect(response.headers.get('location')).toBe(
+        'https://dashboard.example.com/'
+      )
+    }
+  })
+
   test('allows public auth pages and the auth API without a cookie', () => {
     const pages = [
       '/login',

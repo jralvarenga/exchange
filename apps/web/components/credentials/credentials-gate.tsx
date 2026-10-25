@@ -40,14 +40,35 @@ export function CredentialsGate({
     (!ready || failed)
 
   useEffect(() => {
-    return queryClient.getQueryCache().subscribe((event) => {
-      if (
-        event.type === 'updated' &&
-        isAlpacaCredentialError(event.query.state.error)
-      ) {
+    queryClient.removeQueries()
+  }, [queryClient])
+
+  useEffect(() => {
+    function markFailed(error: unknown): void {
+      if (isAlpacaCredentialError(error)) {
         setFailed(true)
       }
-    })
+    }
+
+    const unsubscribeQueries = queryClient
+      .getQueryCache()
+      .subscribe((event) => {
+        if (event.type === 'updated') {
+          markFailed(event.query.state.error)
+        }
+      })
+    const unsubscribeMutations = queryClient
+      .getMutationCache()
+      .subscribe((event) => {
+        if (event.type === 'updated') {
+          markFailed(event.mutation.state.error)
+        }
+      })
+
+    return () => {
+      unsubscribeQueries()
+      unsubscribeMutations()
+    }
   }, [queryClient])
 
   if (showsPrompt) {

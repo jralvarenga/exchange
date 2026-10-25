@@ -26,21 +26,26 @@ export function SignUpForm() {
   async function handleSubmit(formData: FormData): Promise<void> {
     setPending(true)
     setMessage(undefined)
-    const result = await authClient.signUp.email({
-      callbackURL: '/',
-      email: String(formData.get('email') ?? ''),
-      name: String(formData.get('name') ?? ''),
-      password: String(formData.get('password') ?? ''),
-    })
 
-    if (result.error) {
-      setMessage(result.error.message ?? 'The account could not be created.')
+    try {
+      const result = await authClient.signUp.email({
+        callbackURL: '/',
+        email: String(formData.get('email') ?? ''),
+        name: String(formData.get('name') ?? ''),
+        password: String(formData.get('password') ?? ''),
+      })
+
+      if (result.error) {
+        setMessage(result.error.message ?? 'The account could not be created.')
+        return
+      }
+
+      setSubmitted(true)
+    } catch {
+      setMessage('The account could not be created.')
+    } finally {
       setPending(false)
-      return
     }
-
-    setSubmitted(true)
-    setPending(false)
   }
 
   if (submitted) {
@@ -48,8 +53,7 @@ export function SignUpForm() {
       <div className="flex flex-col gap-4 text-center">
         <h1 className="font-bold text-xl">Check your email</h1>
         <p role="status">
-          We sent a verification link. Open it to finish creating your account,
-          then sign in.
+          We sent a verification link. Open it to finish creating your account.
         </p>
         <Link href="/login" className="underline underline-offset-4">
           Back to login
@@ -62,13 +66,9 @@ export function SignUpForm() {
     <div className="flex flex-col gap-6">
       <FieldGroup>
         <h1 className="text-center font-bold text-xl">Create your account</h1>
-        <GoogleSignInButton />
+        <GoogleSignInButton disabled={pending} onBusyChange={setPending} />
         <AuthDivider />
-        <form
-          action={(formData) => {
-            void handleSubmit(formData)
-          }}
-        >
+        <form action={(formData) => handleSubmit(formData)}>
           <FieldGroup>
             <Field>
               <FieldLabel htmlFor="name">Name</FieldLabel>

@@ -19,19 +19,24 @@ export function ForgotPasswordForm() {
   async function handleSubmit(formData: FormData): Promise<void> {
     setPending(true)
     setMessage(undefined)
-    const result = await authClient.requestPasswordReset({
-      email: String(formData.get('email') ?? ''),
-      redirectTo: '/reset-password',
-    })
 
-    if (result.error) {
-      setMessage(result.error.message ?? 'The reset email could not be sent.')
+    try {
+      const result = await authClient.requestPasswordReset({
+        email: String(formData.get('email') ?? ''),
+        redirectTo: '/reset-password',
+      })
+
+      if (result.error) {
+        setMessage(result.error.message ?? 'The reset email could not be sent.')
+        return
+      }
+
+      setSubmitted(true)
+    } catch {
+      setMessage('The reset email could not be sent.')
+    } finally {
       setPending(false)
-      return
     }
-
-    setSubmitted(true)
-    setPending(false)
   }
 
   if (submitted) {
@@ -51,9 +56,7 @@ export function ForgotPasswordForm() {
   return (
     <form
       className="flex flex-col gap-6"
-      action={(formData) => {
-        void handleSubmit(formData)
-      }}
+      action={(formData) => handleSubmit(formData)}
     >
       <FieldGroup>
         <h1 className="text-center font-bold text-xl">Forgot password</h1>

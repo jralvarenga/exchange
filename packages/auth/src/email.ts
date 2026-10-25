@@ -99,47 +99,77 @@ function smtpSend(input: SmtpSendInput): Promise<void> {
       'QUIT',
     ]
     let index = 0
+    let buffer = ''
+    let settled = false
+
+    function finish(error?: Error): void {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      socket.destroy()
+
+      if (error) {
+        reject(error)
+        return
+      }
+
+      resolve()
+    }
 
     socket.setTimeout(5_000)
     socket.on('timeout', function onTimeout() {
-      socket.destroy()
-      reject(new Error('Email delivery timed out.'))
+      finish(new Error('Email delivery timed out.'))
     })
     socket.on('error', function onError() {
-      reject(new Error('Email delivery failed.'))
+      finish(new Error('Email delivery failed.'))
+    })
+    socket.on('close', function onClose() {
+      if (!settled) {
+        finish(new Error('Email delivery failed.'))
+      }
     })
     socket.on('data', function onData(chunk: Buffer) {
-      const response = readSmtpResponse(chunk.toString('utf8'))
+      buffer += chunk.toString('utf8')
 
-      if (!response) {
-        return
+      while (true) {
+        const lineEnd = buffer.indexOf('\n')
+
+        if (lineEnd === -1) {
+          return
+        }
+
+        const line = buffer.slice(0, lineEnd).replace(/\r$/u, '')
+        buffer = buffer.slice(lineEnd + 1)
+        const response = readSmtpResponse(line)
+
+        if (!response) {
+          continue
+        }
+
+        if (response.code >= 400) {
+          finish(new Error('Email delivery failed.'))
+          return
+        }
+
+        const command = commands[index]
+
+        if (!command) {
+          finish()
+          return
+        }
+
+        index += 1
+        socket.write(`${command}\r\n`)
       }
-
-      if (response.code >= 400) {
-        socket.destroy()
-        reject(new Error('Email delivery failed.'))
-        return
-      }
-
-      const command = commands[index]
-
-      if (!command) {
-        socket.end()
-        resolve()
-        return
-      }
-
-      index += 1
-      socket.write(`${command}\r\n`)
     })
   })
 }
 
-/** Returns the first complete SMTP status line in a server chunk. */
-function readSmtpResponse(value: string): SmtpResponse | undefined {
-  const line = value.split(/\r?\n/u).find((entry) => /^\d{3} /u.test(entry))
-
-  if (!line) {
+/** Returns a complete SMTP status line, ignoring multiline continuations. */
+function readSmtpResponse(line: string): SmtpResponse | undefined {
+  if (!/^\d{3}(?: |$)/u.test(line)) {
     return undefined
   }
 

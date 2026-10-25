@@ -814,7 +814,7 @@ async function alpacaFetch<Schema extends z.ZodType>(
 async function getAssetCatalog(
   options: AlpacaClientOptions
 ): Promise<AlpacaAsset[]> {
-  const cacheKey = options.environment
+  const cacheKey = `${options.environment}:${options.apiKeyId}`
   const now = Date.now()
   const cached = assetCatalogCaches.get(cacheKey)
 

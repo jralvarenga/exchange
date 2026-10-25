@@ -12,6 +12,7 @@
     "check": "biome check .",
     "lint": "biome check .",
     "format": "biome check --write --unsafe .",
+    "test": "bun run --filter web test && bun run --filter @workspace/auth test",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {
@@ -22,9 +23,6 @@
     "@next/env": "^16.2.6",
     "turbo": "^2.9.18",
     "typescript": "^5"
-  },
-  "dependencies": {
-    "bcryptjs": "^3.0.3"
   },
   "packageManager": "bun@1.2.23",
   "engines": {

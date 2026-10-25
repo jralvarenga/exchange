@@ -16,9 +16,20 @@ export function SignOutButton({ className }: Props) {
 
   async function handleSignOut(): Promise<void> {
     setPending(true)
-    await authClient.signOut()
-    router.push('/login')
-    router.refresh()
+
+    try {
+      const result = await authClient.signOut()
+
+      if (result.error) {
+        setPending(false)
+        return
+      }
+
+      router.replace('/login')
+      router.refresh()
+    } catch {
+      setPending(false)
+    }
   }
 
   return (

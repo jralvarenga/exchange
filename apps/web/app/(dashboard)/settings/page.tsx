@@ -10,11 +10,11 @@ import { listDepositMethods } from '@/lib/wallet/crypto-wallets'
 /** Renders the signed-in user's Alpaca keys and deposit wallet settings. */
 export default async function SettingsPage() {
   const session = await requireSession()
-  const [credentials, depositMethods] = await Promise.all([
+  const [credentials, depositMethods, activeEnvironment] = await Promise.all([
     listMaskedCredentials(session.user.id),
     listDepositMethods(session.user.id),
+    resolveActiveEnvironment(session.user.id),
   ])
-  const activeEnvironment = await resolveActiveEnvironment(session.user.id)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto">

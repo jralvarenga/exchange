@@ -196,12 +196,19 @@ export async function testCredential(
   })
 }
 
+interface MarkCredentialInvalidInput extends UserEnvironmentInput {
+  updatedAt?: Date
+}
+
 /** Marks the signed-in user's key pair invalid after Alpaca rejects it. */
 export async function markCredentialInvalid(
-  input: UserEnvironmentInput
+  input: MarkCredentialInvalidInput
 ): Promise<void> {
   const parsed = userEnvironmentInputSchema.parse(input)
-  await markAlpacaCredentialInvalid(parsed)
+  await markAlpacaCredentialInvalid({
+    ...parsed,
+    updatedAt: input.updatedAt,
+  })
 }
 
 /** Removes one user's stored key pair for an environment. */
@@ -260,6 +267,7 @@ export async function listMaskedCredentials(
 export async function resolveAlpacaClientOptions(userId: string): Promise<{
   apiKeyId: string
   apiSecretKey: string
+  credentialUpdatedAt: Date
   environment: 'live' | 'paper'
 }> {
   const parsedUserId = userIdSchema.parse(userId)
@@ -290,41 +298,22 @@ export async function resolveAlpacaClientOptions(userId: string): Promise<{
       field: 'secret',
       userId: parsedUserId,
     }),
+    credentialUpdatedAt: row.updatedAt,
     environment,
   }
 }
 
 /**
- * Returns the environment the user trades in. One saved key pair is enough:
- * when the selected environment has no keys but the other one does, that one
- * becomes active and is saved, so a user with only live keys uses live.
+ * Returns the environment the user selected for Alpaca calls.
+ * Missing keys stay on that environment; switching to live is explicit.
  */
 export async function resolveActiveEnvironment(
   userId: string
 ): Promise<'live' | 'paper'> {
   const parsedUserId = userIdSchema.parse(userId)
-  const [selected, rows] = await Promise.all([
-    findUserAlpacaEnvironment(parsedUserId),
-    listAlpacaCredentials(parsedUserId),
-  ])
-  const environment = selected ?? 'paper'
+  const selected = await findUserAlpacaEnvironment(parsedUserId)
 
-  if (rows.some((row) => row.environment === environment)) {
-    return environment
-  }
-
-  const other = environment === 'paper' ? 'live' : 'paper'
-
-  if (!rows.some((row) => row.environment === other)) {
-    return environment
-  }
-
-  await updateUserAlpacaEnvironment({
-    environment: other,
-    userId: parsedUserId,
-  })
-
-  return other
+  return selected ?? 'paper'
 }
 
 /**
@@ -398,10 +387,7 @@ function toMaskedCredential(
   })
 }
 
-/** Alpaca 401 and 403 mean the stored key id or secret was rejected. */
+/** Alpaca 401 means the stored key id or secret was rejected. */
 function isRejectedCredential(error: unknown): boolean {
-  return (
-    error instanceof AlpacaApiError &&
-    (error.status === 401 || error.status === 403)
-  )
+  return error instanceof AlpacaApiError && error.status === 401
 }

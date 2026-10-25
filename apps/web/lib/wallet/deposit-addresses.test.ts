@@ -30,6 +30,16 @@ describe('deposit address validation', () => {
     ).toBe(true)
   })
 
+  test('rejects a Base58 string that is not a 32-byte public key', () => {
+    expect(
+      depositAddressInputSchema.safeParse({
+        address: 'z'.repeat(44),
+        asset: 'USDC',
+        chain: 'solana',
+      }).success
+    ).toBe(false)
+  })
+
   test('rejects an address for the wrong network', () => {
     expect(
       depositAddressInputSchema.safeParse({
@@ -73,10 +83,21 @@ describe('toDepositMethods', () => {
       { address: ethereumAddress, asset: 'DAI', chain: 'ethereum' },
     ])
 
-    expect(methods.map((method) => `${method.chain}:${method.asset}`)).toEqual([
-      'ethereum:USDC',
-      'solana:USDT',
+    expect(methods).toEqual([
+      {
+        address: ethereumAddress,
+        asset: 'USDC',
+        chain: 'ethereum',
+        chainLabel: 'Ethereum',
+        tokenStandard: 'ERC-20',
+      },
+      {
+        address: solanaAddress,
+        asset: 'USDT',
+        chain: 'solana',
+        chainLabel: 'Solana',
+        tokenStandard: 'Solana',
+      },
     ])
-    expect(methods[0]?.tokenStandard).toBe('ERC-20')
   })
 })

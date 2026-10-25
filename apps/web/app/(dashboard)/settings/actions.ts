@@ -85,11 +85,15 @@ export async function testAlpacaCredentialAction(
   environment: 'live' | 'paper'
 ): Promise<CredentialActionState> {
   const session = await requireSession()
-  const parsed = alpacaEnvironmentSchema.parse(environment)
+  const parsed = alpacaEnvironmentSchema.safeParse(environment)
+
+  if (!parsed.success) {
+    return { message: 'The keys could not be tested.' }
+  }
 
   try {
     const credential = await testCredential({
-      environment: parsed,
+      environment: parsed.data,
       userId: session.user.id,
     })
     revalidatePath('/', 'layout')
@@ -109,14 +113,23 @@ export async function removeAlpacaCredentialAction(
   environment: 'live' | 'paper'
 ): Promise<CredentialActionState> {
   const session = await requireSession()
-  const parsed = alpacaEnvironmentSchema.parse(environment)
-  await removeCredential({
-    environment: parsed,
-    userId: session.user.id,
-  })
-  revalidatePath('/', 'layout')
+  const parsed = alpacaEnvironmentSchema.safeParse(environment)
 
-  return {}
+  if (!parsed.success) {
+    return { message: 'Those keys could not be removed.' }
+  }
+
+  try {
+    await removeCredential({
+      environment: parsed.data,
+      userId: session.user.id,
+    })
+    revalidatePath('/', 'layout')
+
+    return {}
+  } catch {
+    return { message: 'Those keys could not be removed.' }
+  }
 }
 
 /** Switches the account used for Alpaca calls when that environment is valid. */
@@ -124,11 +137,15 @@ export async function setActiveAlpacaEnvironmentAction(
   environment: 'live' | 'paper'
 ): Promise<CredentialActionState> {
   const session = await requireSession()
-  const parsed = alpacaEnvironmentSchema.parse(environment)
+  const parsed = alpacaEnvironmentSchema.safeParse(environment)
+
+  if (!parsed.success) {
+    return { message: 'The active account could not be changed.' }
+  }
 
   try {
     await setActiveAlpacaEnvironment({
-      environment: parsed,
+      environment: parsed.data,
       userId: session.user.id,
     })
     revalidatePath('/', 'layout')
@@ -181,8 +198,12 @@ export async function removeDepositAddressAction(slot: {
     return { message: 'That address could not be removed.' }
   }
 
-  await removeDepositAddress({ ...parsed.data, userId: session.user.id })
-  revalidatePath('/', 'layout')
+  try {
+    await removeDepositAddress({ ...parsed.data, userId: session.user.id })
+    revalidatePath('/', 'layout')
 
-  return {}
+    return {}
+  } catch {
+    return { message: 'That address could not be removed.' }
+  }
 }

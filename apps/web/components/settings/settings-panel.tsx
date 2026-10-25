@@ -50,9 +50,13 @@ export function SettingsPanel({ activeEnvironment, credentials }: Props) {
   }
 
   async function remove(environment: 'live' | 'paper'): Promise<void> {
-    const result = await removeAlpacaCredentialAction(environment)
-    setMessage(result.message)
-    router.refresh()
+    try {
+      const result = await removeAlpacaCredentialAction(environment)
+      setMessage(result.message)
+      router.refresh()
+    } catch {
+      setMessage('Those keys could not be removed.')
+    }
   }
 
   return (
@@ -81,7 +85,8 @@ export function SettingsPanel({ activeEnvironment, credentials }: Props) {
         </Button>
       </fieldset>
       <p className="text-muted-foreground text-sm">
-        Add paper or live keys. One is enough, and new accounts start on paper.
+        Add keys for the account you want to trade. New accounts start on paper.
+        Switch to live only after saving valid live keys.
       </p>
       {message ? (
         <p role="alert" className="text-destructive">

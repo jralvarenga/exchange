@@ -28,18 +28,24 @@ export function ResetPasswordForm({ token }: Props) {
   async function handleSubmit(formData: FormData): Promise<void> {
     setPending(true)
     setMessage(undefined)
-    const result = await authClient.resetPassword({
-      newPassword: String(formData.get('password') ?? ''),
-      token,
-    })
 
-    if (result.error) {
-      setMessage(result.error.message ?? 'This reset link could not be used.')
+    try {
+      const result = await authClient.resetPassword({
+        newPassword: String(formData.get('password') ?? ''),
+        token,
+      })
+
+      if (result.error) {
+        setMessage(result.error.message ?? 'This reset link could not be used.')
+        return
+      }
+
+      router.push('/login')
+    } catch {
+      setMessage('This reset link could not be used.')
+    } finally {
       setPending(false)
-      return
     }
-
-    router.push('/login')
   }
 
   if (!token) {
@@ -57,9 +63,7 @@ export function ResetPasswordForm({ token }: Props) {
   return (
     <form
       className="flex flex-col gap-6"
-      action={(formData) => {
-        void handleSubmit(formData)
-      }}
+      action={(formData) => handleSubmit(formData)}
     >
       <FieldGroup>
         <h1 className="text-center font-bold text-xl">Choose a new password</h1>

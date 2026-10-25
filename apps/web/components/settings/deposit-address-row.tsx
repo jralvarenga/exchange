@@ -24,20 +24,30 @@ export function DepositAddressRow({ address, slot }: Props) {
   const [state, action, pending] = useActionState(saveDepositAddressAction, {})
   const [removing, setRemoving] = useState(false)
   const [removeMessage, setRemoveMessage] = useState<string>()
+  const [clearedSaveMessage, setClearedSaveMessage] = useState(false)
   const inputId = `deposit-${slot.chain}-${slot.asset}`
-  const message = removeMessage ?? state.message
+  const message =
+    removeMessage ?? (clearedSaveMessage ? undefined : state.message)
 
   async function handleRemove(): Promise<void> {
     setRemoving(true)
-    const result = await removeDepositAddressAction(slot)
-    setRemoveMessage(result.message)
-    setRemoving(false)
+    setClearedSaveMessage(true)
+
+    try {
+      const result = await removeDepositAddressAction(slot)
+      setRemoveMessage(result.message)
+    } catch {
+      setRemoveMessage('That address could not be removed.')
+    } finally {
+      setRemoving(false)
+    }
   }
 
   return (
     <form
       action={(formData) => {
         setRemoveMessage(undefined)
+        setClearedSaveMessage(false)
         action(formData)
       }}
       className="flex flex-col gap-2"
