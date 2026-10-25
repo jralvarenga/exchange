@@ -53,9 +53,6 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
 
     const alpaca = readAlpacaEnv()
     const depositAddresses = readDepositAddressEnv()
-    const keys = alpaca
-      ? parseEncryptionKeys(process.env.CREDENTIALS_ENCRYPTION_KEYS ?? '')
-      : undefined
 
     const existing = await db
       .select()
@@ -64,6 +61,26 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       .limit(1)
     const now = new Date()
     let userId = existing[0]?.id
+
+    if (userId && !existing[0]?.emailVerified) {
+      // Open sign-up lets anyone register this email unverified. Adopting
+      // that account would hand its password the owner's Alpaca keys.
+      throw new Error(
+        'An unverified account already uses this email. Verify it from the inbox or delete it, then rerun the migration.'
+      )
+    }
+
+    const storedAlpaca =
+      userId && alpaca
+        ? await findAlpacaCredential({
+            environment: alpaca.environment,
+            userId,
+          })
+        : undefined
+    const keys =
+      alpaca && !storedAlpaca
+        ? parseEncryptionKeys(process.env.CREDENTIALS_ENCRYPTION_KEYS ?? '')
+        : undefined
 
     if (!userId) {
       if (!isUsableBcryptHash(passwordHash)) {
@@ -83,12 +100,6 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
         updatedAt: now,
       })
       console.log('Created the owner user.')
-    } else if (!existing[0]?.emailVerified) {
-      // Open sign-up lets anyone register this email unverified. Adopting
-      // that account would hand its password the owner's Alpaca keys.
-      throw new Error(
-        'An unverified account already uses this email. Verify it from the inbox or delete it, then rerun the migration.'
-      )
     } else {
       console.log('Owner user already exists.')
     }
@@ -122,17 +133,12 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       console.log('Password login already exists and was left unchanged.')
     }
 
-    if (alpaca && keys) {
-      const stored = await findAlpacaCredential({
-        environment: alpaca.environment,
-        userId,
-      })
-
-      if (stored) {
+    if (alpaca) {
+      if (storedAlpaca) {
         console.log(
           `Alpaca ${alpaca.environment} keys already stored and were left unchanged.`
         )
-      } else {
+      } else if (keys) {
         await upsertAlpacaCredential({
           environment: alpaca.environment,
           id: crypto.randomUUID(),
