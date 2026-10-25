@@ -11,6 +11,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 
 import { sendAuthEmail } from './email'
+import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
 
 /**
@@ -29,7 +30,7 @@ function createAuth() {
     advanced: {
       useSecureCookies: true,
     },
-    baseURL: process.env.BETTER_AUTH_URL,
+    baseURL: resolveAuthBaseURL(process.env),
     database: drizzleAdapter(db, {
       provider: 'pg',
       schema: {
@@ -91,7 +92,7 @@ function createAuth() {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
       },
     },
-    trustedOrigins: authTrustedOrigins(),
+    trustedOrigins: resolveAuthTrustedOrigins(process.env),
     user: {
       additionalFields: {
         activeAlpacaEnvironment: {
@@ -136,37 +137,6 @@ export const auth: Auth = new Proxy({} as Auth, {
     return property in getAuth()
   },
 })
-
-/**
- * Origins allowed for CSRF and OAuth callbacks.
- * BETTER_AUTH_URL is required. Preview hosts can be added with
- * BETTER_AUTH_TRUSTED_ORIGINS or VERCEL_URL.
- */
-function authTrustedOrigins(): string[] {
-  const origins = new Set<string>()
-
-  if (process.env.BETTER_AUTH_URL) {
-    origins.add(process.env.BETTER_AUTH_URL)
-  }
-
-  if (process.env.VERCEL_URL) {
-    origins.add(`https://${process.env.VERCEL_URL}`)
-  }
-
-  const extra = process.env.BETTER_AUTH_TRUSTED_ORIGINS
-
-  if (extra) {
-    for (const origin of extra.split(',')) {
-      const trimmed = origin.trim()
-
-      if (trimmed.length > 0) {
-        origins.add(trimmed)
-      }
-    }
-  }
-
-  return [...origins]
-}
 
 /** Escapes a URL before it is placed in an HTML email body. */
 function escapeHtml(value: string): string {

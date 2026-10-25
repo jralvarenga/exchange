@@ -25,6 +25,9 @@ In Google Cloud, create an OAuth client and set the authorized redirect URI to:
 ```
 
 Put the client id and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+Preview deploys use `https://<VERCEL_URL>/api/auth/callback/google`. Google
+does not accept wildcard redirect URIs, so Google sign-in on a preview only
+works after that exact URI is added. Use email and password on other previews.
 
 ### Database
 
@@ -142,9 +145,13 @@ EMAIL_FROM
 CREDENTIALS_ENCRYPTION_KEYS
 ```
 
-`BETTER_AUTH_URL` must be the public HTTPS origin, for example
-`https://dashboard.example.com`. Preview deploys also trust `VERCEL_URL`. Add
-extra origins with a comma-separated `BETTER_AUTH_TRUSTED_ORIGINS` if needed.
+`BETTER_AUTH_URL` must be the public production HTTPS origin, for example
+`https://dashboard.example.com`. Preview deploys set Better Auth's base URL
+from `VERCEL_URL` so email verification, password reset, and session cookies
+target that preview. Google sign-in on a preview still needs that preview's
+callback URI in Google Cloud; otherwise use email and password there. Add
+extra CSRF origins with a comma-separated `BETTER_AUTH_TRUSTED_ORIGINS` if
+needed.
 `ALPACA_CRYPTO_LOCATION` and `ALPACA_DATA_BASE_URL` stay optional. After
 `bun run auth:migrate-owner` succeeds, remove the legacy password, Alpaca, and
 `ADDRESS_*` variables from Vercel.

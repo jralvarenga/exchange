@@ -5,6 +5,8 @@ import { isValidDepositAddress } from '../apps/web/lib/wallet/deposit-addresses'
 
 loadEnvConfig(path.resolve('apps/web'))
 
+const BCRYPT_HASH = /^\$2[aby]\$(\d{2})\$[./A-Za-z0-9]{53}$/u
+
 const email = readEmail(process.argv)
 
 if (!email) {
@@ -42,6 +44,18 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
     if (!databaseUrl) {
       throw new Error('DATABASE_URL is required.')
     }
+
+    if (passwordHash && !isUsableBcryptHash(passwordHash)) {
+      throw new Error(
+        'DASHBOARD_PASSWORD_HASH must be a bcrypt hash with cost 10 or higher to create the owner.'
+      )
+    }
+
+    const alpaca = readAlpacaEnv()
+    const depositAddresses = readDepositAddressEnv()
+    const keys = alpaca
+      ? parseEncryptionKeys(process.env.CREDENTIALS_ENCRYPTION_KEYS ?? '')
+      : undefined
 
     const existing = await db
       .select()
@@ -108,9 +122,7 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       console.log('Password login already exists and was left unchanged.')
     }
 
-    const alpaca = readAlpacaEnv()
-
-    if (alpaca) {
+    if (alpaca && keys) {
       const stored = await findAlpacaCredential({
         environment: alpaca.environment,
         userId,
@@ -121,9 +133,6 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
           `Alpaca ${alpaca.environment} keys already stored and were left unchanged.`
         )
       } else {
-        const keys = parseEncryptionKeys(
-          process.env.CREDENTIALS_ENCRYPTION_KEYS ?? ''
-        )
         await upsertAlpacaCredential({
           environment: alpaca.environment,
           id: crypto.randomUUID(),
@@ -157,8 +166,6 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
         console.log(`Stored encrypted Alpaca ${alpaca.environment} keys.`)
       }
     }
-
-    const depositAddresses = readDepositAddressEnv()
 
     for (const deposit of depositAddresses) {
       await upsertCryptoWallet({
@@ -295,8 +302,6 @@ function readDepositAddressEnv(): DepositAddressEnv[] {
     return [{ address, asset, chain }]
   })
 }
-
-const BCRYPT_HASH = /^\$2[aby]\$(\d{2})\$[./A-Za-z0-9]{53}$/u
 
 /** True when the value is a bcrypt hash the owner can actually sign in with. */
 function isUsableBcryptHash(value: string | undefined): value is string {

@@ -13,6 +13,7 @@ declare namespace NodeJS {
     RESEND_API_KEY?: string
     NEXT_PUBLIC_APP_URL?: string
     PORT?: string
+    VERCEL_ENV?: 'development' | 'preview' | 'production'
     VERCEL_URL?: string
   }
 }

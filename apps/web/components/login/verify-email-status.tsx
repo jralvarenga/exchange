@@ -5,7 +5,30 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-const requestedTokens = new Set<string>()
+const verifyEmailRequests = new Map<
+  string,
+  ReturnType<typeof authClient.verifyEmail>
+>()
+
+/** Reuses one in-flight verification so Strict Mode cannot consume the token twice. */
+function verifyEmailToken(
+  token: string
+): ReturnType<typeof authClient.verifyEmail> {
+  const existing = verifyEmailRequests.get(token)
+
+  if (existing) {
+    return existing
+  }
+
+  const request = authClient.verifyEmail({
+    query: {
+      token,
+    },
+  })
+  verifyEmailRequests.set(token, request)
+
+  return request
+}
 
 /** Confirms the address from the verification email and opens the dashboard. */
 export function VerifyEmailStatus() {
@@ -19,19 +42,19 @@ export function VerifyEmailStatus() {
   )
 
   useEffect(() => {
-    if (!token || requestedTokens.has(token)) {
+    if (!token) {
       return
     }
 
-    requestedTokens.add(token)
+    let cancelled = false
 
     async function confirmEmail(): Promise<void> {
       try {
-        const result = await authClient.verifyEmail({
-          query: {
-            token,
-          },
-        })
+        const result = await verifyEmailToken(token)
+
+        if (cancelled) {
+          return
+        }
 
         if (result.error) {
           setMessage(
@@ -43,11 +66,19 @@ export function VerifyEmailStatus() {
         router.push('/')
         router.refresh()
       } catch {
+        if (cancelled) {
+          return
+        }
+
         setMessage('This verification link could not be used.')
       }
     }
 
     void confirmEmail()
+
+    return () => {
+      cancelled = true
+    }
   }, [router, token])
 
   return (

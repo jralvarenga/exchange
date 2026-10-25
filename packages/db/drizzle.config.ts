@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'drizzle-kit'
+
+const configDirectory = dirname(fileURLToPath(import.meta.url))
 
 /**
  * Reads DATABASE_URL from the process, packages/db/.env, or apps/web/.env.local.
@@ -12,8 +15,8 @@ function loadDatabaseUrl(): string {
   }
 
   const files = [
-    resolve(import.meta.dirname, '.env'),
-    resolve(import.meta.dirname, '../../apps/web/.env.local'),
+    resolve(configDirectory, '.env'),
+    resolve(configDirectory, '../../apps/web/.env.local'),
   ]
 
   for (const file of files) {
@@ -48,8 +51,8 @@ function readDatabaseUrlFromFile(file: string): string | undefined {
       continue
     }
 
-    const key = trimmed.slice(0, separator)
-    let value = trimmed.slice(separator + 1)
+    const key = trimmed.slice(0, separator).trim()
+    let value = trimmed.slice(separator + 1).trim()
 
     if (
       (value.startsWith('"') && value.endsWith('"')) ||

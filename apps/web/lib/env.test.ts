@@ -45,4 +45,16 @@ describe('parseEnv', () => {
     expect(env.ALPACA_CRYPTO_LOCATION).toBe('us')
     expect(env.ALPACA_DATA_BASE_URL).toBe('https://data.alpaca.markets')
   })
+
+  test('requires RESEND_API_KEY from the supplied production source', () => {
+    expect(() => parseEnv(validEnv({ NODE_ENV: 'production' }))).toThrow(
+      /RESEND_API_KEY/
+    )
+  })
+
+  test('allows a missing RESEND_API_KEY when the source is not production', () => {
+    const env = parseEnv(validEnv({ NODE_ENV: 'development' }))
+
+    expect(env.RESEND_API_KEY).toBeUndefined()
+  })
 })

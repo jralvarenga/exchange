@@ -28,20 +28,20 @@ export function CredentialsGate({
   const [failed, setFailed] = useState(false)
   const [seenVersion, setSeenVersion] = useState(credentialVersion)
 
-  // Saving, testing, or switching keys changes the version. Clear the runtime
-  // failure so the server's fresh status decides again.
-  if (seenVersion !== credentialVersion) {
+  // Saving, testing, or switching keys changes the version. Drop cached
+  // account data before children render, then let the server status decide.
+  const versionChanged = seenVersion !== credentialVersion
+
+  if (versionChanged) {
+    queryClient.removeQueries()
     setSeenVersion(credentialVersion)
     setFailed(false)
   }
+
   const showsPrompt =
     !pathname.startsWith('/settings') &&
     !pathname.startsWith('/funds-wallet') &&
     (!ready || failed)
-
-  useEffect(() => {
-    queryClient.removeQueries()
-  }, [queryClient])
 
   useEffect(() => {
     function markFailed(error: unknown): void {
@@ -78,6 +78,10 @@ export function CredentialsGate({
         rejected={hasCredential || failed}
       />
     )
+  }
+
+  if (versionChanged) {
+    return null
   }
 
   return children
