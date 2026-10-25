@@ -134,7 +134,12 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
     }
 
     if (alpaca) {
-      if (storedAlpaca) {
+      const currentAlpaca = await findAlpacaCredential({
+        environment: alpaca.environment,
+        userId,
+      })
+
+      if (currentAlpaca) {
         console.log(
           `Alpaca ${alpaca.environment} keys already stored and were left unchanged.`
         )
