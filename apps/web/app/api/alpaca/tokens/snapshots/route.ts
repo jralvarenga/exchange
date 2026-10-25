@@ -17,7 +17,7 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getSnapshots() {
-    return getCryptoSnapshots(query.data)
+  return createApiResponse(async function getSnapshots({ alpaca }) {
+    return getCryptoSnapshots({ ...query.data, ...alpaca })
   })
 }

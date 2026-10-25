@@ -1,0 +1,31 @@
+{
+  "name": "@workspace/db",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "db:check": "drizzle-kit check",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    "./client": "./src/client.ts",
+    "./schema/auth": "./src/schema/auth.ts",
+    "./schema/alpaca-credentials": "./src/schema/alpaca-credentials.ts",
+    "./queries/alpaca-credentials": "./src/queries/alpaca-credentials.ts",
+    "./schema/crypto-wallets": "./src/schema/crypto-wallets.ts",
+    "./queries/crypto-wallets": "./src/queries/crypto-wallets.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "@workspace/typescript-config": "workspace:*",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@workspace/auth",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts",
+    "./password": "./src/password.ts",
+    "./email": "./src/email.ts"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "better-auth": "^1.7.12",
+    "resend": "^6.34.1"
+  },
+  "devDependencies": {
+    "@better-auth/cli": "^1.4.21",
+    "@workspace/typescript-config": "workspace:*",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "next": "^16.2.6",
+    "react": "^19.2.4"
+  }
+}

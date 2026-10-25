@@ -1,0 +1,30 @@
+########################################################
+
+ALPACA_API_KEY_ID=PKBP4KSWCUBZLKI3C6ZJ3NC75L
+ALPACA_API_SECRET_KEY=9WNukx3RHuz7EHY8pbgiBkh86TCQhbDSs6TjG7d5jsLt
+ALPACA_CRYPTO_LOCATION=us
+ALPACA_DATA_BASE_URL=https://data.alpaca.markets
+ALPACA_ENVIRONMENT=paper
+ALPACA_TRADING_BASE_URL=https://paper-api.alpaca.markets/v2
+
+DASHBOARD_PASSWORD_HASH=\$2b\$12\$t3kO.cua0mVAevckj.RBU.nZ4TRjkuWq9smatRAeoX1qQMQX18rPm
+AUTH_SECRET=OaqhqLO8XJeq8H1BTa3zm4IJUC4U5GzwL8+J5sabPm/9PTDBOabr1Q6bb2NTbnU9
+
+ADDRESS_ETHEREUM_USDC=0x3EA6Cb7BC994d0D492EA47C0f367B7D1e763B4d1
+ADDRESS_ETHEREUM_USDT=0x3EA6Cb7BC994d0D492EA47C0f367B7D1e763B4d1
+ADDRESS_SOLANA_USDC=2GZj6dK2Ybb2mmoVDLUAJZmK1W1ZTcMxkvi1oiFSRzRk
+ADDRESS_SOLANA_USDT=2GZj6dK2Ybb2mmoVDLUAJZmK1W1ZTcMxkvi1oiFSRzRk
+# --- Better Auth + Postgres (Neon, same as packages/db/.env). ---
+DATABASE_URL=postgresql://neondb_owner:npg_B4IWRGCvsm5K@ep-damp-fire-b5fx1kph-pooler.c-7.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+BETTER_AUTH_SECRET=6530fdfa10ab04fd3ba45873f81f2e7027bbc376743d28eef948a0796d82e094
+BETTER_AUTH_URL=http://localhost:3000
+# Paste from Google Cloud Console. Redirect URI: http://localhost:3000/api/auth/callback/google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+# Not needed locally; Mailpit catches email at http://localhost:8025
+RESEND_API_KEY=
+EMAIL_FROM=Exchange <exchange@example.com>
+# Use this same value in Vercel, or production can't decrypt stored Alpaca keys.
+CREDENTIALS_ENCRYPTION_KEYS=k1:x1k2coNo0F84_RLCrgs-u1asufDXeaZ73gsUjp1CcEU
+# The old DASHBOARD_PASSWORD_HASH, AUTH_SECRET and ALPACA_API_KEY_ID/SECRET/ENVIRONMENT/TRADING_BASE_URL
+# and ADDRESS_* above are only read by `bun run auth:migrate-owner`. Delete them after migrating.

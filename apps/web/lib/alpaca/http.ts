@@ -1,12 +1,22 @@
 import 'server-only'
 
-import { cookies } from 'next/headers'
+import { auth } from '@workspace/auth/server'
+import { headers } from 'next/headers'
 import { z } from 'zod'
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth/token'
+import {
+  AlpacaCredentialsError,
+  markCredentialInvalid,
+  resolveAlpacaClientOptions,
+} from '@/lib/alpaca/credentials'
+import type { AlpacaClientOptions } from '@/lib/alpaca/schemas'
 import { AlpacaApiError } from './client'
 
-type ApiHandler = () => Promise<unknown>
+interface ApiHandlerContext {
+  alpaca: AlpacaClientOptions
+}
+
+type ApiHandler = (context: ApiHandlerContext) => Promise<unknown>
 
 interface ApiErrorBody {
   error: {
@@ -25,14 +35,16 @@ const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
 }
 
-/** Runs an API handler and converts known failures into safe JSON responses. */
+/** Runs an API handler with the signed-in user's Alpaca credentials. */
 export async function createApiResponse(
   handler: ApiHandler,
   options: CreateApiResponseOptions = {}
 ): Promise<Response> {
-  const session = (await cookies()).get(SESSION_COOKIE_NAME)?.value
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
 
-  if (!(await verifySessionToken(session))) {
+  if (!session) {
     return createErrorResponse(
       {
         error: {
@@ -44,11 +56,34 @@ export async function createApiResponse(
     )
   }
 
+  let environment: 'live' | 'paper' | undefined
+
   try {
-    const data = await handler()
+    const alpaca = await resolveAlpacaClientOptions(session.user.id)
+    environment = alpaca.environment
+    const data = await handler({ alpaca })
 
     return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
   } catch (error) {
+    if (error instanceof AlpacaCredentialsError) {
+      return credentialErrorResponse(error.code)
+    }
+
+    // Only 401 means the keys were rejected. Alpaca also returns 403 for
+    // valid keys, e.g. insufficient buying power on an order.
+    if (
+      error instanceof AlpacaApiError &&
+      error.status === 401 &&
+      environment
+    ) {
+      await markCredentialInvalid({
+        environment,
+        userId: session.user.id,
+      })
+
+      return credentialErrorResponse('INVALID')
+    }
+
     if (error instanceof AlpacaApiError) {
       const status = getAlpacaErrorStatus(error, options.exposeAlpacaMessage)
 
@@ -103,6 +138,31 @@ export function createValidationErrorResponse(error: z.ZodError): Response {
       },
     },
     400
+  )
+}
+
+/** Maps a missing or rejected Alpaca key pair to a 428 response. */
+function credentialErrorResponse(code: 'INVALID' | 'MISSING'): Response {
+  if (code === 'MISSING') {
+    return createErrorResponse(
+      {
+        error: {
+          code: 'ALPACA_CREDENTIALS_REQUIRED',
+          message: 'Add Alpaca keys for the active environment to continue.',
+        },
+      },
+      428
+    )
+  }
+
+  return createErrorResponse(
+    {
+      error: {
+        code: 'ALPACA_CREDENTIALS_INVALID',
+        message: 'The Alpaca keys for the active environment were rejected.',
+      },
+    },
+    428
   )
 }
 

@@ -17,7 +17,7 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getPrices() {
-    return getTokenPrices(query.data)
+  return createApiResponse(async function getPrices({ alpaca }) {
+    return getTokenPrices({ ...query.data, ...alpaca })
   })
 }

@@ -12,6 +12,7 @@ import type {
   GetAccountActivitiesOptions,
 } from '@/lib/alpaca/schemas'
 import { accountActivitiesSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface UseAccountActivitiesOptions {
@@ -57,11 +58,11 @@ async function fetchAccountActivities(
     headers: { Accept: 'application/json' },
   })
 
-  if (!response.ok) {
-    throw new Error('Unable to retrieve account activity.')
-  }
-
-  return accountActivitiesSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    accountActivitiesSchema,
+    'Unable to retrieve account activity.'
+  )
 }
 
 /** Adds a defined query parameter without serializing undefined values. */

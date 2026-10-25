@@ -1,20 +1,11 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { NextRequest } from 'next/server'
 
-import { createSessionToken, SESSION_COOKIE_NAME } from '@/lib/auth/token'
 import { proxy } from '@/proxy'
 
-const ORIGINAL_AUTH_SECRET = process.env.AUTH_SECRET
-const TEST_AUTH_SECRET = 'test-secret-that-is-longer-than-thirty-two-characters'
-
-afterEach(() => {
-  process.env.AUTH_SECRET = ORIGINAL_AUTH_SECRET
-})
-
 describe('authentication proxy', () => {
-  test('redirects an unauthenticated page request to login', async () => {
-    process.env.AUTH_SECRET = TEST_AUTH_SECRET
-    const response = await proxy(
+  test('redirects an unauthenticated page request to login', () => {
+    const response = proxy(
       new NextRequest('https://dashboard.example.com/portfolio')
     )
 
@@ -25,23 +16,42 @@ describe('authentication proxy', () => {
   })
 
   test('rejects an unauthenticated API request', async () => {
-    process.env.AUTH_SECRET = TEST_AUTH_SECRET
-    const response = await proxy(
+    const response = proxy(
       new NextRequest('https://dashboard.example.com/api/alpaca/account')
     )
+    const body = await response.json()
 
     expect(response.status).toBe(401)
+    expect(body.error.code).toBe('UNAUTHORIZED')
   })
 
-  test('allows a request with a valid signed session', async () => {
-    process.env.AUTH_SECRET = TEST_AUTH_SECRET
-    const session = await createSessionToken()
-    const response = await proxy(
+  test('allows a request that carries a session cookie', () => {
+    const response = proxy(
       new NextRequest('https://dashboard.example.com/portfolio', {
-        headers: { cookie: `${SESSION_COOKIE_NAME}=${session}` },
+        headers: { cookie: 'better-auth.session_token=present' },
       })
     )
 
     expect(response.status).toBe(200)
+  })
+
+  test('allows public auth pages and the auth API without a cookie', () => {
+    const pages = [
+      '/login',
+      '/sign-up',
+      '/forgot-password',
+      '/reset-password',
+      '/reset-password/reset-token',
+      '/verify-email',
+      '/api/auth/sign-in/email',
+    ]
+
+    for (const pathname of pages) {
+      const response = proxy(
+        new NextRequest(`https://dashboard.example.com${pathname}`)
+      )
+
+      expect(response.status).toBe(200)
+    }
   })
 })

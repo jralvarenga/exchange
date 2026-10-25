@@ -9,6 +9,7 @@ import {
 import { getOrdersAndPositionsQueryKey } from '@/lib/alpaca/query-keys'
 import type { GetOrdersOptions, OrdersAndPositions } from '@/lib/alpaca/schemas'
 import { ordersAndPositionsSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface UseOrdersAndPositionsOptions {
@@ -46,11 +47,11 @@ async function fetchOrdersAndPositions(
     headers: { Accept: 'application/json' },
   })
 
-  if (!response.ok) {
-    throw new Error('Unable to retrieve orders and positions.')
-  }
-
-  return ordersAndPositionsSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    ordersAndPositionsSchema,
+    'Unable to retrieve orders and positions.'
+  )
 }
 
 /** Adds a defined query parameter without serializing undefined values. */

@@ -29,11 +29,9 @@ import type {
   BalanceInterval,
   CreateOrderRequest,
   CurrentBalance,
-  GetAccountActivitiesOptions,
   GetAssetsOptions,
   GetBalanceChartOptions,
   GetCryptoSnapshotsOptions,
-  GetOrdersOptions,
   GetPositionOptions,
   Order,
   OrdersAndPositions,
@@ -51,9 +49,10 @@ import {
   alpacaAccountOrdersSchema,
   alpacaAccountSchema,
   alpacaAssetsSchema,
+  alpacaClientOptionsSchema,
   alpacaCryptoBarsResponseSchema,
+  alpacaCryptoLocationSchema,
   alpacaCryptoSnapshotsResponseSchema,
-  alpacaEnvironmentSchema,
   alpacaOrderSchema,
   alpacaPortfolioHistorySchema,
   alpacaPositionSchema,
@@ -166,7 +165,7 @@ interface AssetRequestOptions extends AlpacaClientOptions {
   identifier: string
 }
 
-let assetCatalogCache: AssetCatalogCache | undefined
+const assetCatalogCaches = new Map<string, AssetCatalogCache>()
 
 const alpacaErrorBodySchema = z.object({
   code: z.number().optional(),
@@ -195,7 +194,7 @@ export class AlpacaApiError extends Error {
 
 /** Returns Alpaca account details, including equity, cash, and buying power. */
 export async function getAccount(
-  options: AlpacaClientOptions = {}
+  options: AlpacaClientOptions
 ): Promise<AlpacaAccount> {
   const client = resolveClientOptions(options)
 
@@ -209,7 +208,7 @@ export async function getAccount(
 
 /** Returns the account balance with numeric values ready for display. */
 export async function getCurrentBalance(
-  options: AlpacaClientOptions = {}
+  options: AlpacaClientOptions
 ): Promise<CurrentBalance> {
   const account = await getAccount(options)
   const equity = toNumber(account.equity)
@@ -230,7 +229,7 @@ export async function getCurrentBalance(
 
 /** Returns all open positions and aggregate portfolio values. */
 export async function getPortfolio(
-  options: AlpacaClientOptions = {}
+  options: AlpacaClientOptions
 ): Promise<Portfolio> {
   const client = resolveClientOptions(options)
   const response = await alpacaFetch({
@@ -377,9 +376,11 @@ export async function getAssetHistory(
 }
 
 /** Submits a validated buy or sell order to the configured Alpaca account. */
-export async function createOrder(options: CreateOrderRequest): Promise<Order> {
+export async function createOrder(
+  options: CreateOrderRequest & AlpacaClientOptions
+): Promise<Order> {
   const order = createOrderRequestSchema.parse(options)
-  const client = resolveClientOptions({})
+  const client = resolveClientOptions(options)
   const response = await alpacaFetch({
     baseUrl: client.tradingBaseUrl,
     body: {
@@ -414,7 +415,7 @@ export async function createOrder(options: CreateOrderRequest): Promise<Order> {
 
 /** Returns crypto and equity orders for the account in a single Alpaca request. */
 export async function getOrders(
-  options: Partial<GetOrdersOptions> = {}
+  options: z.input<typeof getOrdersOptionsSchema>
 ): Promise<AccountOrder[]> {
   const queryOptions = getOrdersOptionsSchema.parse(options)
   const client = resolveClientOptions(queryOptions)
@@ -446,7 +447,7 @@ export async function getOrders(
 
 /** Returns open positions with crypto and equity orders in one app response. */
 export async function getOrdersAndPositions(
-  options: Partial<GetOrdersOptions> = {}
+  options: z.input<typeof getOrdersOptionsSchema>
 ): Promise<OrdersAndPositions> {
   const queryOptions = getOrdersOptionsSchema.parse(options)
   const [orders, portfolio] = await Promise.all([
@@ -462,7 +463,7 @@ export async function getOrdersAndPositions(
 
 /** Returns a page of account activity covering trades, cash, and other events. */
 export async function getAccountActivities(
-  options: Partial<GetAccountActivitiesOptions> = {}
+  options: z.input<typeof getAccountActivitiesOptionsSchema>
 ): Promise<AccountActivities> {
   const queryOptions = getAccountActivitiesOptionsSchema.parse(options)
   const client = resolveClientOptions(queryOptions)
@@ -520,7 +521,7 @@ export async function getPosition(
 
 /** Returns raw account equity and P/L time-series data from Alpaca. */
 export async function getPortfolioHistory(
-  options: PortfolioHistoryOptions = {}
+  options: PortfolioHistoryOptions
 ): Promise<AlpacaPortfolioHistory> {
   const client = resolveClientOptions(options)
   const query = new URLSearchParams()
@@ -585,7 +586,7 @@ export async function getBalanceChange(
 
 /** Returns absolute and percentage balance changes for common dashboard ranges. */
 export async function getBalanceChanges(
-  options: AlpacaClientOptions = {}
+  options: AlpacaClientOptions
 ): Promise<BalanceChanges> {
   const account = await getAccount(options)
   const intervals: BalanceInterval[] = [
@@ -809,14 +810,16 @@ async function alpacaFetch<Schema extends z.ZodType>(
   }
 }
 
-/** Returns a short-lived shared catalog to avoid refetching on each keystroke. */
+/** Returns a short-lived catalog cached separately for paper and live. */
 async function getAssetCatalog(
   options: AlpacaClientOptions
 ): Promise<AlpacaAsset[]> {
+  const cacheKey = options.environment
   const now = Date.now()
+  const cached = assetCatalogCaches.get(cacheKey)
 
-  if (assetCatalogCache && assetCatalogCache.expiresAt > now) {
-    return assetCatalogCache.promise
+  if (cached && cached.expiresAt > now) {
+    return cached.promise
   }
 
   const promise = Promise.all([
@@ -826,16 +829,16 @@ async function getAssetCatalog(
     [...equities, ...crypto].filter((asset) => asset.tradable)
   )
 
-  assetCatalogCache = {
+  assetCatalogCaches.set(cacheKey, {
     expiresAt: now + ASSET_CATALOG_TTL_MS,
     promise,
-  }
+  })
 
   try {
     return await promise
   } catch (error) {
-    if (assetCatalogCache?.promise === promise) {
-      assetCatalogCache = undefined
+    if (assetCatalogCaches.get(cacheKey)?.promise === promise) {
+      assetCatalogCaches.delete(cacheKey)
     }
 
     throw error
@@ -1020,48 +1023,66 @@ function compactAssetSymbol(value: string): string {
   return normalizeAssetSearchText(value).replace(/[^a-z0-9]/gu, '')
 }
 
-/** Resolves explicit options first, then server-side environment variables. */
+/** Resolves the signed-in user's Alpaca keys and the environment's trading URL. */
 function resolveClientOptions(
   options: AlpacaClientOptions
 ): ResolvedClientOptions {
-  const apiKeyId = options.apiKeyId ?? process.env.ALPACA_API_KEY_ID
-  const apiSecretKey = options.apiSecretKey ?? process.env.ALPACA_API_SECRET_KEY
-
-  if (!apiKeyId || !apiSecretKey) {
-    throw new Error(
-      'Missing Alpaca credentials. Set ALPACA_API_KEY_ID and ' +
-        'ALPACA_API_SECRET_KEY or pass them as options.'
-    )
-  }
-
-  const environment = alpacaEnvironmentSchema.safeParse(
-    process.env.ALPACA_ENVIRONMENT
-  )
-
-  if (!environment.success) {
-    throw new Error(
-      'Missing or invalid ALPACA_ENVIRONMENT. Set it to "paper" or "live".'
-    )
-  }
+  const parsed = alpacaClientOptionsSchema.parse(options)
 
   return {
-    apiKeyId,
-    apiSecretKey,
-    cryptoLocation:
-      options.cryptoLocation ?? process.env.ALPACA_CRYPTO_LOCATION ?? 'us',
-    dataBaseUrl:
-      options.dataBaseUrl ??
-      process.env.ALPACA_DATA_BASE_URL ??
-      DEFAULT_DATA_BASE_URL,
-    fetcher: options.fetcher ?? fetch,
-    timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    apiKeyId: parsed.apiKeyId,
+    apiSecretKey: parsed.apiSecretKey,
+    cryptoLocation: resolveCryptoLocation(parsed.cryptoLocation),
+    dataBaseUrl: resolveDataBaseUrl(parsed.dataBaseUrl),
+    fetcher: parsed.fetcher ?? fetch,
+    timeoutMs: parsed.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     tradingBaseUrl:
-      options.tradingBaseUrl ??
-      process.env.ALPACA_TRADING_BASE_URL ??
-      (environment.data === 'live'
+      parsed.environment === 'live'
         ? LIVE_TRADING_BASE_URL
-        : PAPER_TRADING_BASE_URL),
+        : PAPER_TRADING_BASE_URL,
   }
+}
+
+/** Uses an explicit crypto location, then the optional server default. */
+function resolveCryptoLocation(cryptoLocation: string | undefined): string {
+  if (cryptoLocation) {
+    return cryptoLocation
+  }
+
+  const configured = process.env.ALPACA_CRYPTO_LOCATION
+
+  if (!configured) {
+    return 'us'
+  }
+
+  const parsed = alpacaCryptoLocationSchema.safeParse(configured)
+
+  if (!parsed.success) {
+    throw new Error('ALPACA_CRYPTO_LOCATION is invalid.')
+  }
+
+  return parsed.data
+}
+
+/** Uses an explicit data URL, then the optional server default. */
+function resolveDataBaseUrl(dataBaseUrl: string | undefined): string {
+  if (dataBaseUrl) {
+    return dataBaseUrl
+  }
+
+  const configured = process.env.ALPACA_DATA_BASE_URL
+
+  if (!configured) {
+    return DEFAULT_DATA_BASE_URL
+  }
+
+  const parsed = z.string().url().safeParse(configured)
+
+  if (!parsed.success) {
+    throw new Error('ALPACA_DATA_BASE_URL is invalid.')
+  }
+
+  return parsed.data
 }
 
 /** Maps a dashboard interval to valid Alpaca portfolio-history parameters. */

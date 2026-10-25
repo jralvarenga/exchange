@@ -24,8 +24,10 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getAlpacaOrdersAndPositions() {
-    return getOrdersAndPositions(query.data)
+  return createApiResponse(async function getAlpacaOrdersAndPositions({
+    alpaca,
+  }) {
+    return getOrdersAndPositions({ ...query.data, ...alpaca })
   })
 }
 
@@ -39,8 +41,8 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   return createApiResponse(
-    async function submitAlpacaOrder() {
-      return createOrder(order.data)
+    async function submitAlpacaOrder({ alpaca }) {
+      return createOrder({ ...order.data, ...alpaca })
     },
     { exposeAlpacaMessage: true }
   )

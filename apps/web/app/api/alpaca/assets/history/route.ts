@@ -17,7 +17,7 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getHistory() {
-    return getAssetHistory(query.data)
+  return createApiResponse(async function getHistory({ alpaca }) {
+    return getAssetHistory({ ...query.data, ...alpaca })
   })
 }

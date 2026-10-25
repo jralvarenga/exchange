@@ -25,7 +25,10 @@ export async function GET(
     return createValidationErrorResponse(params.error)
   }
 
-  return createApiResponse(async function getPortfolioPosition() {
-    return getPosition({ symbolOrAssetId: params.data.symbol.join('/') })
+  return createApiResponse(async function getPortfolioPosition({ alpaca }) {
+    return getPosition({
+      ...alpaca,
+      symbolOrAssetId: params.data.symbol.join('/'),
+    })
   })
 }

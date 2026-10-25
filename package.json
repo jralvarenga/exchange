@@ -3,7 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "auth:setup": "bun run scripts/setup-auth.ts",
+    "auth:migrate-owner": "bun run scripts/migrate-owner.ts",
+    "auth:secrets": "bun run scripts/generate-secrets.ts",
+    "db:generate": "bun run --filter @workspace/db db:generate",
+    "db:migrate": "bun run --filter @workspace/db db:migrate",
     "build": "turbo build",
     "dev": "turbo dev",
     "check": "biome check .",

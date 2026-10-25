@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  transpilePackages: ['@workspace/ui'],
+  serverExternalPackages: ['pg'],
+  transpilePackages: ['@workspace/auth', '@workspace/db', '@workspace/ui'],
 }
 
 export default nextConfig

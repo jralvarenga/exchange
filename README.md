@@ -1,61 +1,94 @@
 # Exchange
 
-A private, single-operator trading dashboard. Dashboard identity comes from the
-secrets configured by the person who deploys it; there is no user database.
+A trading dashboard. People sign in with Better Auth. Each account stores its
+own Alpaca paper and live keys, encrypted at rest, and those keys are used for
+that account's Alpaca calls.
 
-## Dashboard authentication
+## Authentication
 
-The dashboard accepts one deploy-time password and stores only its bcrypt hash.
-Successful login creates a 12-hour, HMAC-SHA-256-signed session in a
-`__Host-` cookie with `HttpOnly`, `Secure`, and `SameSite=Strict`. Login attempts
-are limited to five per client address every 15 minutes in each running app
-process.
+Sign-up is open. Google is offered first. Email and password require a verified
+address, and password reset uses the same mail path. Google and password
+sign-ins for the same email join one user. Email sign-in is limited to five
+attempts every 15 minutes, stored in Postgres so the limit holds across
+instances.
 
-There are three distinct values:
+Session cookies are Secure. Locally, set `BETTER_AUTH_URL` to
+`http://127.0.0.1:3000`. Chrome treats that host as a secure context, so the
+cookie is sent on local HTTP. Production stays behind HTTPS.
 
-| Value | What it is | Where it goes |
-| --- | --- | --- |
-| Your actual password | A memorable, strong password you choose and enter on the login screen | Keep it in your password manager; do not put it in an environment variable |
-| Password hash | A one-way bcrypt representation of your actual password | `DASHBOARD_PASSWORD_HASH` |
-| Auth secret | Random machine-generated data used to sign session cookies | `AUTH_SECRET` |
+### Google
 
-The password hash is not encrypted and cannot be decrypted back into your
-password. The app checks whether the password entered at login matches this
-hash.
+In Google Cloud, create an OAuth client and set the authorized redirect URI to:
 
-### Generate both values
+```text
+{BETTER_AUTH_URL}/api/auth/callback/google
+```
 
-From the repository root, run:
+Put the client id and secret in `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+
+### Database
+
+Local Postgres and Mailpit come from Compose:
 
 ```bash
-bun run auth:setup
+docker compose up -d
 ```
 
-The script hides your typing, asks you to enter the password twice, and prints
-the two complete lines to copy into `apps/web/.env.local`:
+`DATABASE_URL` for that database is
+`postgresql://exchange:exchange@127.0.0.1:5432/exchange`. Production uses a Neon
+pooled connection string in the same variable. Apply migrations as a deploy
+step. Do not use `drizzle-kit push`.
 
-```dotenv
-DASHBOARD_PASSWORD_HASH=\$2b\$12\$...generated bcrypt hash...
-AUTH_SECRET=...generated random signing secret...
+```bash
+bun run db:migrate
 ```
 
-Keep the backslashes before all three `$` characters. Next.js uses `$` for env
-variable expansion, so the backslashes tell it these are literal parts of the
-bcrypt hash. Next.js removes the backslashes when it loads the value.
+Generate a new migration after a schema change with `bun run db:generate`, then
+commit the SQL.
 
-The script does not print or save your actual password. At login, use the
-original password you entered into the script. The `AUTH_SECRET` is generated
-with the same cryptographically secure random source as an OpenSSL-generated
-secret; you do not need to run OpenSSL separately.
+### Mail
 
-Store the two generated values in the deployment platform's secret environment,
-not a committed file. If a device is lost, run the script again with a new
-password and replace both values; replacing `AUTH_SECRET` invalidates every
-existing cookie immediately.
+Production sends verification and reset mail through Resend (`RESEND_API_KEY`,
+`EMAIL_FROM`). Locally, the app sends SMTP to Mailpit on `127.0.0.1:1025`. Open
+the mailbox at `http://127.0.0.1:8025`.
 
-When setting `DASHBOARD_PASSWORD_HASH` through a hosting provider's environment
-variable UI instead of a `.env` file, paste the raw bcrypt hash without the
-backslashes. The escaping is required only in `.env*` files parsed by Next.js.
+### Secrets
+
+```bash
+bun run auth:secrets
+```
+
+Paste `BETTER_AUTH_SECRET` and `CREDENTIALS_ENCRYPTION_KEYS` into
+`apps/web/.env.local` and the deployment environment. The encryption value is
+one or more `keyId:base64` pairs. The first key encrypts new credentials. Every
+listed key can decrypt. To rotate, generate another key, prepend it, and keep
+the previous keys until every stored row has been saved again.
+
+### Deposit wallets
+
+Each user adds their own Alpaca crypto deposit addresses (USDC and USDT on
+Ethereum and Solana) under Settings, and Funds & Wallet shows only that user's
+addresses. Alpaca's Crypto Wallets API that returns these addresses is Broker
+API only, so personal Trading API keys cannot fetch them automatically.
+
+### Existing operator
+
+There is no email on the old single-password session, so those cookies stop
+working at deploy. They already expired within 12 hours. Move the operator once:
+
+```bash
+bun run auth:migrate-owner --email you@example.com
+```
+
+The command is safe to repeat. It creates a verified user whose password is the
+current `DASHBOARD_PASSWORD_HASH`, and, when the old Alpaca key variables are
+set, stores them encrypted for that user. Any `ADDRESS_*` deposit addresses
+are copied into that user's deposit wallets. If an unverified account already
+uses the email, the command stops instead of adopting it. Sign in with the same password, or
+with Google on that email. If the password is lost, use Forgot password on the
+login page. After a successful login, remove `DASHBOARD_PASSWORD_HASH`,
+`AUTH_SECRET`, `ALPACA_API_KEY_ID`, `ALPACA_API_SECRET_KEY`,
+`ALPACA_ENVIRONMENT`, `ALPACA_TRADING_BASE_URL`, and the `ADDRESS_*` variables.
 
 ## HTTPS deployment
 
@@ -87,20 +120,8 @@ dashboard.example.com {
 }
 ```
 
-The built-in rate limiter is intentionally state-free and per process. For a
-multi-process or multi-instance deployment, add a shared limiter at the reverse
-proxy while retaining the app limiter.
-
-## Optional passkey follow-up
-
-Passkeys may be added later only as a second factor after the environment
-password session exists. That design needs a small private JSON file containing
-the credential ID, public key, and signature counter, plus an environment
-`RECOVERY_TOKEN`. Do not expose an unclaimed instance publicly, and do not make
-the passkey the only lock or recovery path.
-
-Alpaca credentials and OAuth/Connect link the brokerage account only. They are
-not dashboard administrator identity.
+Sign-in rate limits are stored in Postgres. A reverse proxy can add its own
+limit in front of them.
 
 ## Adding components
 

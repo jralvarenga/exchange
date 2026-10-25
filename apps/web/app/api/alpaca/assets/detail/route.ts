@@ -16,7 +16,7 @@ export async function GET(request: Request): Promise<Response> {
     return createValidationErrorResponse(query.error)
   }
 
-  return createApiResponse(async function getDetail() {
-    return getAssetDetail(query.data)
+  return createApiResponse(async function getDetail({ alpaca }) {
+    return getAssetDetail({ ...query.data, ...alpaca })
   })
 }

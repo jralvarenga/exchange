@@ -7,6 +7,7 @@ import {
 import { getAssetSearchQueryKey } from '@/lib/alpaca/query-keys'
 import type { AssetSearchResponse } from '@/lib/alpaca/schemas'
 import { assetSearchResponseSchema } from '@/lib/alpaca/schemas'
+import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
 interface SearchAssetsOptions {
@@ -28,11 +29,11 @@ export async function searchAssets(
     }
   )
 
-  if (!response.ok) {
-    throw new Error('Unable to search Alpaca assets.')
-  }
-
-  return assetSearchResponseSchema.parse(await response.json())
+  return parseApiJson(
+    response,
+    assetSearchResponseSchema,
+    'Unable to search Alpaca assets.'
+  )
 }
 
 /** Searches Alpaca assets without suspending the active typing interaction. */
