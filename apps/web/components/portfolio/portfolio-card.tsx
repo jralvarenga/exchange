@@ -12,9 +12,9 @@ import {
   TabsList,
   TabsTrigger,
 } from '@workspace/ui/components/tabs'
-import { Suspense } from 'react'
 
 import { BalanceErrorBoundary } from '@/components/balance/balance-error-boundary'
+import { ClientSuspense } from '@/components/client-suspense'
 import { PortfolioActivity } from '@/components/portfolio/portfolio-activity'
 import { PortfolioActivityFallback } from '@/components/portfolio/portfolio-activity-fallback'
 import { PortfolioAssets } from '@/components/portfolio/portfolio-assets'
@@ -47,9 +47,9 @@ export function PortfolioCard() {
                 </p>
               }
             >
-              <Suspense fallback={<PortfolioAssetsFallback />}>
+              <ClientSuspense fallback={<PortfolioAssetsFallback />}>
                 <PortfolioAssets />
-              </Suspense>
+              </ClientSuspense>
             </BalanceErrorBoundary>
           </TabsContent>
           <TabsContent
@@ -63,9 +63,9 @@ export function PortfolioCard() {
                 </p>
               }
             >
-              <Suspense fallback={<PortfolioOrdersFallback />}>
+              <ClientSuspense fallback={<PortfolioOrdersFallback />}>
                 <PortfolioOrders />
-              </Suspense>
+              </ClientSuspense>
             </BalanceErrorBoundary>
           </TabsContent>
           <TabsContent
@@ -79,9 +79,9 @@ export function PortfolioCard() {
                 </p>
               }
             >
-              <Suspense fallback={<PortfolioActivityFallback />}>
+              <ClientSuspense fallback={<PortfolioActivityFallback />}>
                 <PortfolioActivity />
-              </Suspense>
+              </ClientSuspense>
             </BalanceErrorBoundary>
           </TabsContent>
         </CardContent>

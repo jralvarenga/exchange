@@ -1,12 +1,12 @@
 'use client'
 
 import { Skeleton } from '@workspace/ui/components/skeleton'
-import { Suspense } from 'react'
 
 import { BalanceChange } from '@/components/balance/balance-change'
 import { BalanceErrorBoundary } from '@/components/balance/balance-error-boundary'
 import { BalanceIntervalSelector } from '@/components/balance/balance-interval-selector'
 import { BalanceValue } from '@/components/balance/balance-value'
+import { ClientSuspense } from '@/components/client-suspense'
 import type { BalanceInterval } from '@/lib/alpaca/schemas'
 
 interface Props {
@@ -26,13 +26,13 @@ export function BalanceDetails({ interval, onChange }: Props) {
             </p>
           }
         >
-          <Suspense
+          <ClientSuspense
             fallback={
               <Skeleton className="h-12 w-56 bg-primary-foreground/20" />
             }
           >
             <BalanceValue />
-          </Suspense>
+          </ClientSuspense>
         </BalanceErrorBoundary>
         <BalanceErrorBoundary
           fallback={
@@ -42,13 +42,13 @@ export function BalanceDetails({ interval, onChange }: Props) {
           }
           resetKey={interval}
         >
-          <Suspense
+          <ClientSuspense
             fallback={
               <Skeleton className="h-8 w-44 bg-primary-foreground/20" />
             }
           >
             <BalanceChange interval={interval} />
-          </Suspense>
+          </ClientSuspense>
         </BalanceErrorBoundary>
       </div>
       <BalanceIntervalSelector onChange={onChange} value={interval} />
