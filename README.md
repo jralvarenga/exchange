@@ -12,13 +12,19 @@ same verified email join one user. An unverified password account cannot be
 joined to a later Google sign-in. Email sign-in is limited to five attempts
 every 15 minutes, stored in Postgres so the limit holds across instances.
 
-Sign-up is closed in production unless `AUTH_ALLOWED_EMAILS` lists the
-addresses that may create an account (comma-separated, case-insensitive).
-Set `AUTH_DISABLE_SIGNUP=false` only if you want open registration.
-Local development stays open unless `AUTH_DISABLE_SIGNUP=true`. Owner
-migration writes the user directly, so it still works when sign-up is
+Sign-up policy, in order:
+
+- A non-empty `AUTH_ALLOWED_EMAILS` list (comma-separated, case-insensitive)
+  restricts new accounts to those addresses in every environment, including
+  local development. `AUTH_DISABLE_SIGNUP` does not override the list.
+- With no allowlist, `AUTH_DISABLE_SIGNUP=true` closes sign-up and
+  `AUTH_DISABLE_SIGNUP=false` opens it.
+- With neither set, production (`NODE_ENV=production` or
+  `VERCEL_ENV=production`) stays closed and other environments stay open.
+
+Owner migration writes the user directly, so it still works when sign-up is
 closed. Google sign-in for an existing allowed or migrated user still
-works; new Google users need to be on the allowlist.
+works; a new Google user must be on the allowlist when one is set.
 
 Session cookies are Secure. Locally, set `BETTER_AUTH_URL` to
 `http://127.0.0.1:3000`. Chrome treats that host as a secure context, so the
@@ -152,10 +158,13 @@ RESEND_API_KEY
 EMAIL_FROM
 CREDENTIALS_ENCRYPTION_KEYS
 AUTH_ALLOWED_EMAILS
+AUTH_DISABLE_SIGNUP
 ```
 
-`AUTH_ALLOWED_EMAILS` is the production allowlist. Omit it and public
-sign-up stays closed. `AUTH_DISABLE_SIGNUP=false` opens it.
+A non-empty `AUTH_ALLOWED_EMAILS` restricts sign-up to those addresses in
+every environment. `AUTH_DISABLE_SIGNUP=false` reopens sign-up only when no
+allowlist is set. `AUTH_DISABLE_SIGNUP=true` closes it. Production defaults
+to closed.
 
 `BETTER_AUTH_URL` must be the public production HTTPS origin, for example
 `https://dashboard.example.com`. Preview deploys set Better Auth's base URL

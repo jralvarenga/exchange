@@ -14,6 +14,17 @@ describe('resolveSignUpPolicy', () => {
     })
   })
 
+  test('closes sign-up when only VERCEL_ENV is production', () => {
+    expect(
+      resolveSignUpPolicy({
+        VERCEL_ENV: 'production',
+      })
+    ).toEqual({
+      allowedEmails: undefined,
+      disableSignUp: true,
+    })
+  })
+
   test('keeps sign-up open in development by default', () => {
     expect(
       resolveSignUpPolicy({

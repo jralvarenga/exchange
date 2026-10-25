@@ -5,7 +5,8 @@ export interface SignUpPolicy {
 
 /**
  * Reads AUTH_ALLOWED_EMAILS and AUTH_DISABLE_SIGNUP.
- * Production stays closed unless an allowlist is set or sign-up is forced open.
+ * A non-empty allowlist wins in every environment. Otherwise the disable flag
+ * applies, and production stays closed when both are unset.
  */
 export function resolveSignUpPolicy(
   source: Record<string, string | undefined>
