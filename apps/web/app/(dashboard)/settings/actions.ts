@@ -13,6 +13,7 @@ import {
 } from '@/lib/alpaca/credentials'
 import { alpacaEnvironmentSchema } from '@/lib/alpaca/schemas'
 import { requireSession } from '@/lib/auth/require-session'
+import { enforceAlpacaCredentialGuard } from '@/lib/auth/settings-guard'
 import {
   removeDepositAddress,
   saveDepositAddress,
@@ -60,6 +61,16 @@ export async function saveAlpacaCredentialAction(
     return { message: 'Enter the Alpaca key ID and secret.' }
   }
 
+  const blocked = await enforceAlpacaCredentialGuard({
+    action: 'save',
+    environment: parsed.data.environment,
+    session,
+  })
+
+  if (blocked) {
+    return { message: blocked }
+  }
+
   try {
     const credential = await saveCredential({
       ...parsed.data,
@@ -89,6 +100,16 @@ export async function testAlpacaCredentialAction(
 
   if (!parsed.success) {
     return { message: 'The keys could not be tested.' }
+  }
+
+  const blocked = await enforceAlpacaCredentialGuard({
+    action: 'test',
+    environment: parsed.data,
+    session,
+  })
+
+  if (blocked) {
+    return { message: blocked }
   }
 
   try {

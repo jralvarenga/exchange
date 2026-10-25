@@ -22,6 +22,14 @@ function createEnvSchema(nodeEnv: string | undefined) {
         emptyToUndefined,
         z.string().url().optional()
       ),
+      AUTH_ALLOWED_EMAILS: z.preprocess(
+        emptyToUndefined,
+        z.string().optional()
+      ),
+      AUTH_DISABLE_SIGNUP: z.preprocess(
+        emptyToUndefined,
+        z.string().optional()
+      ),
       BETTER_AUTH_SECRET: z.string().min(32),
       BETTER_AUTH_TRUSTED_ORIGINS: z.preprocess(
         emptyToUndefined,

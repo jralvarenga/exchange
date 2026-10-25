@@ -17,10 +17,11 @@ permissions:
 jobs:
   migrate:
     name: Apply Drizzle migrations
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Holds the DATABASE_URL secret. Add required reviewers on this environment
-    # in the repository settings to approve each migration by hand.
+    # Holds the DATABASE_URL secret. Required reviewers should be set on this
+    # environment in the repository settings so each migration is approved by hand.
     environment: production
 
     steps:

@@ -111,7 +111,7 @@ export function CredentialCard({
               <dt className="text-muted-foreground">Last verified</dt>
               <dd>
                 {shown.lastVerifiedAt
-                  ? new Date(shown.lastVerifiedAt).toLocaleString('en-US')
+                  ? formatVerifiedAt(shown.lastVerifiedAt)
                   : 'Not verified yet'}
               </dd>
             </div>
@@ -229,6 +229,13 @@ export function CredentialCard({
       </Dialog>
     </Card>
   )
+}
+
+/** Formats a verification timestamp in UTC so server and client match. */
+function formatVerifiedAt(value: string): string {
+  return new Date(value).toLocaleString('en-US', {
+    timeZone: 'UTC',
+  })
 }
 
 /** Describes a credential status in words, not color alone. */

@@ -25,8 +25,7 @@ export function AppShell({ children }: Props) {
     pathname === '/sign-up' ||
     pathname === '/forgot-password' ||
     pathname === '/verify-email' ||
-    pathname === '/reset-password' ||
-    pathname.startsWith('/reset-password/')
+    pathname === '/reset-password'
   ) {
     return children
   }

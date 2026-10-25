@@ -15,6 +15,7 @@
     "./schema/auth": "./src/schema/auth.ts",
     "./schema/alpaca-credentials": "./src/schema/alpaca-credentials.ts",
     "./queries/alpaca-credentials": "./src/queries/alpaca-credentials.ts",
+    "./queries/rate-limits": "./src/queries/rate-limits.ts",
     "./schema/crypto-wallets": "./src/schema/crypto-wallets.ts",
     "./queries/crypto-wallets": "./src/queries/crypto-wallets.ts"
   },

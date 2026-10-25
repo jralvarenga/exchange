@@ -6,11 +6,19 @@ that account's Alpaca calls.
 
 ## Authentication
 
-Sign-up is open. Google is offered first. Email and password require a verified
-address, and password reset uses the same mail path. Google and password
-sign-ins for the same email join one user. Email sign-in is limited to five
-attempts every 15 minutes, stored in Postgres so the limit holds across
-instances.
+Google is offered first. Email and password require a verified address, and
+password reset uses the same mail path. Google and password sign-ins for the
+same verified email join one user. An unverified password account cannot be
+joined to a later Google sign-in. Email sign-in is limited to five attempts
+every 15 minutes, stored in Postgres so the limit holds across instances.
+
+Sign-up is closed in production unless `AUTH_ALLOWED_EMAILS` lists the
+addresses that may create an account (comma-separated, case-insensitive).
+Set `AUTH_DISABLE_SIGNUP=false` only if you want open registration.
+Local development stays open unless `AUTH_DISABLE_SIGNUP=true`. Owner
+migration writes the user directly, so it still works when sign-up is
+closed. Google sign-in for an existing allowed or migrated user still
+works; new Google users need to be on the allowlist.
 
 Session cookies are Secure. Locally, set `BETTER_AUTH_URL` to
 `http://127.0.0.1:3000`. Chrome treats that host as a secure context, so the
@@ -143,7 +151,11 @@ GOOGLE_CLIENT_SECRET
 RESEND_API_KEY
 EMAIL_FROM
 CREDENTIALS_ENCRYPTION_KEYS
+AUTH_ALLOWED_EMAILS
 ```
+
+`AUTH_ALLOWED_EMAILS` is the production allowlist. Omit it and public
+sign-up stays closed. `AUTH_DISABLE_SIGNUP=false` opens it.
 
 `BETTER_AUTH_URL` must be the public production HTTPS origin, for example
 `https://dashboard.example.com`. Preview deploys set Better Auth's base URL
@@ -164,13 +176,14 @@ Postgres service, so the database integration tests run), and a production
 build. It uses placeholder secrets only.
 
 `.github/workflows/migrate.yml` runs `bun run db:migrate` on every push to
-`main`, and can also be started by hand from the Actions tab. Drizzle skips
-migrations that were already applied, so a push without schema changes does
-nothing. Set it up once:
+`main`, and can also be started by hand from the Actions tab. Manual runs
+from any other branch or tag are skipped. Drizzle skips migrations that
+were already applied, so a push without schema changes does nothing. Set
+it up once:
 
 1. In the repository settings, create an environment named `production`.
 2. Add a `DATABASE_URL` secret to it with the Neon pooled connection string.
-3. Optional: add required reviewers so each migration waits for approval.
+3. Set required reviewers on that environment so each migration waits for approval.
 
 Vercel deploys `main` at the same time, so the new code can go live before the
 migration finishes. Keep every migration backwards compatible with the version

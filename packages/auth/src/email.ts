@@ -1,4 +1,5 @@
 import { connect } from 'node:net'
+import { after } from 'next/server'
 import { Resend } from 'resend'
 
 interface AuthEmail {
@@ -26,6 +27,22 @@ export async function sendAuthEmail(email: AuthEmail): Promise<void> {
   }
 
   await sendWithMailpit(email)
+}
+
+/**
+ * Delivers auth mail after the response so existing addresses do not take longer.
+ * `after()` keeps the Vercel invocation alive. Outside a request, delivery is awaited.
+ */
+export async function queueAuthEmail(email: AuthEmail): Promise<void> {
+  const task = sendAuthEmail(email).catch(() => undefined)
+
+  try {
+    after(async function sendQueuedAuthEmail() {
+      await task
+    })
+  } catch {
+    await task
+  }
 }
 
 /** Sends one authentication email through Resend. */

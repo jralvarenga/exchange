@@ -56,7 +56,6 @@ describe('authentication proxy', () => {
       '/sign-up',
       '/forgot-password',
       '/reset-password',
-      '/reset-password/reset-token',
       '/verify-email',
       '/api/auth/sign-in/email',
     ]

@@ -8,11 +8,15 @@ import {
 } from '@workspace/db/schema/auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError } from 'better-auth/api'
 import { nextCookies } from 'better-auth/next-js'
+import { eq } from 'drizzle-orm'
 
-import { sendAuthEmail } from './email'
+import { canLinkTrustedProvider } from './account-linking'
+import { queueAuthEmail, sendAuthEmail } from './email'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
+import { isSignUpEmailAllowed, resolveSignUpPolicy } from './sign-up-policy'
 
 /**
  * Builds the Better Auth server.
@@ -20,10 +24,13 @@ import { verifyStoredPassword } from './password'
  * New passwords use Better Auth's scrypt hash. Existing bcrypt hashes still verify.
  */
 function createAuth() {
+  const signUpPolicy = resolveSignUpPolicy(process.env)
+
   return betterAuth({
     account: {
       accountLinking: {
         enabled: true,
+        requireLocalEmailVerified: true,
         trustedProviders: ['google'],
       },
     },
@@ -42,21 +49,60 @@ function createAuth() {
       },
       usePlural: true,
     }),
+    databaseHooks: {
+      account: {
+        create: {
+          before: async function preventUnverifiedGoogleLink(account) {
+            if (account.providerId !== 'google') {
+              return
+            }
+
+            const [user] = await db
+              .select({ emailVerified: users.emailVerified })
+              .from(users)
+              .where(eq(users.id, account.userId))
+              .limit(1)
+
+            if (
+              user &&
+              !canLinkTrustedProvider({ emailVerified: user.emailVerified })
+            ) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Verify this email before linking Google.',
+              })
+            }
+          },
+        },
+      },
+      user: {
+        create: {
+          before: async function enforceSignUpPolicy(user) {
+            if (!isSignUpEmailAllowed(user.email, process.env)) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Sign-up is not available for this email.',
+              })
+            }
+
+            return { data: user }
+          },
+        },
+      },
+    },
     emailAndPassword: {
+      disableSignUp: signUpPolicy.disableSignUp,
       enabled: true,
       password: {
         verify: verifyStoredPassword,
       },
       requireEmailVerification: true,
+      revokeSessionsOnPasswordReset: true,
       sendResetPassword: async function sendResetPassword({ url, user }) {
-        // Do not await delivery. Existing addresses would otherwise take
-        // longer than unknown ones and leak whether the account exists.
-        void sendAuthEmail({
+        await queueAuthEmail({
           html: `<p>Reset the password for your Exchange account.</p><p><a href="${escapeHtml(url)}">Choose a new password</a></p>`,
           subject: 'Reset your Exchange password',
           text: `Reset your Exchange password: ${url}`,
           to: user.email,
-        }).catch(() => undefined)
+        })
       },
     },
     emailVerification: {
@@ -90,6 +136,7 @@ function createAuth() {
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID ?? '',
         clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+        disableSignUp: signUpPolicy.disableSignUp,
       },
     },
     trustedOrigins: resolveAuthTrustedOrigins(process.env),

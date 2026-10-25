@@ -18,7 +18,7 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.next()
   }
 
-  if (PUBLIC_PATHS.has(pathname) || pathname.startsWith('/reset-password/')) {
+  if (PUBLIC_PATHS.has(pathname)) {
     if (
       getSessionCookie(request) &&
       (pathname === '/login' || pathname === '/sign-up')
