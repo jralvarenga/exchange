@@ -156,6 +156,27 @@ needed.
 `bun run auth:migrate-owner` succeeds, remove the legacy password, Alpaca, and
 `ADDRESS_*` variables from Vercel.
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request into `main`: lint and
+format check, typecheck, a migration consistency check, the tests (with a
+Postgres service, so the database integration tests run), and a production
+build. It uses placeholder secrets only.
+
+`.github/workflows/migrate.yml` runs `bun run db:migrate` on every push to
+`main`, and can also be started by hand from the Actions tab. Drizzle skips
+migrations that were already applied, so a push without schema changes does
+nothing. Set it up once:
+
+1. In the repository settings, create an environment named `production`.
+2. Add a `DATABASE_URL` secret to it with the Neon pooled connection string.
+3. Optional: add required reviewers so each migration waits for approval.
+
+Vercel deploys `main` at the same time, so the new code can go live before the
+migration finishes. Keep every migration backwards compatible with the version
+that is running: add columns and tables first, and drop or rename them in a
+later release.
+
 ## Adding components
 
 To add components to your app, run the following command at the root of your `web` app:

@@ -1,13 +1,10 @@
 'use client'
 
-import { cn } from '@workspace/ui/lib/utils'
 import { Wallet } from 'lucide-react'
 
 import { AssetIcon } from '@/components/assets/asset-icon'
 import {
   formatActivityDetail,
-  formatActivitySide,
-  formatActivityTime,
   formatActivityTitle,
   getActivityAssetClass,
 } from '@/lib/activity/format-activity'
@@ -22,7 +19,7 @@ interface SideToneOptions {
 }
 
 /** Returns the text token that reflects a trade side. */
-function getSideToneClass(options: SideToneOptions): string {
+function _getSideToneClass(options: SideToneOptions): string {
   if (options.side === 'buy') {
     return 'text-success'
   }

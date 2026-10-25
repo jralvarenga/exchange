@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Same image as compose.yaml, so the credentials integration tests run
+    # instead of skipping.
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: exchange
+          POSTGRES_PASSWORD: exchange
+          POSTGRES_USER: exchange
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U exchange -d exchange"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Placeholder values only. lib/env.ts validates these at build time, and
+    # nothing in CI talks to Google, Resend, or a real database.
+    env:
+      BETTER_AUTH_SECRET: ci-placeholder-secret-at-least-32-characters
+      BETTER_AUTH_URL: http://localhost:3000
+      CREDENTIALS_ENCRYPTION_KEYS: k1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      DATABASE_URL: postgresql://exchange:exchange@127.0.0.1:5432/exchange
+      EMAIL_FROM: Exchange <ci@example.com>
+      GOOGLE_CLIENT_ID: ci-placeholder
+      GOOGLE_CLIENT_SECRET: ci-placeholder
+      RESEND_API_KEY: re_ci_placeholder
+      TURBO_TELEMETRY_DISABLED: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint and format check
+        run: bun run check
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Check migrations are consistent
+        working-directory: packages/db
+        run: bun run db:check
+
+      - name: Test auth package
+        working-directory: packages/auth
+        run: bun test
+
+      - name: Test web app
+        working-directory: apps/web
+        run: bun test
+
+      - name: Build
+        run: bun run build
