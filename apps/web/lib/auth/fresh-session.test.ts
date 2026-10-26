@@ -35,4 +35,28 @@ describe('isSessionFresh', () => {
       })
     ).toBe(false)
   })
+
+  test('rejects a session dated far in the future', () => {
+    const now = Date.parse('2026-10-25T16:00:00.000Z')
+
+    expect(
+      isSessionFresh({
+        createdAt: '2026-10-25T16:02:00.000Z',
+        maxAgeMs: 15 * 60 * 1000,
+        now,
+      })
+    ).toBe(false)
+  })
+
+  test('accepts a session slightly ahead of the clock', () => {
+    const now = Date.parse('2026-10-25T16:00:00.000Z')
+
+    expect(
+      isSessionFresh({
+        createdAt: '2026-10-25T16:00:30.000Z',
+        maxAgeMs: 15 * 60 * 1000,
+        now,
+      })
+    ).toBe(true)
+  })
 })

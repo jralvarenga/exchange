@@ -85,12 +85,19 @@
             "useKeyWithClickEvents": "off",
             "useSemanticElements": "off"
           },
-          "security": {
-            "noDangerouslySetInnerHtml": "off"
-          },
           "suspicious": {
             "noArrayIndexKey": "off",
             "noDocumentCookie": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/ui/src/components/chart.tsx"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
           }
         }
       }

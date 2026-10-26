@@ -5,7 +5,9 @@ export interface SignUpPolicy {
 
 /**
  * Reads AUTH_ALLOWED_EMAILS and AUTH_DISABLE_SIGNUP.
- * Production stays closed unless an allowlist is set or sign-up is forced open.
+ * A non-empty allowlist wins in every environment. Otherwise the disable flag
+ * applies, and Vercel production (or NODE_ENV=production when VERCEL_ENV is
+ * unset) stays closed when both are unset. Preview deploys stay open.
  */
 export function resolveSignUpPolicy(
   source: Record<string, string | undefined>
@@ -74,9 +76,17 @@ function parseAllowedEmails(value: string | undefined): string[] | undefined {
   return emails.length > 0 ? emails : undefined
 }
 
-/** Treats Vercel production and NODE_ENV=production as the safe default. */
+/**
+ * True for Vercel production, or for NODE_ENV=production when VERCEL_ENV is unset.
+ * Preview and development Vercel deploys stay out of this default even though
+ * Next.js sets NODE_ENV=production there.
+ */
 function isProductionEnv(source: Record<string, string | undefined>): boolean {
-  return source.VERCEL_ENV === 'production' || source.NODE_ENV === 'production'
+  if (source.VERCEL_ENV) {
+    return source.VERCEL_ENV === 'production'
+  }
+
+  return source.NODE_ENV === 'production'
 }
 
 /** Accepts a trimmed mailbox and stores it in lowercase. */

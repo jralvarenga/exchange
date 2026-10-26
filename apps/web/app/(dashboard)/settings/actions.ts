@@ -61,17 +61,17 @@ export async function saveAlpacaCredentialAction(
     return { message: 'Enter the Alpaca key ID and secret.' }
   }
 
-  const blocked = await enforceAlpacaCredentialGuard({
-    action: 'save',
-    environment: parsed.data.environment,
-    session,
-  })
-
-  if (blocked) {
-    return { message: blocked }
-  }
-
   try {
+    const blocked = await enforceAlpacaCredentialGuard({
+      action: 'save',
+      environment: parsed.data.environment,
+      session,
+    })
+
+    if (blocked) {
+      return { message: blocked }
+    }
+
     const credential = await saveCredential({
       ...parsed.data,
       userId: session.user.id,
@@ -102,17 +102,17 @@ export async function testAlpacaCredentialAction(
     return { message: 'The keys could not be tested.' }
   }
 
-  const blocked = await enforceAlpacaCredentialGuard({
-    action: 'test',
-    environment: parsed.data,
-    session,
-  })
-
-  if (blocked) {
-    return { message: blocked }
-  }
-
   try {
+    const blocked = await enforceAlpacaCredentialGuard({
+      action: 'test',
+      environment: parsed.data,
+      session,
+    })
+
+    if (blocked) {
+      return { message: blocked }
+    }
+
     const credential = await testCredential({
       environment: parsed.data,
       userId: session.user.id,
