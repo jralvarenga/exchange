@@ -806,6 +806,7 @@ interface OrderValidationValues {
   limitPrice?: string
   orderClass?: z.infer<typeof alpacaOrderClassSchema>
   quantityMode: z.infer<typeof alpacaQuantityModeSchema>
+  stopLossLimitPrice?: string
   stopLossStopPrice?: string
   stopPrice?: string
   takeProfitLimitPrice?: string
@@ -962,6 +963,30 @@ function validateOrderValues(
   }
 
   if (orderClass === 'simple') {
+    if (values.takeProfitLimitPrice) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Take-profit prices need a bracket, OCO, or OTO order.',
+        path: ['takeProfitLimitPrice'],
+      })
+    }
+
+    if (values.stopLossStopPrice) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Stop-loss prices need a bracket, OCO, or OTO order.',
+        path: ['stopLossStopPrice'],
+      })
+    }
+
+    if (values.stopLossLimitPrice) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Stop-loss limit prices need a bracket, OCO, or OTO order.',
+        path: ['stopLossLimitPrice'],
+      })
+    }
+
     return
   }
 

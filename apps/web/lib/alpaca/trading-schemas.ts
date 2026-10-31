@@ -85,7 +85,8 @@ export const accountOverviewSchema = z.object({
 const dayTradeCheckSchema = z.enum(['both', 'entry', 'exit'])
 
 export const alpacaAccountConfigurationsSchema = z.looseObject({
-  dtbp_check: dayTradeCheckSchema,
+  // Alpaca removed dtbp_check and pdt_check. Older responses may still send them.
+  dtbp_check: dayTradeCheckSchema.optional(),
   fractional_trading: z.boolean(),
   max_margin_multiplier: z.string(),
   max_options_trading_level: z.number().optional(),
@@ -96,7 +97,7 @@ export const alpacaAccountConfigurationsSchema = z.looseObject({
 })
 
 export const accountConfigurationsSchema = z.object({
-  dayTradeBuyingPowerCheck: dayTradeCheckSchema,
+  dayTradeBuyingPowerCheck: dayTradeCheckSchema.optional(),
   fractionalTrading: z.boolean(),
   maxMarginMultiplier: z.enum(['1', '2', '4']),
   maxOptionsTradingLevel: z.number().int().min(0).max(3).optional(),
@@ -106,8 +107,16 @@ export const accountConfigurationsSchema = z.object({
   tradeConfirmEmail: z.enum(['all', 'none']),
 })
 
-export const updateAccountConfigurationsSchema =
-  accountConfigurationsSchema.partial()
+export const updateAccountConfigurationsSchema = accountConfigurationsSchema
+  .omit({
+    dayTradeBuyingPowerCheck: true,
+    patternDayTraderCheck: true,
+  })
+  .partial()
+  .refine(
+    (values) => Object.values(values).some((value) => value !== undefined),
+    'Change at least one account configuration.'
+  )
 
 export const alpacaWatchlistAssetSchema = z.looseObject({
   class: alpacaAssetClassSchema.or(z.string()),
@@ -151,10 +160,15 @@ export const createWatchlistRequestSchema = z.object({
   symbols: z.array(watchlistSymbolSchema).max(200).default([]),
 })
 
-export const updateWatchlistRequestSchema = z.object({
-  name: watchlistNameSchema,
-  symbols: z.array(watchlistSymbolSchema).max(200).optional(),
-})
+export const updateWatchlistRequestSchema = z
+  .object({
+    name: watchlistNameSchema.optional(),
+    symbols: z.array(watchlistSymbolSchema).max(200).optional(),
+  })
+  .refine(
+    (values) => values.name !== undefined || values.symbols !== undefined,
+    'Provide a name or symbols to update the watchlist.'
+  )
 
 export const watchlistSymbolRequestSchema = z.object({
   symbol: watchlistSymbolSchema,
@@ -171,6 +185,10 @@ export const closePositionRequestSchema = z
       z
         .string()
         .regex(/^\d+(?:\.\d{1,9})?$/u)
+        .refine(
+          (value) => Number(value) > 0,
+          'Enter a quantity greater than zero.'
+        )
         .optional()
     ),
   })
@@ -238,7 +256,12 @@ export const corporateActionsQuerySchema = z.object({
     (value) => (value === null || value === '' ? undefined : value),
     z
       .string()
-      .transform((value) => value.split(',').filter(Boolean))
+      .transform((value) =>
+        value
+          .split(',')
+          .map((type) => type.trim())
+          .filter(Boolean)
+      )
       .pipe(z.array(corporateActionTypeSchema).min(1))
       .optional()
   ),

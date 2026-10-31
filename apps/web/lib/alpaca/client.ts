@@ -1236,6 +1236,17 @@ export function toNumber(value: string): number {
   return number
 }
 
+/** Parses an optional Alpaca decimal string. */
+export function toOptionalNumber(value?: string | null): number | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+
+  const number = Number(value)
+
+  return Number.isFinite(number) ? number : undefined
+}
+
 /** Sums a numeric property across normalized positions. */
 function sum(
   positions: PortfolioPosition[],

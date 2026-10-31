@@ -15,7 +15,16 @@ interface Context {
   params: Promise<{ id: string }>
 }
 
-const paramsSchema = z.object({ id: z.string().min(1).max(64) })
+const paramsSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(64)
+    .refine(
+      (id) => id !== '.' && id !== '..',
+      'Watchlist id cannot be . or ..'
+    ),
+})
 
 /** Returns one watchlist with its assets. */
 export async function GET(

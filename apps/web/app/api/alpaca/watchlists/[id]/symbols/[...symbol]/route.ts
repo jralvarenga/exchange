@@ -11,8 +11,26 @@ interface Context {
 }
 
 const paramsSchema = z.object({
-  id: z.string().min(1).max(64),
-  symbol: z.array(z.string().min(1)).min(1).max(2),
+  id: z
+    .string()
+    .min(1)
+    .max(64)
+    .refine(
+      (id) => id !== '.' && id !== '..',
+      'Watchlist id cannot be . or ..'
+    ),
+  symbol: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .refine(
+          (segment) => segment !== '.' && segment !== '..',
+          'Path segment cannot be . or ..'
+        )
+    )
+    .min(1)
+    .max(2),
 })
 
 /** Removes one stock or slash-delimited crypto symbol from a watchlist. */

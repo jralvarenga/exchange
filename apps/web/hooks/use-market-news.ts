@@ -24,7 +24,7 @@ export function useMarketNews(
         schema: newsSchema,
         signal,
       }),
-    queryKey: getNewsQueryKey(options.symbols),
+    queryKey: getNewsQueryKey(options.symbols, options.limit),
     refetchInterval: 300_000,
   })
 }

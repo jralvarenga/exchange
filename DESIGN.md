@@ -10,7 +10,11 @@ The interface is **frosted glass over a slow aurora**. Dark ink is the default c
 
 ## Signature
 
-**The market aurora.** One iridescent mesh of light (violet, sky, peach, rose) lives behind the whole app and shows at full strength in exactly one place per screen: the hero panel (account equity on Overview, the price on the Trade screen, the order amount in the trade ticket).
+**The market aurora.** One iridescent mesh of light (violet, sky, peach, rose) lives behind the whole app and shows at full strength in exactly one place per screen.
+
+On Overview, the account equity hero owns that full-strength aurora. On Trade, the price hero owns it. On every other screen, the order ticket owns it, on the order amount in the ticket header.
+
+On Overview and Trade the ticket header still shows the symbol, live price, and order amount, and its aurora is suppressed so the screen hero stays the only full-strength aurora. The canvas keeps a separate fixed, low-opacity aurora behind the whole app.
 
 Its intensity encodes the market clock, so it is information, not decoration: full saturation with a slow drift while the market is open, half saturation in pre-market and after hours, desaturated and still when closed.
 
@@ -35,9 +39,9 @@ Tokens live in [globals.css](packages/ui/src/styles/globals.css) and are consume
 | `border` | `oklch(1 0 0 / 10%)` | `oklch(0.2 0.02 275 / 9%)` | Glass edge highlight, dividers |
 | `input` | `oklch(1 0 0 / 7%)` | `oklch(0.2 0.02 275 / 6%)` | Field fill |
 | `ring` | same as `primary` | same as `primary` | Focus ring |
-| `warning` | `oklch(0.82 0.14 75)` | `oklch(0.66 0.15 70)` | Pending orders, PDT and margin notices |
+| `warning` | `oklch(0.82 0.14 75)` | `oklch(0.54 0.15 70)` | Pending orders, PDT and margin notices |
 | `danger` | `oklch(0.7 0.18 25)` | `oklch(0.56 0.2 25)` | Destructive actions, errors |
-| `market-up` | `oklch(0.8 0.15 160)` | `oklch(0.55 0.14 160)` | Gains, buy side |
+| `market-up` | `oklch(0.8 0.15 160)` | `oklch(0.51 0.14 160)` | Gains, buy side |
 | `market-down` | `oklch(0.72 0.17 22)` | `oklch(0.56 0.2 25)` | Losses, sell side |
 | `aurora-1..4` | violet `0.62 0.2 295`, sky `0.7 0.14 240`, peach `0.82 0.11 55`, rose `0.7 0.16 350` | same hues, lighter `L` + 0.1 | Aurora mesh only |
 | `chart-1..5` | iris, sky, peach, mint, rose | darker for contrast | Categorical series, allocation |
@@ -63,12 +67,12 @@ Fonts are loaded in [layout.tsx](apps/web/app/layout.tsx) with `next/font`.
 | Title | 20/28 | 500 |
 | Body | 16/24 | 400 |
 | Label | 14/20 | 400, `muted-foreground` |
-| Caption | 13/18 | 400, only chart axes and timestamps |
+| Caption | 13/18 | 400, chart axis labels and fill and order timestamps |
 
 - Weights are 400, 500 and 700 only. Large numbers stay at 400; size carries the hierarchy.
 - All numeric values use `tabular-nums` so columns and ticking prices don't jitter.
 - Sentence case everywhere. No all caps, no wide tracking.
-- Base size is 16px; 14px is the smallest text for anything a user reads to decide.
+- Base size is 16px. 14px is the minimum for decision text, except 13px caption timestamps and chart axis labels. Fill and order timestamps are that caption exception.
 
 ## Spacing and layout
 
@@ -141,7 +145,7 @@ Mobile
 
 The ticket is the same component in the dock, the sheet, the drawer and the Trade screen:
 
-- An aurora header with the symbol, live price and the order amount as the hero number.
+- A header with the symbol, live price, and the order amount as the hero number. That header carries a full-strength aurora only when the ticket is the screen's hero. On Overview and Trade the ticket aurora is suppressed.
 - Buy/Sell segmented control (labelled, colored `market-up` and `market-down`), then quantity or notional.
 - Order type pills: Market, Limit, Stop, Stop limit, Trailing stop. Fields appear only for the selected type.
 - "Advanced" disclosure: bracket, OCO and OTO legs (take profit, stop loss), time in force, extended hours.

@@ -18,7 +18,7 @@ export function useOptionChain(
   options: UseOptionChainOptions
 ): UseQueryResult<OptionChain, Error> {
   return useQuery({
-    enabled: options.enabled,
+    enabled: options.enabled && options.underlying.trim().length > 0,
     queryFn: ({ signal }) =>
       requestJson({
         fallback: 'Unable to load the option chain.',

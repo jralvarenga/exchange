@@ -14,7 +14,7 @@ export function useOrderbook(
   options: UseOrderbookOptions
 ): UseQueryResult<Orderbook, Error> {
   return useQuery({
-    enabled: options.enabled,
+    enabled: options.enabled && options.symbol.trim().length > 0,
     queryFn: ({ signal }) =>
       requestJson({
         fallback: 'Unable to load the order book.',

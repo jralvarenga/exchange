@@ -75,9 +75,12 @@ export const marketClockQueryKey = ['alpaca', 'market', 'clock'] as const
 export const marketMoversQueryKey = ['alpaca', 'market', 'movers'] as const
 export const watchlistsQueryKey = ['alpaca', 'watchlists'] as const
 
-/** Returns the cache key for market news, optionally scoped to symbols. */
-export function getNewsQueryKey(symbols: string[] = []) {
-  return ['alpaca', 'market', 'news', symbols.join(',')] as const
+/**
+ * Returns the cache key for market news.
+ * An omitted limit uses 12, the news route default, so those calls share one key.
+ */
+export function getNewsQueryKey(symbols: string[] = [], limit = 12) {
+  return ['alpaca', 'market', 'news', symbols.join(','), limit] as const
 }
 
 /** Returns the cache key for one symbol's latest quote and trade. */

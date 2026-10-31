@@ -121,10 +121,12 @@ export function getAllowedTimesInForce(
 export function getCompatibleOrderSettings(
   options: GetCompatibleOrderSettingsOptions
 ): CompatibleOrderSettings {
+  const fractional = isFractionalQuantity(options.amount, options.quantityMode)
   const allowedClasses = getAllowedOrderClasses(options.assetClass)
+  const requestedClass = fractional ? 'simple' : options.orderClass
   const orderClass =
-    options.orderClass && allowedClasses.includes(options.orderClass)
-      ? options.orderClass
+    requestedClass && allowedClasses.includes(requestedClass)
+      ? requestedClass
       : 'simple'
   const allowedTypes = getAllowedOrderTypes(options.assetClass, orderClass)
   const type = allowedTypes.includes(options.type)

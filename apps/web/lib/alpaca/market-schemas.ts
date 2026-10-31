@@ -42,7 +42,7 @@ export const newsSchema = z.array(newsArticleSchema)
 
 export const newsQuerySchema = z.object({
   limit: z.preprocess(
-    (value) => (value === null ? undefined : value),
+    (value) => (value === null || value === '' ? undefined : value),
     z.coerce.number().int().min(1).max(50).default(12)
   ),
   symbols: optionalQueryString(
@@ -192,7 +192,7 @@ export const marketSnapshotsSchema = z.array(marketSnapshotSchema)
 export const symbolsQuerySchema = z.object({
   symbols: z
     .string()
-    .transform((value) => value.split(',').filter(Boolean))
+    .transform((value) => value.split(',').map((symbol) => symbol.trim()))
     .pipe(z.array(z.string().min(1).max(32)).min(1).max(200)),
 })
 

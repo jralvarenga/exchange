@@ -2,7 +2,14 @@ import 'server-only'
 
 import { z } from 'zod'
 
-import { alpacaFetch, resolveClientOptions, setQueryValue } from './client'
+import {
+  AlpacaApiError,
+  alpacaFetch,
+  type ResolvedClientOptions,
+  resolveClientOptions,
+  setQueryValue,
+  toOptionalNumber,
+} from './client'
 import type {
   MarketMovers,
   MarketSnapshot,
@@ -54,10 +61,23 @@ interface OptionChainOptions extends AlpacaClientOptions {
   underlying: string
 }
 
+interface OptionPage {
+  next_page_token?: string | null
+}
+
+interface FetchOptionPagesOptions<Page extends OptionPage> {
+  baseUrl: string
+  client: ResolvedClientOptions
+  path: string
+  query: URLSearchParams
+  schema: z.ZodType<Page>
+}
+
 const STOCK_FEED = 'iex'
 const ORDERBOOK_DEPTH = 12
 const TRADES_LIMIT = 30
 const MOVERS_TOP = 10
+const OPTION_PAGE_CAP = 20
 
 /** Returns whether a symbol is a crypto pair such as BTC/USD. */
 export function isCryptoSymbol(symbol: string): boolean {
@@ -138,25 +158,26 @@ export async function getMarketSnapshot(
   options: SymbolOptions
 ): Promise<MarketSnapshot> {
   const client = resolveClientOptions(options)
-  const snapshot = isCryptoSymbol(options.symbol)
+  const symbol = options.symbol.toUpperCase()
+  const snapshot = isCryptoSymbol(symbol)
     ? (
         await alpacaFetch({
           baseUrl: client.dataBaseUrl,
           client,
           path: `/v1beta3/crypto/${client.cryptoLocation}/snapshots`,
-          query: new URLSearchParams({ symbols: options.symbol }),
+          query: new URLSearchParams({ symbols: symbol }),
           schema: alpacaCryptoSnapshotsSchema,
         })
-      ).snapshots[options.symbol]
+      ).snapshots[symbol]
     : await alpacaFetch({
         baseUrl: client.dataBaseUrl,
         client,
-        path: `/v2/stocks/${encodeURIComponent(options.symbol)}/snapshot`,
+        path: `/v2/stocks/${encodeURIComponent(symbol)}/snapshot`,
         query: new URLSearchParams({ feed: STOCK_FEED }),
         schema: alpacaSnapshotSchema,
       })
 
-  return toMarketSnapshot(options.symbol, snapshot)
+  return toMarketSnapshot(symbol, snapshot)
 }
 
 /** Returns latest quotes for many stock and crypto symbols in two requests. */
@@ -258,24 +279,29 @@ export async function getRecentTrades(
 /** Returns the top levels of the latest crypto order book. */
 export async function getOrderbook(options: SymbolOptions): Promise<Orderbook> {
   const client = resolveClientOptions(options)
+  const symbol = options.symbol.toUpperCase()
   const response = await alpacaFetch({
     baseUrl: client.dataBaseUrl,
     client,
     path: `/v1beta3/crypto/${client.cryptoLocation}/latest/orderbooks`,
-    query: new URLSearchParams({ symbols: options.symbol }),
+    query: new URLSearchParams({ symbols: symbol }),
     schema: alpacaOrderbooksSchema,
   })
-  const book = response.orderbooks[options.symbol]
+  const book = findOrderbook(response.orderbooks, symbol)
+
+  if (!book) {
+    throw new AlpacaApiError('Order book was not found.', 404)
+  }
 
   return orderbookSchema.parse({
-    asks: (book?.a ?? [])
+    asks: book.a
       .slice(0, ORDERBOOK_DEPTH)
       .map((level) => ({ price: level.p, size: level.s })),
-    bids: (book?.b ?? [])
+    bids: book.b
       .slice(0, ORDERBOOK_DEPTH)
       .map((level) => ({ price: level.p, size: level.s })),
     symbol: options.symbol,
-    timestamp: book?.t ?? new Date().toISOString(),
+    timestamp: book.t,
   })
 }
 
@@ -285,20 +311,21 @@ export async function getOptionChain(
 ): Promise<OptionChain> {
   const client = resolveClientOptions(options)
   const underlying = options.underlying.toUpperCase()
-  const contractsQuery = new URLSearchParams({
-    expiration_date_gte: new Date().toISOString().slice(0, 10),
-    limit: '10000',
-    status: 'active',
-    underlying_symbols: underlying,
-  })
-  const contracts = await alpacaFetch({
+  const contractPages = await fetchOptionPages({
     baseUrl: client.tradingBaseUrl,
     client,
     path: '/v2/options/contracts',
-    query: contractsQuery,
+    query: new URLSearchParams({
+      expiration_date_gte: new Date().toISOString().slice(0, 10),
+      limit: '10000',
+      status: 'active',
+      underlying_symbols: underlying,
+    }),
     schema: alpacaOptionContractsSchema,
   })
-  const allContracts = contracts.option_contracts ?? []
+  const allContracts = contractPages.flatMap(
+    (page) => page.option_contracts ?? []
+  )
   const expirations = [
     ...new Set(allContracts.map((contract) => contract.expiration_date)),
   ].sort()
@@ -316,7 +343,7 @@ export async function getOptionChain(
     })
   }
 
-  const snapshots = await alpacaFetch({
+  const snapshotPages = await fetchOptionPages({
     baseUrl: client.dataBaseUrl,
     client,
     path: `/v1beta1/options/snapshots/${encodeURIComponent(underlying)}`,
@@ -326,11 +353,15 @@ export async function getOptionChain(
       limit: '1000',
     }),
     schema: alpacaOptionSnapshotsSchema,
-  }).catch(() => undefined)
+  })
+  const snapshots = Object.assign(
+    {},
+    ...snapshotPages.map((page) => page.snapshots)
+  )
   const chain: OptionContract[] = allContracts
     .filter((contract) => contract.expiration_date === expirationDate)
     .map((contract) => {
-      const snapshot = snapshots?.snapshots[contract.symbol]
+      const snapshot = snapshots[contract.symbol]
 
       return {
         askPrice: snapshot?.latestQuote?.ap,
@@ -356,6 +387,60 @@ export async function getOptionChain(
     puts: chain.filter((contract) => contract.type === 'put'),
     underlying,
   })
+}
+
+/** Loads every page of a paginated Alpaca options response. */
+async function fetchOptionPages<Page extends OptionPage>(
+  options: FetchOptionPagesOptions<Page>
+): Promise<Page[]> {
+  const pages: Page[] = []
+  let pageToken: string | undefined
+
+  while (pages.length < OPTION_PAGE_CAP) {
+    const query = new URLSearchParams(options.query)
+
+    setQueryValue(query, 'page_token', pageToken)
+
+    const response = await alpacaFetch({
+      baseUrl: options.baseUrl,
+      client: options.client,
+      path: options.path,
+      query,
+      schema: options.schema,
+    })
+
+    pages.push(response)
+
+    if (!response.next_page_token) {
+      return pages
+    }
+
+    pageToken = response.next_page_token
+  }
+
+  throw new AlpacaApiError('Option data exceeded the pagination limit.', 502)
+}
+
+/** Returns the book for a symbol when the response key differs only by case. */
+function findOrderbook(
+  orderbooks: z.infer<typeof alpacaOrderbooksSchema>['orderbooks'],
+  symbol: string
+): z.infer<typeof alpacaOrderbooksSchema>['orderbooks'][string] | undefined {
+  const direct = orderbooks[symbol]
+
+  if (direct) {
+    return direct
+  }
+
+  const normalized = symbol.toUpperCase()
+
+  for (const [key, book] of Object.entries(orderbooks)) {
+    if (key.toUpperCase() === normalized) {
+      return book
+    }
+  }
+
+  return undefined
 }
 
 /** Maps an Alpaca snapshot to the application quote shape. */
@@ -388,15 +473,4 @@ function toMover(mover: z.infer<typeof alpacaMoverSchema>): Mover {
     price: mover.price,
     symbol: mover.symbol,
   }
-}
-
-/** Parses an optional Alpaca decimal string. */
-function toOptionalNumber(value?: string | null): number | undefined {
-  if (value === undefined || value === null || value === '') {
-    return undefined
-  }
-
-  const number = Number(value)
-
-  return Number.isFinite(number) ? number : undefined
 }

@@ -12,7 +12,7 @@ export function useMarketSnapshot(
   symbol: string
 ): UseQueryResult<MarketSnapshot, Error> {
   return useQuery({
-    enabled: symbol.length > 0,
+    enabled: symbol.trim().length > 0,
     queryFn: ({ signal }) =>
       requestJson({
         fallback: 'Unable to load the quote.',

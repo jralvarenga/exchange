@@ -9,6 +9,7 @@ import {
   resolveClientOptions,
   setQueryValue,
   toNumber,
+  toOptionalNumber,
 } from './client'
 import type {
   AccountOrder,
@@ -205,13 +206,12 @@ export async function updateAccountConfigurations(
   const { changes } = options
   const configurations = await alpacaFetch({
     baseUrl: client.tradingBaseUrl,
+    // dtbp_check and pdt_check are not in the PATCH body.
     body: {
-      dtbp_check: changes.dayTradeBuyingPowerCheck,
       fractional_trading: changes.fractionalTrading,
       max_margin_multiplier: changes.maxMarginMultiplier,
       max_options_trading_level: changes.maxOptionsTradingLevel,
       no_shorting: changes.noShorting,
-      pdt_check: changes.patternDayTraderCheck,
       suspend_trade: changes.suspendTrade,
       trade_confirm_email: changes.tradeConfirmEmail,
     },
@@ -554,15 +554,4 @@ function toBulkResult(
   ).length
 
   return { failed: entries.length - succeeded, succeeded }
-}
-
-/** Parses an optional Alpaca decimal string. */
-function toOptionalNumber(value?: string | null): number | undefined {
-  if (value === undefined || value === null || value === '') {
-    return undefined
-  }
-
-  const number = Number(value)
-
-  return Number.isFinite(number) ? number : undefined
 }

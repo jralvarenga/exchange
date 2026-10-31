@@ -12,6 +12,7 @@ export function useRecentTrades(
   symbol: string
 ): UseQueryResult<MarketTrade[], Error> {
   return useQuery({
+    enabled: symbol.trim().length > 0,
     queryFn: ({ signal }) =>
       requestJson({
         fallback: 'Unable to load recent trades.',
