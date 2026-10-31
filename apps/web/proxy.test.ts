@@ -35,18 +35,15 @@ describe('authentication proxy', () => {
     expect(response.status).toBe(200)
   })
 
-  test('sends a signed-in user from login or sign-up to the dashboard', () => {
+  test('lets login and sign-up validate a session cookie themselves', () => {
     for (const pathname of ['/login', '/sign-up']) {
       const response = proxy(
         new NextRequest(`https://dashboard.example.com${pathname}`, {
-          headers: { cookie: 'better-auth.session_token=present' },
+          headers: { cookie: 'better-auth.session_token=stale' },
         })
       )
 
-      expect(response.status).toBe(307)
-      expect(response.headers.get('location')).toBe(
-        'https://dashboard.example.com/'
-      )
+      expect(response.status).toBe(200)
     }
   })
 

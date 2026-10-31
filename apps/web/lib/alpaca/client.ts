@@ -85,7 +85,7 @@ const PAPER_TRADING_BASE_URL = 'https://paper-api.alpaca.markets'
 const DEFAULT_TIMEOUT_MS = 10_000
 const ASSET_CATALOG_TTL_MS = 5 * 60 * 1_000
 
-interface ResolvedClientOptions {
+export interface ResolvedClientOptions {
   apiKeyId: string
   apiSecretKey: string
   cryptoLocation: string
@@ -95,11 +95,11 @@ interface ResolvedClientOptions {
   tradingBaseUrl: string
 }
 
-interface AlpacaFetchOptions<Schema extends z.ZodType> {
+export interface AlpacaFetchOptions<Schema extends z.ZodType> {
   baseUrl: string
   body?: unknown
   client: ResolvedClientOptions
-  method?: 'GET' | 'POST'
+  method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT'
   path: string
   query?: URLSearchParams
   schema: Schema
@@ -385,14 +385,27 @@ export async function createOrder(
     baseUrl: client.tradingBaseUrl,
     body: {
       client_order_id: order.clientOrderId,
+      extended_hours: order.extendedHours || undefined,
       limit_price: order.limitPrice || undefined,
       notional: order.quantityMode === 'notional' ? order.amount : undefined,
+      order_class: order.orderClass === 'simple' ? undefined : order.orderClass,
+      position_intent: order.positionIntent,
       qty: order.quantityMode === 'qty' ? order.amount : undefined,
       side: order.side,
+      stop_loss: order.stopLossStopPrice
+        ? {
+            limit_price: order.stopLossLimitPrice || undefined,
+            stop_price: order.stopLossStopPrice,
+          }
+        : undefined,
       stop_price: order.stopPrice || undefined,
       symbol: order.symbol,
+      take_profit: order.takeProfitLimitPrice
+        ? { limit_price: order.takeProfitLimitPrice }
+        : undefined,
       time_in_force: order.timeInForce,
       trail_percent: order.trailPercent || undefined,
+      trail_price: order.trailPrice || undefined,
       type: order.type,
     },
     client,
@@ -768,7 +781,7 @@ export async function getTokenPrices(
 }
 
 /** Performs an authenticated Alpaca request and validates its response. */
-async function alpacaFetch<Schema extends z.ZodType>(
+export async function alpacaFetch<Schema extends z.ZodType>(
   options: AlpacaFetchOptions<Schema>
 ): Promise<z.infer<Schema>> {
   const controller = new AbortController()
@@ -804,7 +817,9 @@ async function alpacaFetch<Schema extends z.ZodType>(
       )
     }
 
-    return options.schema.parse(await response.json())
+    const text = await response.text()
+
+    return options.schema.parse(text ? JSON.parse(text) : null)
   } finally {
     clearTimeout(timeout)
   }
@@ -1024,7 +1039,7 @@ function compactAssetSymbol(value: string): string {
 }
 
 /** Resolves the signed-in user's Alpaca keys and the environment's trading URL. */
-function resolveClientOptions(
+export function resolveClientOptions(
   options: AlpacaClientOptions
 ): ResolvedClientOptions {
   const parsed = alpacaClientOptionsSchema.parse(options)
@@ -1137,11 +1152,25 @@ function calculateBalanceChange(
 }
 
 /** Converts an Alpaca order response to the application order shape. */
-function normalizeOrder(order: AlpacaAccountOrder): AccountOrder {
+export function normalizeOrder(order: AlpacaAccountOrder): AccountOrder {
   return accountOrderSchema.parse({
     assetClass: order.asset_class,
+    canceledAt: order.canceled_at,
     clientOrderId: order.client_order_id,
     createdAt: order.created_at,
+    extendedHours: order.extended_hours,
+    filledAt: order.filled_at,
+    legs: order.legs?.map((leg) => ({
+      id: leg.id,
+      limitPrice: leg.limit_price,
+      side: leg.side,
+      status: leg.status,
+      stopPrice: leg.stop_price,
+      type: leg.type,
+    })),
+    orderClass: order.order_class,
+    trailPercent: order.trail_percent,
+    trailPrice: order.trail_price,
     filledAveragePrice: order.filled_avg_price,
     filledQuantity: order.filled_qty,
     id: order.id,
@@ -1179,7 +1208,7 @@ function normalizeActivity(activity: AlpacaAccountActivity): AccountActivity {
 }
 
 /** Converts an Alpaca position response to numeric application values. */
-function normalizePosition(position: AlpacaPosition): PortfolioPosition {
+export function normalizePosition(position: AlpacaPosition): PortfolioPosition {
   return portfolioPositionSchema.parse({
     assetClass: position.asset_class,
     assetId: position.asset_id,
@@ -1197,7 +1226,7 @@ function normalizePosition(position: AlpacaPosition): PortfolioPosition {
 }
 
 /** Safely parses Alpaca's string-encoded decimal values. */
-function toNumber(value: string): number {
+export function toNumber(value: string): number {
   const number = Number(value)
 
   if (!Number.isFinite(number)) {
@@ -1221,7 +1250,7 @@ function toDateString(value?: Date | string): string | undefined {
 }
 
 /** Adds a defined query parameter without serializing undefined values. */
-function setQueryValue(
+export function setQueryValue(
   query: URLSearchParams,
   key: string,
   value?: boolean | number | string

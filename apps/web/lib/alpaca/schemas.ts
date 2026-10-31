@@ -37,6 +37,20 @@ export const alpacaQuantityModeSchema = z.enum(['qty', 'notional'])
 
 export const alpacaOrderSideSchema = z.enum(['buy', 'sell'])
 
+export const alpacaOrderClassSchema = z.enum([
+  'simple',
+  'bracket',
+  'oco',
+  'oto',
+])
+
+export const alpacaPositionIntentSchema = z.enum([
+  'buy_to_open',
+  'buy_to_close',
+  'sell_to_open',
+  'sell_to_close',
+])
+
 export const searchableAssetClassSchema = z.enum(['crypto', 'us_equity'])
 
 export const balanceIntervalSchema = z.enum([
@@ -184,19 +198,39 @@ export const orderFormValuesSchema = z
 export const createOrderRequestSchema = z
   .object({
     amount: positiveDecimalSchema,
-    assetClass: searchableAssetClassSchema,
+    assetClass: alpacaAssetClassSchema,
     clientOrderId: z.uuid().optional(),
+    extendedHours: z.boolean().default(false),
     fractionable: z.boolean(),
     limitPrice: optionalPositiveDecimalSchema.optional(),
+    orderClass: alpacaOrderClassSchema.default('simple'),
+    positionIntent: alpacaPositionIntentSchema.optional(),
     quantityMode: alpacaQuantityModeSchema,
     side: alpacaOrderSideSchema,
+    stopLossLimitPrice: optionalPositiveDecimalSchema.optional(),
+    stopLossStopPrice: optionalPositiveDecimalSchema.optional(),
     stopPrice: optionalPositiveDecimalSchema.optional(),
     symbol: z.string().trim().min(1).max(32),
+    takeProfitLimitPrice: optionalPositiveDecimalSchema.optional(),
     timeInForce: alpacaTimeInForceSchema,
     trailPercent: optionalPositiveDecimalSchema.optional(),
+    trailPrice: optionalPositiveDecimalSchema.optional(),
     type: alpacaOrderTypeSchema,
   })
   .superRefine(validateOrderValues)
+
+export const replaceOrderRequestSchema = z
+  .object({
+    limitPrice: optionalPositiveDecimalSchema.optional(),
+    quantity: optionalPositiveDecimalSchema.optional(),
+    stopPrice: optionalPositiveDecimalSchema.optional(),
+    timeInForce: alpacaTimeInForceSchema.optional(),
+    trail: optionalPositiveDecimalSchema.optional(),
+  })
+  .refine(
+    (values) => Object.values(values).some((value) => Boolean(value)),
+    'Change at least one field to replace the order.'
+  )
 
 export const alpacaOrderSchema = z
   .object({
@@ -226,9 +260,25 @@ export const orderStatusFilterSchema = z.enum(['all', 'closed', 'open'])
 
 export const sortDirectionSchema = z.enum(['asc', 'desc'])
 
+const alpacaOrderLegSchema = z.looseObject({
+  id: z.string(),
+  limit_price: z.string().nullable().optional(),
+  side: alpacaOrderSideSchema,
+  status: z.string(),
+  stop_price: z.string().nullable().optional(),
+  type: alpacaOrderTypeSchema,
+})
+
 export const alpacaAccountOrderSchema = alpacaOrderSchema.extend({
   asset_class: alpacaAssetClassSchema.optional(),
+  canceled_at: z.string().nullable().optional(),
   created_at: z.string().optional(),
+  extended_hours: z.boolean().optional(),
+  filled_at: z.string().nullable().optional(),
+  legs: z.array(alpacaOrderLegSchema).nullable().optional(),
+  order_class: z.string().optional(),
+  trail_percent: z.string().nullable().optional(),
+  trail_price: z.string().nullable().optional(),
   filled_avg_price: z.string().nullable().optional(),
   filled_qty: z.string().optional(),
   limit_price: z.string().nullable().optional(),
@@ -239,9 +289,25 @@ export const alpacaAccountOrderSchema = alpacaOrderSchema.extend({
 
 export const alpacaAccountOrdersSchema = z.array(alpacaAccountOrderSchema)
 
+export const orderLegSchema = z.object({
+  id: z.string(),
+  limitPrice: z.string().nullable().optional(),
+  side: alpacaOrderSideSchema,
+  status: z.string(),
+  stopPrice: z.string().nullable().optional(),
+  type: alpacaOrderTypeSchema,
+})
+
 export const accountOrderSchema = orderSchema.extend({
   assetClass: alpacaAssetClassSchema.optional(),
+  canceledAt: z.string().nullable().optional(),
   createdAt: z.string().optional(),
+  extendedHours: z.boolean().optional(),
+  filledAt: z.string().nullable().optional(),
+  legs: z.array(orderLegSchema).optional(),
+  orderClass: z.string().optional(),
+  trailPercent: z.string().nullable().optional(),
+  trailPrice: z.string().nullable().optional(),
   filledAveragePrice: z.string().nullable().optional(),
   filledQuantity: z.string().optional(),
   limitPrice: z.string().nullable().optional(),
@@ -272,6 +338,7 @@ export const alpacaAccountSchema = z
     crypto_status: z.string().optional(),
     currency: z.string(),
     daytrade_count: z.number().optional(),
+    daytrading_buying_power: z.string().optional(),
     equity: z.string(),
     id: z.string(),
     initial_margin: z.string(),
@@ -733,13 +800,18 @@ export const accountActivitiesQuerySchema = z
 
 interface OrderValidationValues {
   amount: string
-  assetClass?: z.infer<typeof searchableAssetClassSchema>
+  assetClass?: z.infer<typeof alpacaAssetClassSchema>
+  extendedHours?: boolean
   fractionable?: boolean
   limitPrice?: string
+  orderClass?: z.infer<typeof alpacaOrderClassSchema>
   quantityMode: z.infer<typeof alpacaQuantityModeSchema>
+  stopLossStopPrice?: string
   stopPrice?: string
+  takeProfitLimitPrice?: string
   timeInForce: z.infer<typeof alpacaTimeInForceSchema>
   trailPercent?: string
+  trailPrice?: string
   type: z.infer<typeof alpacaOrderTypeSchema>
 }
 
@@ -748,6 +820,10 @@ function validateOrderValues(
   values: OrderValidationValues,
   context: z.RefinementCtx
 ): void {
+  const orderClass = values.orderClass ?? 'simple'
+  const isFractional =
+    values.quantityMode === 'notional' || !isWholeDecimal(values.amount)
+
   if (
     (values.type === 'limit' || values.type === 'stop_limit') &&
     !values.limitPrice
@@ -770,10 +846,13 @@ function validateOrderValues(
     })
   }
 
-  if (values.type === 'trailing_stop' && !values.trailPercent) {
+  if (
+    values.type === 'trailing_stop' &&
+    !values.trailPercent === !values.trailPrice
+  ) {
     context.addIssue({
       code: 'custom',
-      message: 'Enter a trailing percentage.',
+      message: 'Enter either a trailing percent or a trailing price.',
       path: ['trailPercent'],
     })
   }
@@ -800,9 +879,35 @@ function validateOrderValues(
     })
   }
 
+  if (values.assetClass === 'us_option') {
+    if (isFractional) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Options trade in whole contracts.',
+        path: ['amount'],
+      })
+    }
+
+    if (values.timeInForce !== 'day') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Option orders must use DAY.',
+        path: ['timeInForce'],
+      })
+    }
+
+    if (values.type === 'trailing_stop') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Options do not support trailing stops.',
+        path: ['type'],
+      })
+    }
+  }
+
   if (
     values.assetClass === 'us_equity' &&
-    (values.quantityMode === 'notional' || !isWholeDecimal(values.amount)) &&
+    isFractional &&
     values.timeInForce !== 'day'
   ) {
     context.addIssue({
@@ -815,7 +920,7 @@ function validateOrderValues(
   if (
     values.assetClass === 'us_equity' &&
     values.fractionable === false &&
-    (values.quantityMode === 'notional' || !isWholeDecimal(values.amount))
+    isFractional
   ) {
     context.addIssue({
       code: 'custom',
@@ -832,6 +937,110 @@ function validateOrderValues(
       code: 'custom',
       message: 'This time in force only supports market or limit orders.',
       path: ['timeInForce'],
+    })
+  }
+
+  if (values.extendedHours) {
+    if (values.assetClass !== 'us_equity') {
+      context.addIssue({
+        code: 'custom',
+        message: 'Extended hours only apply to stocks.',
+        path: ['extendedHours'],
+      })
+    }
+
+    if (
+      values.type !== 'limit' ||
+      !['day', 'gtc'].includes(values.timeInForce)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Extended hours need a limit order with DAY or GTC.',
+        path: ['extendedHours'],
+      })
+    }
+  }
+
+  if (orderClass === 'simple') {
+    return
+  }
+
+  if (values.assetClass !== 'us_equity') {
+    context.addIssue({
+      code: 'custom',
+      message: 'Advanced order classes only apply to stocks.',
+      path: ['orderClass'],
+    })
+  }
+
+  if (isFractional) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Advanced order classes need a whole-share quantity.',
+      path: ['amount'],
+    })
+  }
+
+  if (!['day', 'gtc'].includes(values.timeInForce)) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Advanced order classes use DAY or GTC.',
+      path: ['timeInForce'],
+    })
+  }
+
+  if (orderClass === 'bracket') {
+    if (!['market', 'limit'].includes(values.type)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Bracket entries must be market or limit orders.',
+        path: ['type'],
+      })
+    }
+
+    if (!values.takeProfitLimitPrice) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Enter a take-profit price.',
+        path: ['takeProfitLimitPrice'],
+      })
+    }
+
+    if (!values.stopLossStopPrice) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Enter a stop-loss price.',
+        path: ['stopLossStopPrice'],
+      })
+    }
+  }
+
+  if (orderClass === 'oco') {
+    if (values.type !== 'limit') {
+      context.addIssue({
+        code: 'custom',
+        message: 'OCO orders use a limit order type.',
+        path: ['type'],
+      })
+    }
+
+    if (!values.takeProfitLimitPrice || !values.stopLossStopPrice) {
+      context.addIssue({
+        code: 'custom',
+        message: 'OCO orders need a take-profit and a stop-loss price.',
+        path: ['takeProfitLimitPrice'],
+      })
+    }
+  }
+
+  if (
+    orderClass === 'oto' &&
+    !values.takeProfitLimitPrice === !values.stopLossStopPrice
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'OTO orders need either a take-profit or a stop-loss price.',
+      path: ['takeProfitLimitPrice'],
     })
   }
 }
@@ -859,6 +1068,7 @@ export type AlpacaPortfolioHistory = z.infer<
   typeof alpacaPortfolioHistorySchema
 >
 export type AlpacaPosition = z.infer<typeof alpacaPositionSchema>
+export type AlpacaOrderClass = z.infer<typeof alpacaOrderClassSchema>
 export type AlpacaOrderType = z.infer<typeof alpacaOrderTypeSchema>
 export type AlpacaOrder = z.infer<typeof alpacaOrderSchema>
 export type AlpacaOrderSide = z.infer<typeof alpacaOrderSideSchema>
@@ -878,7 +1088,9 @@ export type BalanceChanges = z.infer<typeof balanceChangesSchema>
 export type BalanceChart = z.infer<typeof balanceChartSchema>
 export type BalanceInterval = z.infer<typeof balanceIntervalSchema>
 export type CurrentBalance = z.infer<typeof currentBalanceSchema>
-export type CreateOrderRequest = z.infer<typeof createOrderRequestSchema>
+export type CreateOrderRequest = z.input<typeof createOrderRequestSchema>
+export type ReplaceOrderRequest = z.infer<typeof replaceOrderRequestSchema>
+export type OrderLeg = z.infer<typeof orderLegSchema>
 export type GetBalanceChartOptions = z.infer<
   typeof getBalanceChartOptionsSchema
 >

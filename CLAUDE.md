@@ -1,5 +1,7 @@
 Always read [code-guidelines](.agents/skills/jralv-code-guidelines/SKILL.md) for every coding task, follow every instruction unless it contradicts the project specific instructions or the framework syntax.
 
+Read [DESIGN.md](DESIGN.md) before any UI work.
+
 When a task requires design work, read [design](.agents/skills/jralv-design/SKILL.md), follow every instruction unless it contradicts the project specific instructions or the framework syntax.
 
 Depending on the project, feature or task assigned, read the respective skill on this skill tree and follow the instructions unless it contradicts the project specific instructions or the framework syntax.

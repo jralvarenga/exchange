@@ -18,14 +18,9 @@ export function proxy(request: NextRequest): NextResponse {
     return NextResponse.next()
   }
 
+  // Auth pages validate the session themselves. Redirecting here on the cookie
+  // alone would loop with the dashboard when that cookie is stale.
   if (PUBLIC_PATHS.has(pathname)) {
-    if (
-      getSessionCookie(request) &&
-      (pathname === '/login' || pathname === '/sign-up')
-    ) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
     return NextResponse.next()
   }
 

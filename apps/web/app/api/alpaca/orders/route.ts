@@ -7,6 +7,7 @@ import {
   createOrderRequestSchema,
   ordersAndPositionsQuerySchema,
 } from '@/lib/alpaca/schemas'
+import { cancelAllOrders } from '@/lib/alpaca/trading'
 
 /** Returns crypto and equity orders together with all open positions. */
 export async function GET(request: Request): Promise<Response> {
@@ -43,6 +44,16 @@ export async function POST(request: Request): Promise<Response> {
   return createApiResponse(
     async function submitAlpacaOrder({ alpaca }) {
       return createOrder({ ...order.data, ...alpaca })
+    },
+    { exposeAlpacaMessage: true }
+  )
+}
+
+/** Cancels every open order on the active account. */
+export async function DELETE(): Promise<Response> {
+  return createApiResponse(
+    async function cancelOpenOrders({ alpaca }) {
+      return cancelAllOrders(alpaca)
     },
     { exposeAlpacaMessage: true }
   )

@@ -60,3 +60,67 @@ export function getOrdersAndPositionsQueryKey(
 ) {
   return [...ordersAndPositionsQueryKey, options] as const
 }
+
+export const accountOverviewQueryKey = [
+  'alpaca',
+  'account',
+  'overview',
+] as const
+export const accountConfigurationsQueryKey = [
+  'alpaca',
+  'account',
+  'configurations',
+] as const
+export const marketClockQueryKey = ['alpaca', 'market', 'clock'] as const
+export const marketMoversQueryKey = ['alpaca', 'market', 'movers'] as const
+export const watchlistsQueryKey = ['alpaca', 'watchlists'] as const
+
+/** Returns the cache key for market news, optionally scoped to symbols. */
+export function getNewsQueryKey(symbols: string[] = []) {
+  return ['alpaca', 'market', 'news', symbols.join(',')] as const
+}
+
+/** Returns the cache key for one symbol's latest quote and trade. */
+export function getMarketSnapshotQueryKey(symbol: string) {
+  return ['alpaca', 'market', 'snapshot', symbol] as const
+}
+
+/** Returns the cache key for one symbol's recent trades. */
+export function getRecentTradesQueryKey(symbol: string) {
+  return ['alpaca', 'market', 'trades', symbol] as const
+}
+
+/** Returns the cache key for one crypto pair's order book. */
+export function getOrderbookQueryKey(symbol: string) {
+  return ['alpaca', 'market', 'orderbook', symbol] as const
+}
+
+/** Returns the cache key for market calendar days in a range. */
+export function getMarketCalendarQueryKey(start: string, end: string) {
+  return ['alpaca', 'market', 'calendar', start, end] as const
+}
+
+/** Returns the cache key for one underlying's option chain. */
+export function getOptionChainQueryKey(underlying: string, expiration = '') {
+  return ['alpaca', 'options', 'chain', underlying, expiration] as const
+}
+
+/** Returns the cache key for corporate actions, optionally for one symbol. */
+export function getCorporateActionsQueryKey(symbol = '') {
+  return ['alpaca', 'corporate-actions', symbol] as const
+}
+
+/** Keys that change whenever an order is placed, replaced, canceled, or a position closes. */
+export const tradingQueryKeys = [
+  accountActivitiesQueryKey,
+  accountOverviewQueryKey,
+  balanceQueryKey,
+  ordersAndPositionsQueryKey,
+  portfolioQueryKey,
+  ['alpaca', 'assets', 'detail'],
+] as const
+
+/** Returns the cache key for the latest quotes of many symbols. */
+export function getMarketSnapshotsQueryKey(symbols: string[]) {
+  return ['alpaca', 'market', 'snapshots', symbols.join(',')] as const
+}
