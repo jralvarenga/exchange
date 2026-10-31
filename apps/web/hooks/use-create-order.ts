@@ -5,18 +5,13 @@ import {
 } from '@tanstack/react-query'
 
 import {
-  accountActivitiesQueryKey,
-  balanceQueryKey,
-  ordersAndPositionsQueryKey,
-  portfolioQueryKey,
-} from '@/lib/alpaca/query-keys'
-import {
   type CreateOrderRequest,
   createOrderRequestSchema,
   type Order,
   orderSchema,
 } from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
+import { invalidateTradingQueries } from '@/lib/api/invalidate-trading'
 import { getApiUrl } from '@/lib/utils'
 
 /** Sends a validated Alpaca order without automatic transaction retries. */
@@ -30,14 +25,7 @@ export function useCreateOrder(): UseMutationResult<
   return useMutation({
     mutationFn: submitOrder,
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: accountActivitiesQueryKey }),
-        queryClient.invalidateQueries({ queryKey: balanceQueryKey }),
-        queryClient.invalidateQueries({
-          queryKey: ordersAndPositionsQueryKey,
-        }),
-        queryClient.invalidateQueries({ queryKey: portfolioQueryKey }),
-      ])
+      await invalidateTradingQueries(queryClient)
     },
     retry: false,
   })

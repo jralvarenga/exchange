@@ -1,13 +1,16 @@
 import type {
+  AlpacaOrderClass,
   AlpacaOrderType,
   AlpacaQuantityMode,
   AlpacaTimeInForce,
-  AssetSearchResult,
 } from '@/lib/alpaca/schemas'
+
+type OrderAssetClass = 'crypto' | 'us_equity' | 'us_option'
 
 interface GetAllowedTimesInForceOptions {
   amount: string
-  assetClass?: AssetSearchResult['assetClass']
+  assetClass?: OrderAssetClass
+  orderClass?: AlpacaOrderClass
   quantityMode: AlpacaQuantityMode
   type: AlpacaOrderType
 }
@@ -18,6 +21,7 @@ interface GetCompatibleOrderSettingsOptions
 }
 
 interface CompatibleOrderSettings {
+  orderClass: AlpacaOrderClass
   timeInForce: AlpacaTimeInForce
   type: AlpacaOrderType
 }
@@ -28,6 +32,12 @@ const equityOrderTypes: AlpacaOrderType[] = [
   'stop',
   'stop_limit',
   'trailing_stop',
+]
+const optionOrderTypes: AlpacaOrderType[] = [
+  'market',
+  'limit',
+  'stop',
+  'stop_limit',
 ]
 const cryptoOrderTypes: AlpacaOrderType[] = ['market', 'limit', 'stop_limit']
 const equityTimesInForce: AlpacaTimeInForce[] = [
@@ -40,15 +50,37 @@ const equityTimesInForce: AlpacaTimeInForce[] = [
 ]
 const cryptoTimesInForce: AlpacaTimeInForce[] = ['gtc', 'ioc']
 
-/** Returns the order types Alpaca accepts for the selected asset class. */
+/** Returns the order types Alpaca accepts for an asset class and order class. */
 export function getAllowedOrderTypes(
-  assetClass?: AssetSearchResult['assetClass']
+  assetClass: OrderAssetClass = 'us_equity',
+  orderClass: AlpacaOrderClass = 'simple'
 ): AlpacaOrderType[] {
   if (assetClass === 'crypto') {
     return cryptoOrderTypes
   }
 
+  if (assetClass === 'us_option') {
+    return optionOrderTypes
+  }
+
+  if (orderClass === 'bracket') {
+    return ['market', 'limit']
+  }
+
+  if (orderClass === 'oco') {
+    return ['limit']
+  }
+
   return equityOrderTypes
+}
+
+/** Returns the order classes Alpaca accepts for an asset class. */
+export function getAllowedOrderClasses(
+  assetClass: OrderAssetClass = 'us_equity'
+): AlpacaOrderClass[] {
+  return assetClass === 'us_equity'
+    ? ['simple', 'bracket', 'oco', 'oto']
+    : ['simple']
 }
 
 /** Returns the time-in-force values Alpaca accepts for these order settings. */
@@ -63,6 +95,10 @@ export function getAllowedTimesInForce(
     return ['gtc']
   }
 
+  if (options.assetClass === 'us_option') {
+    return ['day']
+  }
+
   if (
     options.assetClass === 'us_equity' &&
     isFractionalQuantity(options.amount, options.quantityMode)
@@ -70,35 +106,46 @@ export function getAllowedTimesInForce(
     return ['day']
   }
 
+  if (options.orderClass && options.orderClass !== 'simple') {
+    return ['day', 'gtc']
+  }
+
+  if (options.type !== 'market' && options.type !== 'limit') {
+    return ['day', 'gtc']
+  }
+
   return equityTimesInForce
 }
 
-/** Returns type and time-in-force values that Alpaca will accept together. */
+/** Returns order class, type, and time-in-force values Alpaca will accept together. */
 export function getCompatibleOrderSettings(
   options: GetCompatibleOrderSettingsOptions
 ): CompatibleOrderSettings {
-  const allowedTypes = getAllowedOrderTypes(options.assetClass)
+  const fractional = isFractionalQuantity(options.amount, options.quantityMode)
+  const allowedClasses = getAllowedOrderClasses(options.assetClass)
+  const requestedClass = fractional ? 'simple' : options.orderClass
+  const orderClass =
+    requestedClass && allowedClasses.includes(requestedClass)
+      ? requestedClass
+      : 'simple'
+  const allowedTypes = getAllowedOrderTypes(options.assetClass, orderClass)
   const type = allowedTypes.includes(options.type)
     ? options.type
     : (allowedTypes[0] ?? 'market')
   const allowedTimesInForce = getAllowedTimesInForce({
-    amount: options.amount,
-    assetClass: options.assetClass,
-    quantityMode: options.quantityMode,
+    ...options,
+    orderClass,
     type,
   })
   const timeInForce = allowedTimesInForce.includes(options.timeInForce)
     ? options.timeInForce
-    : (allowedTimesInForce[0] ?? 'gtc')
+    : (allowedTimesInForce[0] ?? 'day')
 
-  return {
-    timeInForce,
-    type,
-  }
+  return { orderClass, timeInForce, type }
 }
 
-/** Returns whether the quantity must be treated as a fractional equity order. */
-function isFractionalQuantity(
+/** Returns whether the quantity must be treated as a fractional order. */
+export function isFractionalQuantity(
   amount: string,
   quantityMode: AlpacaQuantityMode
 ): boolean {
