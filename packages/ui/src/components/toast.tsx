@@ -10,7 +10,7 @@ import {
   XIcon,
 } from '@phosphor-icons/react'
 import { Button } from '@workspace/ui/components/button'
-import { cn } from '@workspace/ui/lib/utils'
+import { cn } from 'cn'
 import type * as React from 'react'
 
 const toast = ToastPrimitive.createToastManager()

@@ -1,27 +1,40 @@
-import { Dices } from 'lucide-react'
-import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { Button } from '@workspace/ui/components/button'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@workspace/ui/components/input-group'
+import { Search, ShoppingBasket } from 'lucide-react'
 
-import { BuyDialog } from '@/components/buy/buy-dialog'
+import { UserNav } from '@/components/user-nav'
+import type { ShellUser } from '@/lib/navigation'
 
 interface Props {
-  assetIdentifier?: string
-  search: ReactNode
+  user: ShellUser
 }
 
-/** Displays the logo, market search, and account purchase action. */
-export function Navbar({ assetIdentifier, search }: Props) {
+/** Floats the search input and user nav over the page, leaving the rest of it clickable. */
+export function Navbar({ user }: Props) {
   return (
-    <header className="flex h-20 shrink-0 items-center gap-3 px-4 sm:gap-4 sm:px-6 md:h-24 md:px-4 md:pr-5">
-      <Link
-        href="/"
-        aria-label="Exchange home"
-        className="flex size-12 shrink-0 items-center justify-center rounded-full text-primary outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring md:hidden"
-      >
-        <Dices aria-hidden="true" className="size-7" strokeWidth={2.5} />
-      </Link>
-      <search className="min-w-0 flex-1 sm:max-w-80">{search}</search>
-      <BuyDialog assetIdentifier={assetIdentifier} />
+    <header className="pointer-events-none fixed inset-x-4 top-3 z-40 flex h-16 items-center justify-between gap-2 sm:inset-x-6">
+      <search className="pointer-events-auto min-w-0 flex-1 sm:max-w-80">
+        <InputGroup>
+          <InputGroupInput aria-label="Search" placeholder="Search…" />
+          <InputGroupAddon>
+            <Search aria-hidden="true" />
+          </InputGroupAddon>
+        </InputGroup>
+      </search>
+      <div className="pointer-events-auto flex items-center gap-2">
+        <Button>
+          <ShoppingBasket />
+          Buy / Sell
+        </Button>
+
+        <div className="shrink-0">
+          <UserNav user={user} />
+        </div>
+      </div>
     </header>
   )
 }
