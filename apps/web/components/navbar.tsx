@@ -1,13 +1,13 @@
+import { Button } from '@workspace/ui/components/button'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { Search, ShoppingBag, ShoppingBasket } from 'lucide-react'
+import { Search, ShoppingBasket } from 'lucide-react'
 
 import { UserNav } from '@/components/user-nav'
 import type { ShellUser } from '@/lib/navigation'
-import { Button } from '@workspace/ui/components/button'
 
 interface Props {
   user: ShellUser
@@ -25,7 +25,7 @@ export function Navbar({ user }: Props) {
           </InputGroupAddon>
         </InputGroup>
       </search>
-      <div className='flex items-center gap-2'>
+      <div className="flex items-center gap-2">
         <Button>
           <ShoppingBasket />
           Buy / Sell
