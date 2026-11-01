@@ -50,6 +50,11 @@ interface GetCurrencyFormatterOptions {
   signed?: boolean
 }
 
+interface GetInitialsOptions {
+  email: string
+  name: string
+}
+
 const signedPercentFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
   minimumFractionDigits: 2,
@@ -87,6 +92,18 @@ function getCurrencyFormatter(
 
   currencyFormatters.set(key, formatter)
   return formatter
+}
+
+/** Returns up to two uppercase initials from a name, falling back to the email. */
+export function getInitials(options: GetInitialsOptions): string {
+  const initials = options.name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word.charAt(0))
+    .join('')
+
+  return (initials || options.email.charAt(0)).toUpperCase()
 }
 
 /** Formats a numeric amount as localized currency. */

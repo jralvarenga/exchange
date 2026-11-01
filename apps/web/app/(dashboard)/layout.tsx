@@ -1,3 +1,4 @@
+import { AppShell } from '@/components/app-shell'
 import { CredentialsGate } from '@/components/credentials/credentials-gate'
 import {
   listMaskedCredentials,
@@ -20,13 +21,15 @@ export default async function DashboardLayout({ children }: Props) {
   const ready = active?.status === 'valid'
 
   return (
-    <CredentialsGate
-      credentialVersion={`${environment}:${active?.status}:${active?.lastVerifiedAt}`}
-      environment={environment}
-      hasCredential={Boolean(active)}
-      ready={ready}
-    >
-      {children}
-    </CredentialsGate>
+    <AppShell user={{ email: session.user.email, name: session.user.name }}>
+      <CredentialsGate
+        credentialVersion={`${environment}:${active?.status}:${active?.lastVerifiedAt}`}
+        environment={environment}
+        hasCredential={Boolean(active)}
+        ready={ready}
+      >
+        {children}
+      </CredentialsGate>
+    </AppShell>
   )
 }

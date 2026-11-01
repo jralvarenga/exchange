@@ -76,7 +76,7 @@ export default function AssetDetail() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-1">
+    <div className="grid flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(28rem,1fr)] gap-3 pb-1">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Card className="min-h-64 justify-center">
           <CardContent>
@@ -89,7 +89,7 @@ export default function AssetDetail() {
         />
       </div>
 
-      <Card className="min-h-[28rem] flex-1">
+      <Card>
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Price history</CardTitle>

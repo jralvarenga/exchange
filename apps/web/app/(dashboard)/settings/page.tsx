@@ -17,7 +17,7 @@ export default async function SettingsPage() {
   ])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-8 overflow-y-auto">
+    <div className="flex flex-1 flex-col gap-8">
       <h1 className="font-bold text-xl">Settings</h1>
       <section
         aria-labelledby="alpaca-keys-title"

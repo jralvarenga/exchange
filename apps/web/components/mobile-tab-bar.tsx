@@ -4,19 +4,18 @@ import { cn } from '@workspace/ui/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-import { SignOutButton } from '@/components/sign-out-button'
 import { isNavItemActive, navItems } from '@/lib/navigation'
 
-/** Adapts the desktop navigation capsule into a mobile bottom tab bar. */
+/** Adapts the desktop navigation capsule into a mobile bottom tab bar that fades the page out behind it. */
 export function MobileTabBar() {
   const pathname = usePathname()
 
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-linear-to-t from-background via-background/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:hidden"
     >
-      <ul className="mx-auto flex w-fit items-center gap-2 rounded-full bg-card p-2 shadow-2xl ring-1 ring-border">
+      <ul className="surface-floating pointer-events-auto mx-auto flex w-fit items-center gap-2 rounded-full p-2">
         {navItems.map((item) => {
           const isActive = isNavItemActive({
             href: item.href,
@@ -40,14 +39,6 @@ export function MobileTabBar() {
             </li>
           )
         })}
-        <li>
-          <SignOutButton
-            className={cn(
-              'flex size-12 touch-manipulation items-center justify-center rounded-full text-muted-foreground outline-none transition-colors',
-              'focus-visible:ring-3 focus-visible:ring-ring active:bg-muted'
-            )}
-          />
-        </li>
       </ul>
     </nav>
   )

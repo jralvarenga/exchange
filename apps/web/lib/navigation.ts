@@ -7,6 +7,11 @@ export type NavItem = {
   title: string
 }
 
+export type ShellUser = {
+  email: string
+  name: string
+}
+
 export const navItems: NavItem[] = [
   {
     href: '/',

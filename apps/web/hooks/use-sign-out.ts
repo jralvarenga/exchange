@@ -1,20 +1,20 @@
 'use client'
 
 import { authClient } from '@workspace/auth/client'
-import { LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-interface Props {
-  className?: string
+interface UseSignOutResult {
+  pending: boolean
+  signOut: () => Promise<void>
 }
 
 /** Ends the Better Auth session and returns to the login page. */
-export function SignOutButton({ className }: Props) {
+export function useSignOut(): UseSignOutResult {
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
-  async function handleSignOut(): Promise<void> {
+  async function signOut(): Promise<void> {
     setPending(true)
 
     try {
@@ -32,18 +32,5 @@ export function SignOutButton({ className }: Props) {
     }
   }
 
-  return (
-    <button
-      type="button"
-      aria-label="Sign out"
-      title="Sign out"
-      disabled={pending}
-      className={className}
-      onClick={() => {
-        void handleSignOut()
-      }}
-    >
-      <LogOut aria-hidden="true" className="size-5" />
-    </button>
-  )
+  return { pending, signOut }
 }
