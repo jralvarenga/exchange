@@ -25,13 +25,13 @@ export function Navbar({ user }: Props) {
           </InputGroupAddon>
         </InputGroup>
       </search>
-      <div className="flex items-center gap-2">
+      <div className="pointer-events-auto flex items-center gap-2">
         <Button>
           <ShoppingBasket />
           Buy / Sell
         </Button>
 
-        <div className="pointer-events-auto shrink-0">
+        <div className="shrink-0">
           <UserNav user={user} />
         </div>
       </div>
