@@ -1,7 +1,10 @@
 import type { UseSuspenseQueryResult } from '@tanstack/react-query'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { getBalanceChangeQueryKey } from '@/lib/alpaca/query-keys'
+import {
+  balanceRefreshInterval,
+  getBalanceChangeQueryKey,
+} from '@/lib/alpaca/query-keys'
 import type { BalanceChange, BalanceInterval } from '@/lib/alpaca/schemas'
 import { balanceChangeSchema } from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
@@ -38,6 +41,6 @@ export function useBalanceChange(
   return useSuspenseQuery({
     queryFn: () => fetchBalanceChange(options),
     queryKey: getBalanceChangeQueryKey(options.interval),
-    refetchInterval: 30_000,
+    refetchInterval: balanceRefreshInterval,
   })
 }

@@ -1,7 +1,10 @@
 import type { UseSuspenseQueryResult } from '@tanstack/react-query'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { getBalanceHistoryQueryKey } from '@/lib/alpaca/query-keys'
+import {
+  balanceRefreshInterval,
+  getBalanceHistoryQueryKey,
+} from '@/lib/alpaca/query-keys'
 import type { BalanceChart, BalanceInterval } from '@/lib/alpaca/schemas'
 import { balanceChartSchema } from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
@@ -38,6 +41,6 @@ export function useBalanceHistory(
   return useSuspenseQuery({
     queryFn: () => fetchBalanceHistory(options),
     queryKey: getBalanceHistoryQueryKey(options.interval),
-    refetchInterval: 30_000,
+    refetchInterval: balanceRefreshInterval,
   })
 }

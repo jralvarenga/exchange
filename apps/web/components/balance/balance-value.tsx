@@ -1,9 +1,12 @@
 'use client'
 
-import { useBalance } from '@/hooks/use-balance'
-import { formatCurrencyParts } from '@/lib/utils'
+import { cn } from '@workspace/ui/lib/utils'
+import { TextMorph } from 'torph/react'
 
-/** Renders the current account equity as a large currency figure. */
+import { useBalance } from '@/hooks/use-balance'
+import { formatCurrencyParts, revealClassName } from '@/lib/utils'
+
+/** Renders the current account equity as the page's display figure. */
 export function BalanceValue() {
   const { data } = useBalance()
   const equityParts = formatCurrencyParts({
@@ -13,15 +16,20 @@ export function BalanceValue() {
 
   return (
     <p
-      aria-live="polite"
-      className="flex items-baseline gap-1.5 font-mono tabular-nums"
+      className={cn('flex items-baseline gap-2 tabular-nums', revealClassName)}
     >
-      <span className="text-2xl text-primary-foreground/80 md:text-3xl">
+      <span className="font-medium text-3xl text-muted-foreground md:text-5xl">
         {equityParts.symbol}
       </span>
-      <span className="font-bold text-4xl tracking-tight md:text-5xl">
+      <TextMorph
+        as="span"
+        className="font-bold text-6xl text-foreground tracking-tighter md:text-8xl"
+        duration={700}
+        ease="cubic-bezier(0.19, 1, 0.22, 1)"
+        locale="en-US"
+      >
         {equityParts.amount}
-      </span>
+      </TextMorph>
     </p>
   )
 }

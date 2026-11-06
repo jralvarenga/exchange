@@ -1,7 +1,10 @@
 import type { UseSuspenseQueryResult } from '@tanstack/react-query'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
-import { balanceQueryKey } from '@/lib/alpaca/query-keys'
+import {
+  balanceQueryKey,
+  balanceRefreshInterval,
+} from '@/lib/alpaca/query-keys'
 import type { CurrentBalance } from '@/lib/alpaca/schemas'
 import { currentBalanceSchema } from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
@@ -21,11 +24,11 @@ async function fetchBalance(): Promise<CurrentBalance> {
   )
 }
 
-/** Suspends while loading the balance and refreshes it every 30 seconds. */
+/** Suspends while loading the balance and refreshes it every three minutes. */
 export function useBalance(): UseSuspenseQueryResult<CurrentBalance, Error> {
   return useSuspenseQuery({
     queryFn: fetchBalance,
     queryKey: balanceQueryKey,
-    refetchInterval: 30_000,
+    refetchInterval: balanceRefreshInterval,
   })
 }
