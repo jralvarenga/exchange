@@ -9,26 +9,15 @@ import { ActivityCard } from '@/components/activity/activity-card'
 import { Balance } from '@/components/balance/balance'
 import { Balances } from '@/components/balance/balances'
 
-/** Renders the initial shell landing surface. */
+/** Renders the portfolio home: live balance, equity chart, and account detail. */
 export default function Home() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:h-full md:grid-cols-3 md:grid-rows-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section
-          aria-labelledby="balance-title"
-          className="col-span-2 flex min-h-48 flex-col overflow-hidden rounded-[2rem] bg-primary text-primary-foreground md:h-full md:min-h-0"
-        >
-          <h2 id="balance-title" className="sr-only">
-            Balance
-          </h2>
-          <Balance />
-        </section>
-
-        <ActivityCard className="row-span-2 md:h-full md:min-h-0" />
-
+    <div className="flex flex-1 flex-col gap-8">
+      <Balance />
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:pl-24">
         <Card
           aria-labelledby="balances-title"
-          className="col-span-2"
+          className="md:col-span-2 md:self-start"
           role="region"
         >
           <CardHeader>
@@ -38,6 +27,7 @@ export default function Home() {
             <Balances />
           </CardContent>
         </Card>
+        <ActivityCard className="md:max-h-[32rem]" />
       </div>
     </div>
   )

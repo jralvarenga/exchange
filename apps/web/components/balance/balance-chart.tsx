@@ -29,12 +29,11 @@ interface EquityDomainOptions {
   equities: number[]
 }
 
-const chartConfig = {
-  equity: {
-    color: 'var(--primary-foreground)',
-    label: 'Balance',
-  },
-} satisfies ChartConfig
+interface LastPointDotProps {
+  cx?: number
+  cy?: number
+  index?: number
+}
 
 const balanceFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
@@ -46,6 +45,10 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   timeStyle: 'short',
 })
 
+/** Fades the full-bleed chart into the page at both horizontal edges. */
+const edgeFade =
+  'linear-gradient(to right, transparent, black 8%, black 92%, transparent)'
+
 /** Drops incomplete history points so the chart only plots known equity. */
 function toChartPoints(points: BalanceHistory['points']): ChartPoint[] {
   return points.flatMap((point) =>
@@ -55,18 +58,18 @@ function toChartPoints(points: BalanceHistory['points']): ChartPoint[] {
   )
 }
 
-/** Pads the equity domain so the line does not hug the chart edges. */
+/** Pads the equity domain so the line floats above a deep gradient. */
 function getEquityDomain(options: EquityDomainOptions): [number, number] {
   const minimumEquity = Math.min(...options.equities)
   const maximumEquity = Math.max(...options.equities)
   const equityRange = maximumEquity - minimumEquity
-  const domainPadding =
-    equityRange === 0 ? Math.max(maximumEquity * 0.001, 1) : equityRange * 0.12
+  const range =
+    equityRange === 0 ? Math.max(maximumEquity * 0.001, 1) : equityRange
 
-  return [minimumEquity - domainPadding, maximumEquity + domainPadding]
+  return [minimumEquity - range * 0.45, maximumEquity + range * 0.12]
 }
 
-/** Displays an axis-free, full-width line of historical account equity. */
+/** Displays a full-bleed equity line whose gradient melts into the page. */
 export function BalanceChart({ interval }: Props) {
   const rawId = useId()
   const gradientId = `balance-fill-${rawId.replace(/:/g, '')}`
@@ -77,32 +80,83 @@ export function BalanceChart({ interval }: Props) {
     return <BalanceChartEmpty interval={interval} />
   }
 
+  const firstEquity = chartData[0]?.equity ?? 0
+  const lastEquity = chartData.at(-1)?.equity ?? 0
+  const lastIndex = chartData.length - 1
+  const chartConfig = {
+    equity: {
+      color:
+        lastEquity < firstEquity ? 'var(--market-down)' : 'var(--market-up)',
+      label: 'Balance',
+    },
+  } satisfies ChartConfig
   const equityDomain = getEquityDomain({
     equities: chartData.map((point) => point.equity),
   })
 
+  /** Marks the latest point with a live pulse; other points stay bare. */
+  function renderLastPointDot({ cx, cy, index }: LastPointDotProps) {
+    if (index !== lastIndex || cx === undefined || cy === undefined) {
+      return <g key={`dot-${index}`} />
+    }
+
+    return (
+      <g key="dot-last">
+        <circle
+          className="origin-center animate-ping [transform-box:fill-box] motion-reduce:hidden"
+          cx={cx}
+          cy={cy}
+          fill="var(--color-equity)"
+          opacity={0.4}
+          r={8}
+        />
+        <circle
+          cx={cx}
+          cy={cy}
+          fill="var(--color-equity)"
+          r={4}
+          stroke="var(--background)"
+          strokeWidth={2}
+        />
+      </g>
+    )
+  }
+
   return (
     <ChartContainer
       aria-label={`Balance history for ${interval}`}
-      className="[&_.recharts-responsive-container]:!size-full aspect-auto h-full min-h-48 w-full justify-stretch"
+      className="[&_.recharts-responsive-container]:!size-full fade-in aspect-auto size-full animate-in justify-stretch blur-in-sm duration-1000 ease-out motion-reduce:animate-none"
       config={chartConfig}
+      style={{ WebkitMaskImage: edgeFade, maskImage: edgeFade }}
     >
       <AreaChart
         accessibilityLayer
         data={chartData}
-        margin={{ bottom: 0, left: 0, right: 0, top: 0 }}
+        margin={{ bottom: 0, left: 0, right: 12, top: 12 }}
       >
+        <defs>
+          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+            <stop
+              offset="0%"
+              stopColor="var(--color-equity)"
+              stopOpacity={0.32}
+            />
+            <stop
+              offset="55%"
+              stopColor="var(--color-equity)"
+              stopOpacity={0.08}
+            />
+            <stop offset="100%" stopColor="var(--background)" stopOpacity={0} />
+          </linearGradient>
+        </defs>
         <YAxis dataKey="equity" domain={equityDomain} hide width={0} />
         <ChartTooltip
           content={
             <ChartTooltipContent
               formatter={(value) => (
-                <div className="flex w-full items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Balance</span>
-                  <span className="font-medium font-mono text-foreground tabular-nums">
-                    {balanceFormatter.format(Number(value))}
-                  </span>
-                </div>
+                <span className="font-medium text-foreground tabular-nums">
+                  {balanceFormatter.format(Number(value))}
+                </span>
               )}
               hideIndicator
               labelFormatter={(_label, payload) => {
@@ -114,17 +168,25 @@ export function BalanceChart({ interval }: Props) {
               }}
             />
           }
-          cursor={false}
+          cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
         />
         <Area
+          activeDot={{
+            fill: 'var(--color-equity)',
+            r: 5,
+            stroke: 'var(--background)',
+            strokeWidth: 2,
+          }}
+          animationDuration={900}
           baseValue={equityDomain[0]}
           dataKey="equity"
+          dot={renderLastPointDot}
           fill={`url(#${gradientId})`}
           fillOpacity={1}
           stroke="var(--color-equity)"
           strokeLinecap="round"
           strokeLinejoin="round"
-          strokeWidth={2}
+          strokeWidth={2.5}
           type="monotone"
         />
       </AreaChart>

@@ -32,6 +32,9 @@ export function getAssetHistoryQueryKey(
 
 export const initialBalanceInterval = '1M' satisfies BalanceInterval
 
+/** How often the balance, its change, and its history refresh, in milliseconds. */
+export const balanceRefreshInterval = 180_000
+
 /** Returns the cache key for an Alpaca asset search. */
 export function getAssetSearchQueryKey(query: string) {
   return ['alpaca', 'assets', 'search', query] as const
