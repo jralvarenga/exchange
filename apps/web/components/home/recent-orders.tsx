@@ -1,5 +1,6 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { AssetListFallback } from '@/components/asset-list-fallback'
@@ -8,6 +9,8 @@ import { ClientSuspense } from '@/components/client-suspense'
 import { RecentOrdersList } from '@/components/home/recent-orders-list'
 import { PillGroup, type PillOption } from '@/components/pill-group'
 import { SectionHeader } from '@/components/section-header'
+import { SectionUnavailable } from '@/components/section-unavailable'
+import { ordersAndPositionsQueryKey } from '@/lib/alpaca/query-keys'
 import type { OrderStatusFilter } from '@/lib/orders/status'
 
 const statusOptions: PillOption<OrderStatusFilter>[] = [
@@ -20,6 +23,14 @@ const statusOptions: PillOption<OrderStatusFilter>[] = [
 /** Shows the latest orders with a status filter and inline cancel. */
 export function RecentOrders() {
   const [filter, setFilter] = useState<OrderStatusFilter>('all')
+  const [retryKey, setRetryKey] = useState(0)
+  const queryClient = useQueryClient()
+
+  /** Clears a failed orders query so the section can load again. */
+  async function retryOrders(): Promise<void> {
+    await queryClient.resetQueries({ queryKey: ordersAndPositionsQueryKey })
+    setRetryKey((key) => key + 1)
+  }
 
   return (
     <section
@@ -40,10 +51,12 @@ export function RecentOrders() {
       </SectionHeader>
       <BalanceErrorBoundary
         fallback={
-          <p className="py-8 font-medium text-muted-foreground">
-            Orders unavailable
-          </p>
+          <SectionUnavailable
+            label="Orders unavailable."
+            onRetry={retryOrders}
+          />
         }
+        resetKey={`${filter}:${String(retryKey)}`}
       >
         <ClientSuspense fallback={<AssetListFallback label="Loading orders" />}>
           <RecentOrdersList filter={filter} />

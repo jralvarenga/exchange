@@ -27,19 +27,23 @@ export function CancelOrderDialog({ order }: Props) {
   const side = order.side === 'buy' ? 'buy' : 'sell'
 
   /** Cancels the order and closes the dialog once Alpaca accepts it. */
-  function handleConfirm(): void {
-    cancelOrder.mutate(order.id, {
-      onError: (error) => {
-        showErrorToast({ description: error.message, title: 'Not canceled' })
-      },
-      onSuccess: () => {
-        setOpen(false)
-        showSuccessToast({
-          description: `${order.symbol} ${side} order canceled.`,
-          title: 'Order canceled',
-        })
-      },
-    })
+  async function handleConfirm(): Promise<void> {
+    try {
+      await cancelOrder.mutateAsync(order.id)
+      setOpen(false)
+      showSuccessToast({
+        description: `${order.symbol} ${side} order canceled.`,
+        title: 'Order canceled',
+      })
+    } catch (error) {
+      showErrorToast({
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Unable to cancel the order.',
+        title: 'Not canceled',
+      })
+    }
   }
 
   return (

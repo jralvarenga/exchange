@@ -6,7 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@workspace/ui/components/chart'
-import { useId } from 'react'
+import { type CSSProperties, useId } from 'react'
 import { Area, AreaChart, YAxis } from 'recharts'
 
 import { BalanceChartEmpty } from '@/components/balance/balance-chart-empty'
@@ -35,6 +35,11 @@ interface LastPointDotProps {
   index?: number
 }
 
+interface ChartLineColorOptions {
+  firstEquity: number
+  lastEquity: number
+}
+
 const balanceFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
   style: 'currency',
@@ -56,6 +61,19 @@ function toChartPoints(points: BalanceHistory['points']): ChartPoint[] {
       ? []
       : [{ equity: point.equity, timestamp: point.timestamp }]
   )
+}
+
+/** Picks the equity line color from the period's direction. */
+function getChartLineColor(options: ChartLineColorOptions): string {
+  if (options.lastEquity > options.firstEquity) {
+    return 'var(--market-up)'
+  }
+
+  if (options.lastEquity < options.firstEquity) {
+    return 'var(--market-down)'
+  }
+
+  return 'var(--foreground)'
 }
 
 /** Pads the equity domain so the line floats above a deep gradient. */
@@ -85,8 +103,7 @@ export function BalanceChart({ interval }: Props) {
   const lastIndex = chartData.length - 1
   const chartConfig = {
     equity: {
-      color:
-        lastEquity < firstEquity ? 'var(--market-down)' : 'var(--market-up)',
+      color: getChartLineColor({ firstEquity, lastEquity }),
       label: 'Balance',
     },
   } satisfies ChartConfig
@@ -125,9 +142,13 @@ export function BalanceChart({ interval }: Props) {
   return (
     <ChartContainer
       aria-label={`Balance history for ${interval}`}
-      className="[&_.recharts-responsive-container]:!size-full fade-in aspect-auto size-full animate-in justify-stretch blur-in-sm duration-1000 ease-out motion-reduce:animate-none"
+      className="[&_.recharts-responsive-container]:!size-full fade-in aspect-auto size-full animate-in justify-stretch blur-in-sm duration-1000 ease-out motion-reduce:animate-none [&_.recharts-surface]:[-webkit-mask-image:var(--balance-chart-edge-fade)] [&_.recharts-surface]:[mask-image:var(--balance-chart-edge-fade)]"
       config={chartConfig}
-      style={{ WebkitMaskImage: edgeFade, maskImage: edgeFade }}
+      style={
+        {
+          '--balance-chart-edge-fade': edgeFade,
+        } as CSSProperties
+      }
     >
       <AreaChart
         accessibilityLayer

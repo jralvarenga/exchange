@@ -27,7 +27,7 @@ export function PillGroup<T extends string>({
       {options.map((option) => (
         <Button
           aria-pressed={option.value === value}
-          className="aria-pressed:bg-muted aria-pressed:text-foreground"
+          className="h-11 aria-pressed:bg-muted aria-pressed:text-foreground"
           key={option.value}
           onClick={() => onChange(option.value)}
           variant="ghost"

@@ -16,13 +16,40 @@ interface Props {
   interval: BalanceInterval
 }
 
+interface ChangeDirectionOptions {
+  amount: number
+  percent: number
+}
+
+type ChangeDirection = 'Down' | 'Unchanged' | 'Up'
+
+/** Picks gain/loss direction from percent, falling back to the absolute amount. */
+function getChangeDirection(options: ChangeDirectionOptions): ChangeDirection {
+  const value = options.percent === 0 ? options.amount : options.percent
+
+  if (value > 0) {
+    return 'Up'
+  }
+
+  if (value < 0) {
+    return 'Down'
+  }
+
+  return 'Unchanged'
+}
+
 /** Shows the signed percent change for one interval beside the balance. */
 export function BalanceChange({ interval }: Props) {
   const { data } = useBalanceChange({ interval })
-  const ChangeIcon = data.percent < 0 ? ArrowDownRight : ArrowUpRight
-  const direction =
-    data.percent < 0 ? 'Down' : data.percent > 0 ? 'Up' : 'Unchanged'
-  const percent = formatSignedPercent({ value: data.percent })
+  const direction = getChangeDirection({
+    amount: data.amount,
+    percent: data.percent,
+  })
+  const ChangeIcon = direction === 'Down' ? ArrowDownRight : ArrowUpRight
+  const displayValue =
+    data.percent === 0 && data.amount !== 0
+      ? formatSignedCurrency({ currency: data.currency, value: data.amount })
+      : formatSignedPercent({ value: data.percent })
 
   return (
     <p
@@ -30,16 +57,16 @@ export function BalanceChange({ interval }: Props) {
         'inline-flex items-center gap-1 font-medium text-2xl tabular-nums tracking-tight md:text-4xl',
         revealClassName,
         'fill-mode-both delay-100',
-        data.percent > 0 && 'text-market-up',
-        data.percent < 0 && 'text-market-down',
-        data.percent === 0 && 'text-muted-foreground'
+        direction === 'Up' && 'text-market-up',
+        direction === 'Down' && 'text-market-down',
+        direction === 'Unchanged' && 'text-muted-foreground'
       )}
       title={formatSignedCurrency({
         currency: data.currency,
         value: data.amount,
       })}
     >
-      {data.percent === 0 ? null : (
+      {direction === 'Unchanged' ? null : (
         <ChangeIcon aria-hidden="true" className="size-6 md:size-8" />
       )}
       <TextMorph
@@ -48,7 +75,7 @@ export function BalanceChange({ interval }: Props) {
         ease="cubic-bezier(0.19, 1, 0.22, 1)"
         locale="en-US"
       >
-        {percent}
+        {displayValue}
       </TextMorph>
       <span className="sr-only">
         {direction}{' '}

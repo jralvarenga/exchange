@@ -158,10 +158,10 @@ interface FormatQuantityOptions {
 }
 
 const quantityFormatter = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 4,
+  maximumFractionDigits: 8,
 })
 
-/** Formats a share or coin quantity with at most four decimals. */
+/** Formats a share or coin quantity with at most eight decimals. */
 export function formatQuantity(options: FormatQuantityOptions): string {
   return quantityFormatter.format(options.value)
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 
 import { AssetListFallback } from '@/components/asset-list-fallback'
@@ -8,6 +9,8 @@ import { ClientSuspense } from '@/components/client-suspense'
 import { TopPositionsList } from '@/components/home/top-positions-list'
 import { PillGroup, type PillOption } from '@/components/pill-group'
 import { SectionHeader } from '@/components/section-header'
+import { SectionUnavailable } from '@/components/section-unavailable'
+import { portfolioQueryKey } from '@/lib/alpaca/query-keys'
 import type { PositionClassFilter } from '@/lib/portfolio/position-filter'
 
 const classOptions: PillOption<PositionClassFilter>[] = [
@@ -19,6 +22,14 @@ const classOptions: PillOption<PositionClassFilter>[] = [
 /** Ranks the largest holdings with an asset-class filter. */
 export function TopPositions() {
   const [filter, setFilter] = useState<PositionClassFilter>('all')
+  const [retryKey, setRetryKey] = useState(0)
+  const queryClient = useQueryClient()
+
+  /** Clears a failed positions query so the section can load again. */
+  async function retryPositions(): Promise<void> {
+    await queryClient.resetQueries({ queryKey: portfolioQueryKey })
+    setRetryKey((key) => key + 1)
+  }
 
   return (
     <section
@@ -39,10 +50,12 @@ export function TopPositions() {
       </SectionHeader>
       <BalanceErrorBoundary
         fallback={
-          <p className="py-8 font-medium text-muted-foreground">
-            Positions unavailable
-          </p>
+          <SectionUnavailable
+            label="Positions unavailable."
+            onRetry={retryPositions}
+          />
         }
+        resetKey={`${filter}:${String(retryKey)}`}
       >
         <ClientSuspense
           fallback={<AssetListFallback label="Loading positions" />}

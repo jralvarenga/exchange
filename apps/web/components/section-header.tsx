@@ -36,7 +36,7 @@ export function SectionHeader({
             {linkLabel}
             <ArrowRight
               aria-hidden="true"
-              className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+              className="size-4 transition-transform motion-safe:group-hover:translate-x-0.5"
             />
           </Link>
         ) : null}

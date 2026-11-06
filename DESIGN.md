@@ -60,7 +60,7 @@ Fonts are loaded in [layout.tsx](apps/web/app/layout.tsx) with `next/font`.
 - Weights: regular, `font-medium` and `font-bold` only.
 - Every number uses `tabular-nums`.
 - Sentence case everywhere. No all caps, no wide tracking.
-- Avoid text below 16px; the only exception is the default `Button` size.
+- Avoid text below 16px in primary UI text; the default `Button` size and compact chart tooltips (`text-xs` on the shared chart primitive) are the exceptions.
 
 ## Spacing and layout
 
@@ -128,5 +128,5 @@ Row patterns:
 ## Open questions
 
 - `success` is still neutral black / white instead of matching a brand or `market-up` color.
-- Default `Button` height (32px) is under the 44px touch target used elsewhere; decide whether pill filters should use `lg`.
+- Default `Button` height (32px) is under the 44px touch target used elsewhere; `PillGroup` uses `h-11`.
 - `/portfolio` still uses the previous card and table design and should move to this system.

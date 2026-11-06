@@ -6,7 +6,7 @@ import { RecentOrderRow } from '@/components/home/recent-order-row'
 import { RecentOrdersEmpty } from '@/components/home/recent-orders-empty'
 import { useOrdersAndPositions } from '@/hooks/use-orders-and-positions'
 import type { OrderStatusFilter } from '@/lib/orders/status'
-import { getOrderStatus } from '@/lib/orders/status'
+import { getOrderStatus, getOrdersApiStatus } from '@/lib/orders/status'
 import { revealClassName } from '@/lib/utils'
 
 interface Props {
@@ -20,17 +20,20 @@ export function RecentOrdersList({ filter }: Props) {
   const { data } = useOrdersAndPositions({
     direction: 'desc',
     limit: 30,
-    status: 'all',
+    status: getOrdersApiStatus(filter),
   })
   const orders = data.orders
-    .filter(
-      (order) =>
-        filter === 'all' || getOrderStatus(order.status).tone === filter
-    )
+    .filter((order) => {
+      if (filter !== 'filled' && filter !== 'closed') {
+        return true
+      }
+
+      return getOrderStatus(order.status).tone === filter
+    })
     .slice(0, visibleOrders)
 
   if (orders.length === 0) {
-    return <RecentOrdersEmpty filtered={data.orders.length > 0} />
+    return <RecentOrdersEmpty filtered={filter !== 'all'} />
   }
 
   return (

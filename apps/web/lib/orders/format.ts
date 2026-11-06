@@ -41,5 +41,11 @@ export function formatOrderTime(submittedAt: string | null): string {
     return 'Not submitted'
   }
 
-  return orderTimeFormatter.format(new Date(submittedAt))
+  const date = new Date(submittedAt)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Not submitted'
+  }
+
+  return orderTimeFormatter.format(date)
 }

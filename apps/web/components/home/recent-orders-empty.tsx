@@ -18,7 +18,7 @@ export function RecentOrdersEmpty({ filtered }: Props) {
       <p className="text-muted-foreground">
         {filtered
           ? 'Switch the filter or view all orders in your portfolio.'
-          : 'Orders you place will show up here as they fill.'}
+          : 'Orders you place will show up here.'}
       </p>
     </div>
   )
