@@ -3,9 +3,8 @@
 import { cn } from '@workspace/ui/lib/utils'
 import { TextMorph } from 'torph/react'
 
-import { revealClassName } from '@/components/balance/utils'
 import { useBalance } from '@/hooks/use-balance'
-import { formatUpdatedAt } from '@/lib/utils'
+import { formatUpdatedAt, revealClassName } from '@/lib/utils'
 
 /** Shows when the balance was last refreshed from Alpaca. */
 export function BalanceUpdatedAt() {

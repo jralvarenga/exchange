@@ -3,9 +3,8 @@
 import { cn } from '@workspace/ui/lib/utils'
 import { TextMorph } from 'torph/react'
 
-import { revealClassName } from '@/components/balance/utils'
 import { useBalance } from '@/hooks/use-balance'
-import { formatCurrencyParts } from '@/lib/utils'
+import { formatCurrencyParts, revealClassName } from '@/lib/utils'
 
 /** Renders the current account equity as the page's display figure. */
 export function BalanceValue() {

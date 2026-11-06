@@ -4,10 +4,13 @@ import { cn } from '@workspace/ui/lib/utils'
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 import { TextMorph } from 'torph/react'
 
-import { revealClassName } from '@/components/balance/utils'
 import { useBalanceChange } from '@/hooks/use-balance-change'
 import type { BalanceInterval } from '@/lib/alpaca/schemas'
-import { formatSignedCurrency, formatSignedPercent } from '@/lib/utils'
+import {
+  formatSignedCurrency,
+  formatSignedPercent,
+  revealClassName,
+} from '@/lib/utils'
 
 interface Props {
   interval: BalanceInterval

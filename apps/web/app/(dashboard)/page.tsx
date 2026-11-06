@@ -1,33 +1,19 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@workspace/ui/components/card'
-
-import { ActivityCard } from '@/components/activity/activity-card'
 import { Balance } from '@/components/balance/balance'
 import { Balances } from '@/components/balance/balances'
+import { RecentOrders } from '@/components/home/recent-orders'
+import { TopPositions } from '@/components/home/top-positions'
 
-/** Renders the portfolio home: live balance, equity chart, and account detail. */
+/** Renders the portfolio home: live balance, account stats, holdings, orders. */
 export default function Home() {
   return (
-    <div className="flex flex-1 flex-col gap-8">
+    <div className="flex flex-1 flex-col gap-10">
       <Balance />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:pl-24">
-        <Card
-          aria-labelledby="balances-title"
-          className="md:col-span-2 md:self-start"
-          role="region"
-        >
-          <CardHeader>
-            <CardTitle id="balances-title">Balances</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Balances />
-          </CardContent>
-        </Card>
-        <ActivityCard className="md:max-h-[32rem]" />
+      <div className="flex flex-col gap-14 md:pl-24">
+        <Balances />
+        <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+          <TopPositions />
+          <RecentOrders />
+        </div>
       </div>
     </div>
   )

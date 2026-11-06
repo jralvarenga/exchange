@@ -1,7 +1,6 @@
 'use client'
 
-import { cn } from '@workspace/ui/lib/utils'
-
+import { PillGroup, type PillOption } from '@/components/pill-group'
 import type { BalanceInterval } from '@/lib/alpaca/schemas'
 
 interface Props {
@@ -9,12 +8,7 @@ interface Props {
   value: BalanceInterval
 }
 
-interface IntervalOption {
-  label: string
-  value: BalanceInterval
-}
-
-const intervalOptions: IntervalOption[] = [
+const intervalOptions: PillOption<BalanceInterval>[] = [
   { label: '1D', value: '1D' },
   { label: '1W', value: '1W' },
   { label: '1M', value: '1M' },
@@ -26,23 +20,11 @@ const intervalOptions: IntervalOption[] = [
 /** Lets the trader pick the performance interval for the chart and change. */
 export function BalanceIntervalSelector({ onChange, value }: Props) {
   return (
-    <fieldset className="flex items-center gap-1">
-      <legend className="sr-only">Balance interval</legend>
-      {intervalOptions.map((option) => (
-        <button
-          aria-pressed={option.value === value}
-          className={cn(
-            'min-h-11 min-w-11 rounded-full px-3 font-medium text-muted-foreground tabular-nums outline-none transition-colors',
-            'hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring',
-            'aria-pressed:bg-foreground aria-pressed:text-background'
-          )}
-          key={option.value}
-          onClick={() => onChange(option.value)}
-          type="button"
-        >
-          {option.label}
-        </button>
-      ))}
-    </fieldset>
+    <PillGroup
+      label="Balance interval"
+      onChange={onChange}
+      options={intervalOptions}
+      value={value}
+    />
   )
 }
