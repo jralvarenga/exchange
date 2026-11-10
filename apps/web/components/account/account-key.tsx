@@ -22,7 +22,7 @@ interface Props {
   credential?: MaskedAlpacaCredential
   environment: 'live' | 'paper'
   onActivate: () => void
-  onRemove: () => Promise<void>
+  onRemove: () => Promise<boolean>
   onTest: () => Promise<void>
 }
 
@@ -47,17 +47,23 @@ export function AccountKey({
   const [showsSecret, setShowsSecret] = useState(false)
   const [testing, setTesting] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const [clearedMessage, setClearedMessage] = useState(false)
   const label = environment === 'live' ? 'Live' : 'Paper'
   const titleId = `${environment}-key-title`
   // The server prop is refreshed after every action. The action state would
   // keep showing a key after it was removed or retested.
   const shown = credential
+  const message = clearedMessage ? undefined : state.message
 
   useEffect(() => {
     if (state.credential) {
       setEditing(false)
     }
   }, [state.credential])
+
+  useEffect(() => {
+    setClearedMessage(false)
+  }, [])
 
   useEffect(() => {
     if (!editing) {
@@ -76,14 +82,30 @@ export function AccountKey({
     }
   }
 
+  /** Opens the key form without carrying a previous save error. */
+  function openForm(): void {
+    setClearedMessage(true)
+    setEditing(true)
+  }
+
+  /** Closes the key form and hides the last save error. */
+  function closeForm(): void {
+    setClearedMessage(true)
+    setEditing(false)
+  }
+
   /** Deletes the stored keys and opens the form to add new ones. */
   async function handleRemove(): Promise<void> {
     setRemoving(true)
 
     try {
-      await onRemove()
-      setConfirmingRemove(false)
-      setEditing(true)
+      const removed = await onRemove()
+
+      if (removed) {
+        setConfirmingRemove(false)
+        setClearedMessage(true)
+        setEditing(true)
+      }
     } finally {
       setRemoving(false)
     }
@@ -112,7 +134,7 @@ export function AccountKey({
                 </span>
                 {' · '}
                 {shown.lastVerifiedAt
-                  ? `Checked ${formatVerifiedAt(shown.lastVerifiedAt)}`
+                  ? formatVerifiedAt(shown.lastVerifiedAt)
                   : 'Not checked yet'}
               </>
             ) : environment === 'live' ? (
@@ -129,7 +151,7 @@ export function AccountKey({
         <div className="-ml-3 flex">
           <Button
             className={actionClassName}
-            onClick={() => setEditing(true)}
+            onClick={openForm}
             type="button"
             variant="ghost"
           >
@@ -152,7 +174,7 @@ export function AccountKey({
           ) : null}
           <Button
             className={actionClassName}
-            onClick={() => setEditing(true)}
+            onClick={openForm}
             type="button"
             variant="ghost"
           >
@@ -245,9 +267,9 @@ export function AccountKey({
               </InputGroup>
             </Field>
           </div>
-          {state.message ? (
+          {message ? (
             <p className="text-destructive" role="alert">
-              {state.message}
+              {message}
             </p>
           ) : null}
           <div className="flex items-center gap-1 pt-1">
@@ -262,7 +284,7 @@ export function AccountKey({
               <Button
                 className={actionClassName}
                 disabled={pending}
-                onClick={() => setEditing(false)}
+                onClick={closeForm}
                 type="button"
                 variant="ghost"
               >
@@ -292,7 +314,13 @@ const verifiedAtFormatter = new Intl.DateTimeFormat('en-US', {
   timeZone: 'UTC',
 })
 
-/** Formats a verification timestamp as "Nov 10" in UTC so server and client match. */
+/** Formats a verification timestamp as "Checked Nov 10" in UTC so both sides match. */
 function formatVerifiedAt(value: string): string {
-  return verifiedAtFormatter.format(new Date(value))
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Checked'
+  }
+
+  return `Checked ${verifiedAtFormatter.format(date)}`
 }

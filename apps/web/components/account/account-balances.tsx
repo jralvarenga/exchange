@@ -29,7 +29,7 @@ export function AccountBalances({ ready }: Props) {
         <AccountNeedsKeys label="Balances load once Alpaca accepts your keys." />
       ) : overview.isPending ? (
         <AccountBalancesFallback />
-      ) : overview.isError ? (
+      ) : overview.isError && !overview.data ? (
         <SectionUnavailable
           label="Balances unavailable."
           onRetry={() => void overview.refetch()}

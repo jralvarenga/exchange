@@ -75,7 +75,7 @@ export function TradingSettings({ ready }: Props) {
         <AccountNeedsKeys label="Trading settings load once Alpaca accepts your keys." />
       ) : configurations.isPending ? (
         <TradingSettingsFallback />
-      ) : configurations.isError ? (
+      ) : configurations.isError && !configurations.data ? (
         <SectionUnavailable
           label="Trading settings unavailable."
           onRetry={() => void configurations.refetch()}
@@ -179,17 +179,26 @@ export function TradingSettings({ ready }: Props) {
           />
           <li className="flex min-h-20 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
             <div className="flex min-w-0 flex-col">
-              <p className="font-medium">Day trading and PDT checks</p>
+              <p className="font-medium">Day trade buying power</p>
               <p className="text-muted-foreground">
-                Day trade buying power and pattern day trader rules. Set by
-                Alpaca.
+                When Alpaca checks day-trade buying power. Set by Alpaca.
               </p>
             </div>
             <p className="shrink-0 font-medium sm:text-right">
               {getDayTradeCheckLabel(
-                configurations.data.dayTradeBuyingPowerCheck ??
-                  configurations.data.patternDayTraderCheck
+                configurations.data.dayTradeBuyingPowerCheck
               )}
+            </p>
+          </li>
+          <li className="flex min-h-20 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="flex min-w-0 flex-col">
+              <p className="font-medium">Pattern day trader check</p>
+              <p className="text-muted-foreground">
+                When Alpaca applies pattern day trader rules. Set by Alpaca.
+              </p>
+            </div>
+            <p className="shrink-0 font-medium sm:text-right">
+              {getDayTradeCheckLabel(configurations.data.patternDayTraderCheck)}
             </p>
           </li>
         </ul>

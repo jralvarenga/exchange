@@ -42,7 +42,7 @@ export function AccountLimits({ ready }: Props) {
         <AccountNeedsKeys label="Limits load once Alpaca accepts your keys." />
       ) : overview.isPending ? (
         <AccountFactsFallback label="Loading status and limits" rows={rows} />
-      ) : overview.isError ? (
+      ) : overview.isError && !overview.data ? (
         <SectionUnavailable
           label="Status and limits unavailable."
           onRetry={() => void overview.refetch()}

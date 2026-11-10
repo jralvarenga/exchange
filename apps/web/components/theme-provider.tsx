@@ -6,9 +6,8 @@ import {
   applyTheme,
   DARK_MODE_QUERY,
   getStoredTheme,
-  isTheme,
+  isThemeStorageEvent,
   setTheme,
-  THEME_STORAGE_KEY,
 } from '@/lib/theme'
 
 interface Props {
@@ -29,11 +28,11 @@ export function ThemeProvider({ children }: Props) {
 
     /** Synchronizes theme changes made in another browser tab. */
     function onStorage(event: StorageEvent): void {
-      if (event.key !== THEME_STORAGE_KEY) {
+      if (!isThemeStorageEvent(event)) {
         return
       }
 
-      applyTheme(isTheme(event.newValue) ? event.newValue : 'system')
+      applyTheme(getStoredTheme())
     }
 
     /** Toggles light and dark themes with the D keyboard shortcut. */

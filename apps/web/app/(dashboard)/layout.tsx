@@ -29,7 +29,6 @@ export default async function DashboardLayout({ children }: Props) {
           status: credential.status,
         }))}
         environment={environment}
-        hasCredential={Boolean(active)}
         ready={ready}
       >
         {children}

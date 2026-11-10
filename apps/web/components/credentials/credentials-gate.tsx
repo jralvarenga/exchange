@@ -13,7 +13,6 @@ interface Props {
   credentialVersion: string
   credentials: Pick<MaskedAlpacaCredential, 'environment' | 'status'>[]
   environment: 'live' | 'paper'
-  hasCredential: boolean
   ready: boolean
 }
 
@@ -23,7 +22,6 @@ export function CredentialsGate({
   credentialVersion,
   credentials,
   environment,
-  hasCredential,
   ready,
 }: Props) {
   const pathname = usePathname()
@@ -75,12 +73,17 @@ export function CredentialsGate({
     }
   }, [queryClient])
 
+  const active = credentials.find(
+    (credential) => credential.environment === environment
+  )
+  const rejected = failed || active?.status === 'invalid'
+
   if (showsPrompt) {
     return (
       <CredentialsPrompt
         credentials={credentials}
         environment={environment}
-        rejected={hasCredential || failed}
+        rejected={rejected}
       />
     )
   }

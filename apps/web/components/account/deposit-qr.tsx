@@ -53,7 +53,8 @@ export function DepositQr({ method }: Props) {
     <div
       className={`flex flex-col gap-6 sm:flex-row sm:items-center ${revealClassName}`}
     >
-      <div className="aspect-square w-full max-w-56 shrink-0 self-center rounded-[2rem] p-3 ring-1 ring-border sm:w-48 sm:self-auto">
+      {/* Scanners need dark modules on a light field in both themes. */}
+      <div className="aspect-square w-full max-w-56 shrink-0 self-center rounded-[2rem] bg-white p-3 ring-1 ring-border sm:w-48 sm:self-auto">
         <ReactQRCode
           dataModulesSettings={{ color: 'currentColor', style: 'rounded' }}
           finderPatternInnerSettings={{
@@ -65,11 +66,11 @@ export function DepositQr({ method }: Props) {
             style: 'rounded',
           }}
           level="M"
-          marginSize={0}
+          marginSize={4}
           size={512}
           svgProps={{
             'aria-label': `QR code for the ${method.asset} ${method.chainLabel} deposit address`,
-            className: 'size-full text-foreground',
+            className: 'size-full text-black',
             role: 'img',
           }}
           value={method.address}
@@ -99,12 +100,20 @@ export function DepositQr({ method }: Props) {
             className="mt-0.5 size-5 shrink-0 text-warning"
           />
           <span>
-            Send only {method.asset} on {method.chainLabel} (
-            {method.tokenStandard}). Other networks or tokens may not be
-            credited.
+            Send only {method.asset} on {getNetworkWarning(method)}. Other
+            networks or tokens may not be credited.
           </span>
         </p>
       </div>
     </div>
   )
+}
+
+/** Names the network, adding the token standard only when it is not the chain. */
+function getNetworkWarning(method: DepositMethod): string {
+  if (method.tokenStandard === method.chainLabel) {
+    return method.chainLabel
+  }
+
+  return `${method.chainLabel} (${method.tokenStandard})`
 }

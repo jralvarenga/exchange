@@ -17,7 +17,7 @@ export function AccountBalancesFallback() {
     >
       {stats.map((stat) => (
         <div
-          className="flex flex-col gap-2 py-6 lg:px-8 lg:last:pr-0 lg:first:pl-0"
+          className="flex flex-col gap-2 py-6 lg:px-8 lg:last-of-type:pr-0 lg:first:pl-0"
           key={stat.label}
         >
           <p

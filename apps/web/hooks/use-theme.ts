@@ -2,9 +2,9 @@ import { useSyncExternalStore } from 'react'
 
 import {
   getStoredTheme,
+  isThemeStorageEvent,
   setTheme,
   THEME_CHANGE_EVENT,
-  THEME_STORAGE_KEY,
   type Theme,
 } from '@/lib/theme'
 
@@ -16,7 +16,7 @@ interface UseThemeResult {
 /** Subscribes to theme changes from this tab, other tabs, and the D shortcut. */
 function subscribe(onChange: () => void): () => void {
   function onStorage(event: StorageEvent): void {
-    if (event.key === THEME_STORAGE_KEY) {
+    if (isThemeStorageEvent(event)) {
       onChange()
     }
   }

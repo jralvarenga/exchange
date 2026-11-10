@@ -6,23 +6,21 @@ function isTextEntry(target: EventTarget | null): boolean {
     return false
   }
 
-  if (target.isContentEditable || target.tagName === 'TEXTAREA') {
+  if (target instanceof HTMLTextAreaElement) {
+    return !target.readOnly
+  }
+
+  if (target.isContentEditable) {
     return true
   }
 
   if (target instanceof HTMLInputElement) {
-    return ![
-      'button',
-      'checkbox',
-      'color',
-      'file',
-      'hidden',
-      'image',
-      'radio',
-      'range',
-      'reset',
-      'submit',
-    ].includes(target.type)
+    return (
+      !target.readOnly &&
+      ['email', 'number', 'password', 'search', 'tel', 'text', 'url'].includes(
+        target.type
+      )
+    )
   }
 
   return false

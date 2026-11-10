@@ -52,11 +52,38 @@ const memberSinceFormatter = new Intl.DateTimeFormat('en-US', {
 })
 
 /** Formats the account opening date as "Mar 2024". */
-export function formatMemberSince(options: FormatMemberSinceOptions): string {
-  return memberSinceFormatter.format(new Date(options.createdAt))
+export function formatMemberSince(
+  options: FormatMemberSinceOptions
+): string | undefined {
+  const date = new Date(options.createdAt)
+
+  if (Number.isNaN(date.getTime())) {
+    return undefined
+  }
+
+  return memberSinceFormatter.format(date)
 }
 
-type CredentialStatus = 'invalid' | 'unverified' | 'valid'
+export type CredentialStatus = 'invalid' | 'unverified' | 'valid'
+
+interface GetPromptCredentialStatusOptions {
+  rejected: boolean
+  status: CredentialStatus | undefined
+}
+
+/**
+ * Status shown on the connect prompt. Unverified keys stay unverified until a
+ * request failure proves stored valid keys were rejected.
+ */
+export function getPromptCredentialStatus(
+  options: GetPromptCredentialStatusOptions
+): CredentialStatus | undefined {
+  if (options.rejected && options.status === 'valid') {
+    return 'invalid'
+  }
+
+  return options.status
+}
 
 /** Describes a stored key pair's state in words, including a missing one. */
 export function getCredentialStatusInfo(

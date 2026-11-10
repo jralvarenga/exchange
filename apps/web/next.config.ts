@@ -14,9 +14,13 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      { destination: '/account#keys', permanent: true, source: '/settings' },
       {
-        destination: '/account#funding',
+        destination: '/account?section=keys',
+        permanent: true,
+        source: '/settings',
+      },
+      {
+        destination: '/account?section=funding',
         permanent: true,
         source: '/funds-wallet',
       },

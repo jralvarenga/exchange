@@ -41,8 +41,8 @@ export function Funding({ methods }: Props) {
               Deposit addresses
             </h3>
             <p className="text-muted-foreground">
-              Copy each one from Alpaca&apos;s crypto deposit screen and
-              double-check the network.
+              Copy each one from Alpaca&apos;s crypto deposit screen.
+              Double-check the network: funds sent on the wrong one may be lost.
             </p>
           </div>
           <ul className="flex flex-col divide-y divide-border border-border border-y">

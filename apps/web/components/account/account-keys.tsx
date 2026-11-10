@@ -33,43 +33,60 @@ export function AccountKeys({ activeEnvironment, credentials }: Props) {
 
   /** Switches the account used for every Alpaca call. */
   async function activate(environment: 'live' | 'paper'): Promise<void> {
-    const result = await setActiveAlpacaEnvironmentAction(environment)
-    setMessage(result.message)
-
-    if (!result.message) {
-      showSuccessToast({ title: `Using the ${environment} account` })
-    }
-
-    router.refresh()
-  }
-
-  /** Re-checks the stored keys and names the outcome. */
-  async function test(environment: 'live' | 'paper'): Promise<void> {
-    const result = await testAlpacaCredentialAction(environment)
-    setMessage(undefined)
-
-    if (result.message) {
-      showErrorToast({ description: result.message, title: 'Keys rejected' })
-    } else {
-      showSuccessToast({ title: `${capitalize(environment)} keys connected` })
-    }
-
-    router.refresh()
-  }
-
-  /** Deletes one environment's keys. */
-  async function remove(environment: 'live' | 'paper'): Promise<void> {
     try {
-      const result = await removeAlpacaCredentialAction(environment)
+      const result = await setActiveAlpacaEnvironmentAction(environment)
       setMessage(result.message)
 
       if (!result.message) {
-        showSuccessToast({ title: `${capitalize(environment)} keys removed` })
+        showSuccessToast({ title: `Using the ${environment} account` })
       }
 
       router.refresh()
     } catch {
+      setMessage('The active account could not be changed.')
+    }
+  }
+
+  /** Re-checks the stored keys and names the outcome. */
+  async function test(environment: 'live' | 'paper'): Promise<void> {
+    try {
+      const result = await testAlpacaCredentialAction(environment)
+      setMessage(undefined)
+
+      if (result.message) {
+        showErrorToast({
+          description: result.message,
+          title: 'Keys not tested',
+        })
+      } else {
+        showSuccessToast({ title: `${capitalize(environment)} keys connected` })
+      }
+
+      router.refresh()
+    } catch {
+      setMessage('The keys could not be tested.')
+      showErrorToast({ title: 'Keys not tested' })
+    }
+  }
+
+  /** Deletes one environment's keys. Returns whether the stored pair is gone. */
+  async function remove(environment: 'live' | 'paper'): Promise<boolean> {
+    try {
+      const result = await removeAlpacaCredentialAction(environment)
+      setMessage(result.message)
+
+      if (result.message) {
+        return false
+      }
+
+      showSuccessToast({ title: `${capitalize(environment)} keys removed` })
+      router.refresh()
+
+      return true
+    } catch {
       setMessage('Those keys could not be removed.')
+
+      return false
     }
   }
 

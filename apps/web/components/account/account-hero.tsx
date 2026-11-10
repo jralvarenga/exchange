@@ -20,6 +20,9 @@ interface Props {
 export function AccountHero({ environment, ready, user }: Props) {
   const { data, isPending } = useAccountOverview({ enabled: ready })
   const EnvironmentIcon = environment === 'live' ? Landmark : FlaskConical
+  const memberSince = data
+    ? formatMemberSince({ createdAt: data.createdAt })
+    : undefined
 
   return (
     <section
@@ -84,15 +87,17 @@ export function AccountHero({ environment, ready, user }: Props) {
               <span className="sr-only">Account ending in </span>
               ••••&nbsp;{data.accountNumberLast4}
             </span>
-            <span
-              className={cn(
-                'text-muted-foreground',
-                revealClassName,
-                'fill-mode-both delay-150'
-              )}
-            >
-              Since {formatMemberSince({ createdAt: data.createdAt })}
-            </span>
+            {memberSince ? (
+              <span
+                className={cn(
+                  'text-muted-foreground',
+                  revealClassName,
+                  'fill-mode-both delay-150'
+                )}
+              >
+                Since {memberSince}
+              </span>
+            ) : null}
           </>
         ) : null}
       </div>

@@ -34,7 +34,7 @@ export function AccountMargin({ ready }: Props) {
         <AccountNeedsKeys label="Margin loads once Alpaca accepts your keys." />
       ) : overview.isPending ? (
         <AccountFactsFallback label="Loading margin" rows={rows} />
-      ) : overview.isError ? (
+      ) : overview.isError && !overview.data ? (
         <SectionUnavailable
           label="Margin unavailable."
           onRetry={() => void overview.refetch()}
@@ -42,11 +42,7 @@ export function AccountMargin({ ready }: Props) {
       ) : (
         <dl className="flex flex-col divide-y divide-border border-border border-y">
           <AccountFact
-            detail={
-              overview.data.multiplier > 1
-                ? 'Margin account'
-                : 'Cash account, no margin'
-            }
+            detail={getMultiplierDetail(overview.data.multiplier)}
             label="Multiplier"
           >
             {overview.data.multiplier}×
@@ -85,4 +81,20 @@ export function AccountMargin({ ready }: Props) {
       )}
     </section>
   )
+}
+
+/**
+ * Names the buying-power class Alpaca encodes in the multiplier. 1× covers both
+ * cash and limited-margin accounts; the API does not tell them apart.
+ */
+function getMultiplierDetail(multiplier: number): string {
+  if (multiplier >= 4) {
+    return 'Day-trade buying power'
+  }
+
+  if (multiplier > 1) {
+    return 'Overnight margin'
+  }
+
+  return 'Limited margin or cash'
 }

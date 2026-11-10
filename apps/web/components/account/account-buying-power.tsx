@@ -28,7 +28,7 @@ export function AccountBuyingPower({ ready }: Props) {
         <AccountNeedsKeys label="Buying power loads once Alpaca accepts your keys." />
       ) : overview.isPending ? (
         <AccountFactsFallback label="Loading buying power" rows={rows} />
-      ) : overview.isError ? (
+      ) : overview.isError && !overview.data ? (
         <SectionUnavailable
           label="Buying power unavailable."
           onRetry={() => void overview.refetch()}

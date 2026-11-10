@@ -3,7 +3,10 @@ import { ArrowRight, KeyRound } from 'lucide-react'
 import Link from 'next/link'
 
 import { StatusPill } from '@/components/status-pill'
-import { getCredentialStatusInfo } from '@/lib/account/status'
+import {
+  getCredentialStatusInfo,
+  getPromptCredentialStatus,
+} from '@/lib/account/status'
 import type { MaskedAlpacaCredential } from '@/lib/alpaca/credentials'
 
 type CredentialState = Pick<MaskedAlpacaCredential, 'environment' | 'status'>
@@ -63,9 +66,10 @@ export function CredentialsPrompt({
             (credential) => credential.environment === option.value
           )
           const active = option.value === environment
-          // A query can fail on keys the database still marks valid.
-          const status =
-            active && rejected && stored ? 'invalid' : stored?.status
+          const status = getPromptCredentialStatus({
+            rejected: active && rejected,
+            status: stored?.status,
+          })
 
           return (
             <li className="py-1" key={option.value}>
