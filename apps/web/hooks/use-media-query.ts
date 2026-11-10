@@ -9,7 +9,7 @@ function subscribeToMedia(query: string, onChange: () => void): () => void {
   return () => media.removeEventListener('change', onChange)
 }
 
-/** Server markup has no viewport, so the first client render settles the match. */
+/** Server markup has no viewport, so hydration renders false before the real match syncs. */
 function getServerSnapshot(): boolean {
   return false
 }

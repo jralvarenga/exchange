@@ -7,8 +7,11 @@ import {
   createTicketDraft,
   getTicketOrderTypes,
   getTicketUnderlying,
+  isChoosingTicketContract,
+  isTicketOptionMode,
   openTicketDraft,
   reconcileTicket,
+  resolveListedExpiration,
   selectTicketAsset,
   toOptionTicketAsset,
 } from '@/lib/order-ticket/draft'
@@ -324,6 +327,48 @@ describe('order ticket request contract', () => {
     expect(changed.needsLookup).toBe(true)
     expect(changed.draft.asset).toBeNull()
     expect(isSameTicketSubmission({ current, next: changed.draft })).toBe(false)
+  })
+  test('option-picking lives on the draft and clears when the asset changes', () => {
+    const picking = makeDraft({ preferOption: true })
+    expect(isTicketOptionMode(picking)).toBe(true)
+    expect(isChoosingTicketContract(picking)).toBe(true)
+    expect(isChoosingTicketContract(makeDraft({ asset: option }))).toBe(false)
+    expect(isTicketOptionMode(makeDraft({ asset: option }))).toBe(true)
+    expect(isChoosingTicketContract(makeDraft())).toBe(false)
+    const changed = selectTicketAsset({
+      asset: { ...stock, id: 'msft', symbol: 'MSFT' },
+      draft: picking,
+    })
+    expect(changed.preferOption).toBe(false)
+    expect(isChoosingTicketContract(changed)).toBe(false)
+    const same = selectTicketAsset({ asset: stock, draft: picking })
+    expect(same.preferOption).toBe(true)
+    const reopened = openTicketDraft({
+      current: picking,
+      options: { assetIdentifier: 'AAPL' },
+    })
+    expect(reopened.draft.preferOption).toBe(true)
+  })
+  test('an unavailable expiration falls back to the listed date', () => {
+    expect(
+      resolveListedExpiration({
+        expiration: '2020-01-17',
+        expirations: ['2027-01-15', '2027-06-18'],
+        returnedExpiration: '2027-01-15',
+      })
+    ).toBe('2027-01-15')
+    expect(
+      resolveListedExpiration({
+        expiration: '2027-06-18',
+        expirations: ['2027-01-15', '2027-06-18'],
+        returnedExpiration: '2027-01-15',
+      })
+    ).toBe('2027-06-18')
+    expect(
+      resolveListedExpiration({
+        expirations: ['2027-01-15', '2027-06-18'],
+      })
+    ).toBe('2027-01-15')
   })
   test('an option contract keeps the stock it is written on', () => {
     const contract: OptionContract = {

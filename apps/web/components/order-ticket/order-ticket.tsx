@@ -31,6 +31,8 @@ import {
   canUseDollars,
   getTicketOrderTypes,
   getTicketUnderlying,
+  isChoosingTicketContract,
+  isTicketOptionMode,
   reconcileTicket,
 } from '@/lib/order-ticket/draft'
 import { focusTicketField } from '@/lib/order-ticket/focus'
@@ -79,20 +81,17 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     submitOrder,
     updateDraft,
   } = useOrderTicket()
-  const snapshot = useTicketQuote(draft.asset)
+  const optionMode = isTicketOptionMode(draft)
+  const choosingContract = isChoosingTicketContract(draft)
+  const snapshot = useTicketQuote(choosingContract ? null : draft.asset)
   const overview = useAccountOverview()
   const clock = useMarketClock()
   const [attempted, setAttempted] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
-  const [preferOption, setPreferOption] = useState(false)
   const underlying = useMemo(
     () => getTicketUnderlying(draft.asset),
     [draft.asset]
   )
-  const optionMode =
-    draft.asset?.assetClass === 'us_option' ||
-    (preferOption && underlying?.assetClass === 'us_equity')
-  const choosingContract = optionMode && draft.asset?.assetClass !== 'us_option'
   const conversion = useRef<TicketConversion | null>(null)
   const request = buildTicketRequest(draft)
   const result = createOrderRequestSchema.safeParse(request)
@@ -108,7 +107,9 @@ export function OrderTicket({ stickyFooter = true }: Props) {
   const quote =
     draft.side === 'buy' ? snapshot.data?.askPrice : snapshot.data?.bidPrice
   const price = quote && quote > 0 ? quote : snapshot.data?.lastPrice
-  const estimated = estimateTicketValue({ draft, price })
+  const estimated = choosingContract
+    ? undefined
+    : estimateTicketValue({ draft, price })
 
   /** Applies an edit, converting the size when it switches between shares and dollars. */
   function changeDraft(patch: Partial<TicketDraft>): void {
@@ -143,27 +144,27 @@ export function OrderTicket({ stickyFooter = true }: Props) {
   /** Switches between the stock and a contract written on it. */
   function changeInstrument(next: 'option' | 'shares'): void {
     if (next === 'option') {
-      setPreferOption(true)
+      updateDraft({ preferOption: true })
       return
     }
-    setPreferOption(false)
-    if (draft.asset?.assetClass === 'us_option' && draft.asset.underlying)
-      updateDraft({ asset: draft.asset.underlying })
+    if (draft.asset?.assetClass === 'us_option' && draft.asset.underlying) {
+      updateDraft({ asset: draft.asset.underlying, preferOption: false })
+      return
+    }
+    updateDraft({ preferOption: false })
   }
 
   /** Drops the selected contract while keeping its stock in the ticket. */
   function clearContract(): void {
     if (draft.asset?.assetClass !== 'us_option' || !draft.asset.underlying)
       return
-    setPreferOption(true)
-    updateDraft({ asset: draft.asset.underlying })
+    updateDraft({ asset: draft.asset.underlying, preferOption: true })
   }
-  const power =
-    draft.asset?.assetClass === 'us_option'
-      ? overview.data?.optionsBuyingPower
-      : draft.asset?.assetClass === 'crypto'
-        ? overview.data?.nonMarginableBuyingPower
-        : overview.data?.buyingPower
+  const power = optionMode
+    ? overview.data?.optionsBuyingPower
+    : draft.asset?.assetClass === 'crypto'
+      ? overview.data?.nonMarginableBuyingPower
+      : overview.data?.buyingPower
   const after =
     draft.side === 'buy' && power !== undefined && estimated !== undefined
       ? power - estimated
@@ -270,10 +271,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
           </div>
           <div className="flex flex-col gap-4" data-order-field="symbol">
             <AssetCombobox
-              onValueChange={(asset) => {
-                if (asset?.assetClass !== 'us_equity') setPreferOption(false)
-                updateDraft({ asset })
-              }}
+              onValueChange={(asset) => updateDraft({ asset })}
               placeholder="Choose a symbol…"
               value={underlying}
             />
@@ -321,10 +319,10 @@ export function OrderTicket({ stickyFooter = true }: Props) {
               {formatTicketMoney(estimated)}
             </TextMorph>
             <p className="mt-2 text-muted-foreground tabular-nums">
-              {draft.asset
-                ? `${tradedName} · ${formatTicketMoney(price)} ${snapshot.isFetching ? 'updating' : 'latest quote'}`
-                : choosingContract
-                  ? 'Select a contract to price this order'
+              {choosingContract
+                ? 'Select a contract to price this order'
+                : draft.asset
+                  ? `${tradedName} · ${formatTicketMoney(price)} ${snapshot.isFetching ? 'updating' : 'latest quote'}`
                   : 'Select an asset to get started'}
             </p>
           </div>

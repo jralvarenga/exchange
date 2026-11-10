@@ -1,4 +1,8 @@
-import { type UseQueryResult, useQuery } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  type UseQueryResult,
+  useQuery,
+} from '@tanstack/react-query'
 
 import {
   type OptionChain,
@@ -29,6 +33,7 @@ export function useOptionChain(
         schema: optionChainSchema,
         signal,
       }),
+    placeholderData: keepPreviousData,
     queryKey: getOptionChainQueryKey(options.underlying, options.expiration),
     refetchInterval: 30_000,
   })

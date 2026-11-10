@@ -24,6 +24,8 @@ export type TicketDraft = {
   extendedHours: boolean
   limitPrice: string
   orderClass: AlpacaOrderClass
+  /** Stays with the draft so option-picking survives layout remounts. */
+  preferOption: boolean
   positionIntent: NonNullable<CreateOrderRequest['positionIntent']>
   quantityMode: AlpacaQuantityMode
   side: AlpacaOrderSide

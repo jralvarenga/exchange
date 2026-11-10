@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { TicketContractStatus } from '@/components/order-ticket/ticket-contract-status'
 import { TicketPills } from '@/components/order-ticket/ticket-pills'
@@ -8,7 +8,10 @@ import { TicketSelect } from '@/components/order-ticket/ticket-select'
 import { useOptionChain } from '@/hooks/use-option-chain'
 import type { OptionContract } from '@/lib/alpaca/market-schemas'
 import type { AssetSearchResult } from '@/lib/alpaca/schemas'
-import { toOptionTicketAsset } from '@/lib/order-ticket/draft'
+import {
+  resolveListedExpiration,
+  toOptionTicketAsset,
+} from '@/lib/order-ticket/draft'
 import { formatTicketMoney } from '@/lib/order-ticket/pricing'
 import type { TicketAsset } from '@/models/order-ticket/ticket'
 
@@ -32,6 +35,8 @@ export function TicketContract({
   )
   const [seenSymbol, setSeenSymbol] = useState(contract?.symbol)
   const [seenUnderlying, setSeenUnderlying] = useState(underlying.symbol)
+  const onClearRef = useRef(onClear)
+  onClearRef.current = onClear
   if (seenUnderlying !== underlying.symbol) {
     setSeenUnderlying(underlying.symbol)
     setSeenSymbol(contract?.symbol)
@@ -49,20 +54,43 @@ export function TicketContract({
   })
   const sameUnderlying =
     chain.data?.underlying.toLowerCase() === underlying.symbol.toLowerCase()
+  const listedExpiration =
+    sameUnderlying && chain.data
+      ? resolveListedExpiration({
+          expiration,
+          expirations: chain.data.expirations,
+          returnedExpiration: chain.data.expirationDate,
+        })
+      : ''
+  if (
+    sameUnderlying &&
+    chain.data &&
+    expiration &&
+    listedExpiration &&
+    expiration !== listedExpiration
+  ) {
+    setExpiration(listedExpiration)
+  }
+  const expirationList = chain.data?.expirations.join(',') ?? ''
+  useEffect(() => {
+    if (!sameUnderlying || !expirationList || !contract?.expirationDate) return
+    if (expirationList.split(',').includes(contract.expirationDate)) return
+    onClearRef.current()
+  }, [sameUnderlying, expirationList, contract?.expirationDate])
   if (!sameUnderlying) {
     return <TicketContractStatus status={chain.isError ? 'error' : 'loading'} />
   }
   if (!chain.data || chain.data.expirations.length === 0) {
     return <TicketContractStatus status="none" />
   }
-  const activeExpiration =
-    expiration ?? chain.data.expirationDate ?? chain.data.expirations[0] ?? ''
+  const activeExpiration = listedExpiration
   const contracts = (
     right === 'call' ? chain.data.calls : chain.data.puts
   ).filter((item) => item.tradable)
   const selected = contracts.some((item) => item.symbol === contract?.symbol)
     ? (contract?.symbol ?? '')
     : ''
+  const strikeReady = chain.data.expirationDate === activeExpiration
 
   /** Replaces the order's asset with the chosen contract, or returns to the stock. */
   function selectContract(symbol: string): void {
@@ -102,7 +130,7 @@ export function TicketContract({
         ]}
         value={right}
       />
-      {chain.data.expirationDate === activeExpiration ? (
+      {strikeReady ? (
         contracts.length > 0 ? (
           <TicketSelect
             label="Strike"
@@ -120,6 +148,8 @@ export function TicketContract({
         ) : (
           <TicketContractStatus status="empty" />
         )
+      ) : chain.isError ? (
+        <TicketContractStatus status="error" />
       ) : (
         <TicketContractStatus status="loading" />
       )}

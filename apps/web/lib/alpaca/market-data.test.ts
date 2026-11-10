@@ -293,6 +293,40 @@ describe('getOptionChain', () => {
     expect(calls).toBe(20)
   })
 
+  test('falls back to the first listed expiration when the requested date is gone', async () => {
+    const chain = await getOptionChain({
+      ...withFetcher(async (input) => {
+        const url = requestUrl(input)
+
+        if (url.pathname === '/v2/options/contracts') {
+          return jsonResponse({
+            next_page_token: null,
+            option_contracts: [
+              contract('AAPL270115C00090000', '2027-01-15', 'call', '90'),
+              contract('AAPL270618C00100000', '2027-06-18', 'call', '100'),
+            ],
+          })
+        }
+
+        return jsonResponse({
+          next_page_token: null,
+          snapshots: {
+            AAPL270115C00090000: {
+              latestQuote: quote(1.5),
+            },
+          },
+        })
+      }),
+      expiration: '2020-01-17',
+      underlying: 'AAPL',
+    })
+
+    expect(chain.expirationDate).toBe('2027-01-15')
+    expect(chain.expirations).toEqual(['2027-01-15', '2027-06-18'])
+    expect(chain.calls).toHaveLength(1)
+    expect(chain.calls[0]?.symbol).toBe('AAPL270115C00090000')
+  })
+
   test('propagates snapshot failures instead of returning empty quotes', async () => {
     const chain = getOptionChain({
       ...withFetcher(async (input) => {

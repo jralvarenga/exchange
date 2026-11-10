@@ -19,6 +19,7 @@ export function createTicketDraft(): TicketDraft {
     extendedHours: false,
     limitPrice: '',
     orderClass: 'simple',
+    preferOption: false,
     positionIntent: 'buy_to_open',
     quantityMode: 'qty',
     side: 'buy',
@@ -162,6 +163,41 @@ export function openTicketDraft({
       })
     : selected
   return { draft, needsLookup: Boolean(identifier) && !options.asset }
+}
+
+/** True when the ticket is writing an option or asking for a contract on a stock. */
+export function isTicketOptionMode(draft: TicketDraft): boolean {
+  if (draft.asset?.assetClass === 'us_option') return true
+  return Boolean(
+    draft.preferOption &&
+      getTicketUnderlying(draft.asset)?.assetClass === 'us_equity'
+  )
+}
+
+/** True when option mode is on but the draft still holds the underlying stock. */
+export function isChoosingTicketContract(draft: TicketDraft): boolean {
+  return isTicketOptionMode(draft) && draft.asset?.assetClass !== 'us_option'
+}
+
+interface ResolveListedExpirationOptions {
+  expiration?: string
+  expirations: string[]
+  returnedExpiration?: string
+}
+
+/**
+ * Picks a currently listed expiration. A persisted date the chain no longer
+ * offers falls back to the date the API actually returned.
+ */
+export function resolveListedExpiration({
+  expiration,
+  expirations,
+  returnedExpiration,
+}: ResolveListedExpirationOptions): string {
+  if (expiration && expirations.includes(expiration)) return expiration
+  if (returnedExpiration && expirations.includes(returnedExpiration))
+    return returnedExpiration
+  return expirations[0] ?? ''
 }
 
 /** Returns the stock or crypto being traded, including an option's underlying. */

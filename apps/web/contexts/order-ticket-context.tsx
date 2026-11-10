@@ -67,15 +67,15 @@ export function OrderTicketProvider({ children, environment }: Props) {
   const inline = pathname === '/trade'
   const draftRef = useRef(draft)
   const environmentRef = useRef(environment)
-  // Handlers read the latest draft. The effect keeps the ref aligned with state.
-  useLayoutEffect(() => {
-    draftRef.current = draft
-  }, [draft])
+  // Ignore an in-flight order after the trader switches accounts.
+  const submitEpoch = useRef(0)
   // Drop the previous account's order before paint. The shell stays mounted so
   // the credentials gate can clear that account's cached queries.
   useLayoutEffect(() => {
     if (environmentRef.current === environment) return
     environmentRef.current = environment
+    submitEpoch.current += 1
+    submitting.current = false
     resolution.current?.abort()
     orderKey.current = null
     const reset = createTicketDraft()
@@ -175,6 +175,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
   /** Serializes submissions across responsive remounts and preserves broker errors. */
   async function submitOrder(request: CreateOrderRequest): Promise<boolean> {
     if (submitting.current) return false
+    const epoch = submitEpoch.current
     submitting.current = true
     clearOrderMessages()
     orderKey.current ??= crypto.randomUUID()
@@ -184,17 +185,19 @@ export function OrderTicketProvider({ children, environment }: Props) {
         clientOrderId: orderKey.current,
       })
       const message = `${request.side === 'buy' ? 'Buy' : 'Sell'} order submitted for ${request.symbol}`
-      setOrderSuccess(message)
       showSuccessToast({
         title: message,
         description: `Sent to your ${environment} account.`,
       })
+      if (epoch !== submitEpoch.current) return false
+      setOrderSuccess(message)
       orderKey.current = null
       const next = { ...draftRef.current, amount: '' }
       draftRef.current = next
       setDraft(next)
       return true
     } catch (error) {
+      if (epoch !== submitEpoch.current) return false
       setOrderError(
         error instanceof Error
           ? error.message
@@ -202,7 +205,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
       )
       return false
     } finally {
-      submitting.current = false
+      if (epoch === submitEpoch.current) submitting.current = false
     }
   }
 
@@ -215,7 +218,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
         environment,
         isOpen,
         isResolving,
-        isSubmitting: createOrder.isPending,
+        isSubmitting: createOrder.isPending && submitting.current,
         orderError,
         orderSuccess,
         submitOrder,
