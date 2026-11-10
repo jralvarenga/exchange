@@ -8,7 +8,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { cn } from '@workspace/ui/lib/utils'
 import { Eye, EyeOff } from 'lucide-react'
 import { useActionState, useEffect, useState } from 'react'
 
@@ -22,17 +21,19 @@ interface Props {
   active: boolean
   credential?: MaskedAlpacaCredential
   environment: 'live' | 'paper'
+  onActivate: () => void
   onRemove: () => Promise<void>
   onTest: () => Promise<void>
 }
 
-const pillClassName = 'h-11 rounded-full px-5 text-base'
+const actionClassName = 'h-11 rounded-full px-3 text-base'
 
-/** One environment's masked Alpaca key, its status, and the actions that change it. */
+/** One environment's Alpaca key as a list row: status, masked key, actions and the key form. */
 export function AccountKey({
   active,
   credential,
   environment,
+  onActivate,
   onRemove,
   onTest,
 }: Props) {
@@ -40,10 +41,12 @@ export function AccountKey({
     saveAlpacaCredentialAction,
     {}
   )
-  const [editing, setEditing] = useState(!credential)
+  // Only the account in use opens its form by default, so a new user sees one.
+  const [editing, setEditing] = useState(!credential && active)
   const [confirmingRemove, setConfirmingRemove] = useState(false)
   const [showsSecret, setShowsSecret] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const label = environment === 'live' ? 'Live' : 'Paper'
   const titleId = `${environment}-key-title`
   // The server prop is refreshed after every action. The action state would
@@ -53,7 +56,6 @@ export function AccountKey({
   useEffect(() => {
     if (state.credential) {
       setEditing(false)
-      setShowsSecret(false)
     }
   }, [state.credential])
 
@@ -65,178 +67,214 @@ export function AccountKey({
 
   /** Asks Alpaca to accept the stored keys again. */
   async function handleTest(): Promise<void> {
-    setBusy(true)
+    setTesting(true)
 
     try {
       await onTest()
     } finally {
-      setBusy(false)
+      setTesting(false)
     }
   }
 
   /** Deletes the stored keys and opens the form to add new ones. */
   async function handleRemove(): Promise<void> {
-    setBusy(true)
+    setRemoving(true)
 
     try {
       await onRemove()
       setConfirmingRemove(false)
       setEditing(true)
-      setShowsSecret(false)
     } finally {
-      setBusy(false)
+      setRemoving(false)
     }
   }
 
   return (
-    <article aria-labelledby={titleId} className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-baseline gap-3">
-          <h3 className="font-bold text-xl tracking-tight" id={titleId}>
+    <li aria-labelledby={titleId} className="flex flex-col gap-3 py-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h3
+            className="flex items-center gap-2 font-bold text-lg"
+            id={titleId}
+          >
             {label}
+            {active ? (
+              <span className="rounded-full bg-muted px-2 font-medium text-base text-muted-foreground">
+                In use
+              </span>
+            ) : null}
           </h3>
           <p className="text-muted-foreground">
-            {active
-              ? 'In use'
-              : environment === 'live'
-                ? 'Real money'
-                : 'Simulated money'}
+            {shown ? (
+              <>
+                <span className="font-mono text-foreground">
+                  {shown.keyIdMasked}
+                </span>
+                {' · '}
+                {shown.lastVerifiedAt
+                  ? `Checked ${formatVerifiedAt(shown.lastVerifiedAt)}`
+                  : 'Not checked yet'}
+              </>
+            ) : environment === 'live' ? (
+              'Trades with real money.'
+            ) : (
+              'Practice with simulated money.'
+            )}
           </p>
         </div>
         <StatusPill status={getCredentialStatusInfo(shown?.status)} />
       </div>
-      {shown ? (
-        <dl className="flex flex-col divide-y divide-border border-border border-y">
-          <div className="flex min-h-14 items-center justify-between gap-4 py-3">
-            <dt className="font-medium text-muted-foreground">Key ID</dt>
-            <dd className="font-mono">{shown.keyIdMasked}</dd>
-          </div>
-          <div className="flex min-h-14 items-center justify-between gap-4 py-3">
-            <dt className="font-medium text-muted-foreground">Last verified</dt>
-            <dd className="text-right font-mono">
-              {shown.lastVerifiedAt
-                ? formatVerifiedAt(shown.lastVerifiedAt)
-                : 'Not verified yet'}
-            </dd>
-          </div>
-        </dl>
-      ) : (
-        <p className="border-border border-y py-4 text-muted-foreground">
-          No {environment} keys saved. Create a key pair in the Alpaca dashboard
-          and paste it below.
-        </p>
-      )}
-      {shown?.status === 'invalid' ? (
-        <p className="text-danger">
-          Alpaca rejected these keys. Test them again or replace them with a new
-          pair.
-        </p>
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        {shown ? (
+
+      {!shown && !editing ? (
+        <div className="-ml-3 flex">
           <Button
-            aria-expanded={editing}
-            className={pillClassName}
-            onClick={() => setEditing((current) => !current)}
+            className={actionClassName}
+            onClick={() => setEditing(true)}
             type="button"
-            variant="outline"
+            variant="ghost"
           >
-            {editing ? 'Cancel' : 'Replace keys'}
+            Add {environment} keys
           </Button>
-        ) : null}
-        {shown ? (
+        </div>
+      ) : null}
+
+      {shown && !editing ? (
+        <div className="-ml-3 flex flex-wrap items-center gap-1">
+          {!active && shown.status === 'valid' ? (
+            <Button
+              className={actionClassName}
+              onClick={onActivate}
+              type="button"
+              variant="ghost"
+            >
+              Use {environment}
+            </Button>
+          ) : null}
           <Button
-            className={pillClassName}
-            disabled={busy}
+            className={actionClassName}
+            onClick={() => setEditing(true)}
+            type="button"
+            variant="ghost"
+          >
+            Replace
+          </Button>
+          <Button
+            className={actionClassName}
+            disabled={testing}
             onClick={() => {
               void handleTest()
             }}
             type="button"
             variant="ghost"
           >
-            {busy && !confirmingRemove ? 'Testing…' : 'Test'}
+            {testing ? 'Testing…' : 'Test'}
           </Button>
-        ) : null}
-        {shown ? (
           <Button
-            className={cn(pillClassName, 'ml-auto')}
-            disabled={busy}
+            className={`${actionClassName} text-danger hover:text-danger`}
+            disabled={removing}
             onClick={() => setConfirmingRemove(true)}
             type="button"
-            variant="destructive"
+            variant="ghost"
           >
             Remove
           </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
+
       {editing ? (
         <form
           action={action}
           autoComplete="off"
-          className="flex flex-col gap-4 pt-2"
+          className="flex flex-col gap-3 pt-1"
         >
           <input name="environment" type="hidden" value={environment} />
-          <Field>
-            <FieldLabel htmlFor={`${environment}-key-id`}>Key ID</FieldLabel>
-            <InputGroup className="h-11">
-              <InputGroupInput
-                autoComplete="off"
-                className="font-mono"
-                disabled={pending}
-                id={`${environment}-key-id`}
-                name="keyId"
-                placeholder={environment === 'live' ? 'AK…' : 'PK…'}
-                required
-                spellCheck={false}
-              />
-            </InputGroup>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor={`${environment}-secret`}>Secret</FieldLabel>
-            <InputGroup className="h-11">
-              <InputGroupInput
-                autoComplete="off"
-                className="font-mono"
-                disabled={pending}
-                id={`${environment}-secret`}
-                name="secret"
-                required
-                spellCheck={false}
-                type={showsSecret ? 'text' : 'password'}
-              />
-              <InputGroupAddon align="inline-end" className="pr-2">
-                <InputGroupButton
-                  aria-label={showsSecret ? 'Hide secret' : 'Show secret'}
-                  aria-pressed={showsSecret}
-                  onClick={() => setShowsSecret((current) => !current)}
-                  size="icon-sm"
-                  type="button"
-                >
-                  {showsSecret ? (
-                    <EyeOff aria-hidden="true" />
-                  ) : (
-                    <Eye aria-hidden="true" />
-                  )}
-                </InputGroupButton>
-              </InputGroupAddon>
-            </InputGroup>
-          </Field>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Field>
+              <FieldLabel
+                className="font-medium text-muted-foreground"
+                htmlFor={`${environment}-key-id`}
+              >
+                Key ID
+              </FieldLabel>
+              <InputGroup className="h-11">
+                <InputGroupInput
+                  autoComplete="off"
+                  className="font-mono"
+                  disabled={pending}
+                  id={`${environment}-key-id`}
+                  name="keyId"
+                  placeholder={environment === 'live' ? 'AK…' : 'PK…'}
+                  required
+                  spellCheck={false}
+                />
+              </InputGroup>
+            </Field>
+            <Field>
+              <FieldLabel
+                className="font-medium text-muted-foreground"
+                htmlFor={`${environment}-secret`}
+              >
+                Secret
+              </FieldLabel>
+              <InputGroup className="h-11">
+                <InputGroupInput
+                  autoComplete="off"
+                  className="font-mono"
+                  disabled={pending}
+                  id={`${environment}-secret`}
+                  name="secret"
+                  required
+                  spellCheck={false}
+                  type={showsSecret ? 'text' : 'password'}
+                />
+                <InputGroupAddon align="inline-end" className="pr-2">
+                  <InputGroupButton
+                    aria-label={showsSecret ? 'Hide secret' : 'Show secret'}
+                    aria-pressed={showsSecret}
+                    onClick={() => setShowsSecret((current) => !current)}
+                    size="icon-sm"
+                    type="button"
+                  >
+                    {showsSecret ? (
+                      <EyeOff aria-hidden="true" />
+                    ) : (
+                      <Eye aria-hidden="true" />
+                    )}
+                  </InputGroupButton>
+                </InputGroupAddon>
+              </InputGroup>
+            </Field>
+          </div>
           {state.message ? (
             <p className="text-destructive" role="alert">
               {state.message}
             </p>
           ) : null}
-          <Button
-            className={cn(pillClassName, 'self-start')}
-            disabled={pending}
-            type="submit"
-          >
-            {pending ? 'Checking with Alpaca…' : `Save ${environment} keys`}
-          </Button>
+          <div className="flex items-center gap-1 pt-1">
+            <Button
+              className="h-11 rounded-full px-5 text-base"
+              disabled={pending}
+              type="submit"
+            >
+              {pending ? 'Checking with Alpaca…' : `Save ${environment} keys`}
+            </Button>
+            {shown || !active ? (
+              <Button
+                className={actionClassName}
+                disabled={pending}
+                onClick={() => setEditing(false)}
+                type="button"
+                variant="ghost"
+              >
+                Cancel
+              </Button>
+            ) : null}
+          </div>
         </form>
       ) : null}
+
       <RemoveKeyDialog
-        busy={busy}
+        busy={removing}
         environment={environment}
         onConfirm={() => {
           void handleRemove()
@@ -244,15 +282,17 @@ export function AccountKey({
         onOpenChange={setConfirmingRemove}
         open={confirmingRemove}
       />
-    </article>
+    </li>
   )
 }
 
-/** Formats a verification timestamp in UTC so server and client match. */
+const verifiedAtFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+})
+
+/** Formats a verification timestamp as "Nov 10" in UTC so server and client match. */
 function formatVerifiedAt(value: string): string {
-  return new Date(value).toLocaleString('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  })
+  return verifiedAtFormatter.format(new Date(value))
 }

@@ -1,6 +1,5 @@
 'use client'
 
-import { Button } from '@workspace/ui/components/button'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -20,12 +19,7 @@ interface Props {
   credentials: MaskedAlpacaCredential[]
 }
 
-const environments = [
-  { label: 'Paper', value: 'paper' },
-  { label: 'Live', value: 'live' },
-] as const
-
-/** Paper and live Alpaca keys, plus the switch for the account Exchange trades with. */
+/** Paper and live Alpaca keys as one list, including which account Exchange trades with. */
 export function AccountKeys({ activeEnvironment, credentials }: Props) {
   const router = useRouter()
   const [message, setMessage] = useState<string>()
@@ -43,9 +37,7 @@ export function AccountKeys({ activeEnvironment, credentials }: Props) {
     setMessage(result.message)
 
     if (!result.message) {
-      showSuccessToast({
-        title: `Using the ${environment} account`,
-      })
+      showSuccessToast({ title: `Using the ${environment} account` })
     }
 
     router.refresh()
@@ -84,58 +76,28 @@ export function AccountKeys({ activeEnvironment, credentials }: Props) {
   return (
     <section
       aria-labelledby="keys-title"
-      className="flex scroll-mt-28 flex-col gap-6"
+      className="flex max-w-3xl scroll-mt-28 flex-col gap-4"
       id="keys"
     >
       <SectionHeader id="keys-title" title="Alpaca keys">
-        <p className="max-w-2xl text-muted-foreground">
-          Add keys for the account you want to trade. New accounts start on
-          paper; switch to live only after saving valid live keys.
+        <p className="text-muted-foreground">
+          One key pair is enough. Switch to live only once its keys are
+          connected.
         </p>
       </SectionHeader>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 font-medium">Trading with</legend>
-        <div className="flex items-center gap-1">
-          {environments.map((environment) => {
-            const credential = environment.value === 'live' ? live : paper
-
-            return (
-              <Button
-                aria-pressed={activeEnvironment === environment.value}
-                className="h-11 rounded-full px-4 text-base aria-pressed:bg-foreground aria-pressed:text-background"
-                disabled={credential?.status !== 'valid'}
-                key={environment.value}
-                onClick={() => {
-                  if (activeEnvironment === environment.value) {
-                    return
-                  }
-
-                  if (environment.value === 'live') {
-                    setConfirmingLive(true)
-                    return
-                  }
-
-                  void activate('paper')
-                }}
-                type="button"
-                variant="ghost"
-              >
-                {environment.label}
-              </Button>
-            )
-          })}
-        </div>
-      </fieldset>
       {message ? (
         <p className="text-destructive" role="alert">
           {message}
         </p>
       ) : null}
-      <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+      <ul className="flex flex-col divide-y divide-border border-border border-y">
         <AccountKey
           active={activeEnvironment === 'paper'}
           credential={paper}
           environment="paper"
+          onActivate={() => {
+            void activate('paper')
+          }}
           onRemove={() => remove('paper')}
           onTest={() => test('paper')}
         />
@@ -143,10 +105,11 @@ export function AccountKeys({ activeEnvironment, credentials }: Props) {
           active={activeEnvironment === 'live'}
           credential={live}
           environment="live"
+          onActivate={() => setConfirmingLive(true)}
           onRemove={() => remove('live')}
           onTest={() => test('live')}
         />
-      </div>
+      </ul>
       <LiveAccountDialog
         onConfirm={() => {
           setConfirmingLive(false)
