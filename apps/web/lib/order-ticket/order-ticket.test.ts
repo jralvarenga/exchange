@@ -2,15 +2,18 @@ import { describe, expect, test } from 'bun:test'
 
 import { createOrderRequestSchema } from '@/lib/alpaca/schemas'
 import {
-  buildTicketRequest,
   canUseDollars,
-  convertTicketAmount,
   createTicketDraft,
-  estimateTicketValue,
   getTicketOrderTypes,
   reconcileTicket,
   selectTicketAsset,
-} from '@/lib/order-ticket/utils'
+} from '@/lib/order-ticket/draft'
+import { getTicketErrorField } from '@/lib/order-ticket/focus'
+import {
+  convertTicketAmount,
+  estimateTicketValue,
+} from '@/lib/order-ticket/pricing'
+import { buildTicketRequest } from '@/lib/order-ticket/request'
 import type { TicketAsset, TicketDraft } from '@/models/order-ticket/ticket'
 
 const stock: TicketAsset = {
@@ -206,10 +209,10 @@ describe('order ticket request contract', () => {
     expect(request.positionIntent).toBeUndefined()
   })
   test('a different symbol resets prices, units, and strategy, preserving side', () => {
-    const changed = selectTicketAsset(
-      makeDraft({ type: 'limit', side: 'sell', orderClass: 'bracket' }),
-      crypto
-    )
+    const changed = selectTicketAsset({
+      asset: crypto,
+      draft: makeDraft({ type: 'limit', side: 'sell', orderClass: 'bracket' }),
+    })
     expect(changed.asset).toBe(crypto)
     expect(changed.limitPrice).toBe('')
     expect(changed.orderClass).toBe('simple')
@@ -217,17 +220,27 @@ describe('order ticket request contract', () => {
     expect(changed.timeInForce).toBe('gtc')
   })
   test('estimates use entered limit prices and a 100-share contract multiplier', () => {
-    expect(estimateTicketValue(makeDraft(), 205)).toBe(2050)
-    expect(estimateTicketValue(makeDraft({ type: 'limit' }), 205)).toBe(2000)
+    expect(estimateTicketValue({ draft: makeDraft(), price: 205 })).toBe(2050)
     expect(
-      estimateTicketValue(makeDraft({ asset: option, amount: '2' }), 3.5)
+      estimateTicketValue({ draft: makeDraft({ type: 'limit' }), price: 205 })
+    ).toBe(2000)
+    expect(
+      estimateTicketValue({
+        draft: makeDraft({ asset: option, amount: '2' }),
+        price: 3.5,
+      })
     ).toBe(700)
-    expect(estimateTicketValue(makeDraft({ amount: '' }), 205)).toBeUndefined()
-    expect(estimateTicketValue(makeDraft())).toBeUndefined()
+    expect(
+      estimateTicketValue({ draft: makeDraft({ amount: '' }), price: 205 })
+    ).toBeUndefined()
+    expect(estimateTicketValue({ draft: makeDraft() })).toBeUndefined()
   })
   test('limit estimates fall back to the quote until a limit price is entered', () => {
     expect(
-      estimateTicketValue(makeDraft({ type: 'limit', limitPrice: '' }), 205)
+      estimateTicketValue({
+        draft: makeDraft({ type: 'limit', limitPrice: '' }),
+        price: 205,
+      })
     ).toBe(2050)
   })
   test('switching units converts the size at the reference price', () => {
@@ -258,5 +271,36 @@ describe('order ticket request contract', () => {
       })
     ).toBe('2')
     expect(convertTicketAmount({ draft: shares, next: dollars })).toBe('')
+  })
+  test('dollars convert to crypto units with up to 9 decimals', () => {
+    const dollars = reconcileTicket(
+      makeDraft({ asset: crypto, amount: '5', quantityMode: 'notional' })
+    )
+    const units = { ...dollars, quantityMode: 'qty' as const }
+    expect(
+      convertTicketAmount({ draft: dollars, next: units, price: 100_000 })
+    ).toBe('0.00005')
+  })
+  test('switching away from a priced type drops its hidden prices', () => {
+    const market = reconcileTicket(
+      makeDraft({ type: 'market', limitPrice: '50', stopPrice: '40' })
+    )
+    expect(market.limitPrice).toBe('')
+    expect(market.stopPrice).toBe('')
+    const limit = reconcileTicket(
+      makeDraft({ type: 'limit', limitPrice: '50' })
+    )
+    expect(limit.limitPrice).toBe('50')
+  })
+  test('OCO limit price errors point at the take-profit field', () => {
+    expect(
+      getTicketErrorField({ field: 'limitPrice', orderClass: 'oco' })
+    ).toBe('takeProfitLimitPrice')
+    expect(
+      getTicketErrorField({ field: 'limitPrice', orderClass: 'simple' })
+    ).toBe('limitPrice')
+    expect(
+      getTicketErrorField({ field: 'trailPrice', orderClass: 'simple' })
+    ).toBe('trailPercent')
   })
 })

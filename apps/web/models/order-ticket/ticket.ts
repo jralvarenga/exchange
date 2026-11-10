@@ -44,4 +44,6 @@ export type TicketConversion = {
   mode: AlpacaQuantityMode
   previousAmount: string
   previousMode: AlpacaQuantityMode
+  /** The asset the sizes were priced for; another asset never reuses them. */
+  symbol?: string
 }

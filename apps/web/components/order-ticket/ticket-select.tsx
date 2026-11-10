@@ -9,6 +9,8 @@ import {
 import { useId } from 'react'
 
 interface Props<T extends string> {
+  /** Explains why the options are limited, below the control. */
+  description?: string
   error?: string
   label: string
   name: string
@@ -19,6 +21,7 @@ interface Props<T extends string> {
 
 /** Renders a labeled selection with its inline validation message. */
 export function TicketSelect<T extends string>({
+  description,
   error,
   label,
   name,
@@ -29,7 +32,9 @@ export function TicketSelect<T extends string>({
   const id = useId()
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} id={`${id}-label`}>
+        {label}
+      </Label>
       <Select
         items={options}
         onValueChange={(next) => {
@@ -40,6 +45,7 @@ export function TicketSelect<T extends string>({
         <SelectTrigger
           aria-describedby={error ? `${id}-error` : undefined}
           aria-invalid={Boolean(error)}
+          aria-labelledby={`${id}-label`}
           className="w-full scroll-mt-24 scroll-mb-32"
           data-order-field={name}
           id={id}
@@ -54,6 +60,9 @@ export function TicketSelect<T extends string>({
           ))}
         </SelectContent>
       </Select>
+      {description ? (
+        <p className="text-muted-foreground">{description}</p>
+      ) : null}
       {error ? (
         <p className="text-destructive" id={`${id}-error`}>
           {error}

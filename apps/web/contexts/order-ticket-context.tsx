@@ -1,9 +1,11 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import {
   createContext,
   type ReactNode,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from 'react'
@@ -16,13 +18,14 @@ import {
   createTicketDraft,
   reconcileTicket,
   selectTicketAsset,
-} from '@/lib/order-ticket/utils'
+} from '@/lib/order-ticket/draft'
 import type {
   OpenTicketOptions,
   TicketDraft,
 } from '@/models/order-ticket/ticket'
 
-interface TicketContextValue {
+export interface TicketContextValue {
+  clearOrderMessages: () => void
   closeTicket: () => void
   draft: TicketDraft
   environment: 'live' | 'paper'
@@ -31,7 +34,8 @@ interface TicketContextValue {
   isSubmitting: boolean
   orderError: string | null
   orderSuccess: string | null
-  submitOrder: (request: CreateOrderRequest) => Promise<void>
+  /** Resolves true once the broker accepts the order. */
+  submitOrder: (request: CreateOrderRequest) => Promise<boolean>
   openTicket: (options?: OpenTicketOptions) => Promise<void>
   updateDraft: (patch: Partial<TicketDraft>) => void
 }
@@ -54,18 +58,33 @@ export function OrderTicketProvider({ children, environment }: Props) {
   const [orderSuccess, setOrderSuccess] = useState<string | null>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
   const resolution = useRef<AbortController | null>(null)
+  // One idempotency key per draft, so a retried request can't place a second order.
+  const orderKey = useRef<string | null>(null)
+  const pathname = usePathname()
+  const inline = pathname === '/trade'
+
+  // The Trade page shows the ticket inline, so a floating copy would duplicate it.
+  useEffect(() => {
+    if (inline) setIsOpen(false)
+  }, [inline])
+
+  /** Hides the last order's success or failure message. */
+  function clearOrderMessages(): void {
+    setOrderError(null)
+    setOrderSuccess(null)
+  }
 
   /** Applies dependent asset constraints together with a user edit. */
   function updateDraft(patch: Partial<TicketDraft>): void {
     if (submitting.current) return
     resolution.current?.abort()
     setIsResolving(false)
-    setOrderError(null)
-    setOrderSuccess(null)
+    clearOrderMessages()
+    orderKey.current = null
     setDraft((current) => {
       const selected =
         patch.asset !== undefined
-          ? selectTicketAsset(current, patch.asset)
+          ? selectTicketAsset({ asset: patch.asset, draft: current })
           : current
       const next = reconcileTicket({ ...selected, ...patch })
       // A unit switch without a converted amount would misread the old size.
@@ -80,17 +99,19 @@ export function OrderTicketProvider({ children, environment }: Props) {
   async function openTicket(options: OpenTicketOptions = {}): Promise<void> {
     if (submitting.current) return
     resolution.current?.abort()
-    if (!isOpen)
+    if (!isOpen && !inline)
       returnFocus.current =
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null
-    setIsOpen(true)
+    if (!inline) setIsOpen(true)
     setIsResolving(false)
+    clearOrderMessages()
+    orderKey.current = null
     setDraft((current) =>
       reconcileTicket({
         ...(options.asset
-          ? selectTicketAsset(current, options.asset)
+          ? selectTicketAsset({ asset: options.asset, draft: current })
           : current),
         ...(options.asset ? { asset: options.asset } : {}),
         ...(options.side
@@ -104,10 +125,16 @@ export function OrderTicketProvider({ children, environment }: Props) {
     )
     if (!options.assetIdentifier || options.asset) return
     const identifier = options.assetIdentifier.trim().toLowerCase()
+    // Reopening on the asset already in the ticket keeps the user's draft.
+    if (
+      draft.asset?.id.toLowerCase() === identifier ||
+      draft.asset?.symbol.toLowerCase() === identifier
+    )
+      return
     const controller = new AbortController()
     resolution.current = controller
     setIsResolving(true)
-    setDraft((current) => selectTicketAsset(current, null))
+    setDraft((current) => selectTicketAsset({ asset: null, draft: current }))
     try {
       const result = await searchAssets({
         query: identifier,
@@ -119,7 +146,8 @@ export function OrderTicketProvider({ children, environment }: Props) {
           candidate.id.toLowerCase() === identifier ||
           candidate.symbol.toLowerCase() === identifier
       )
-      if (asset) setDraft((current) => selectTicketAsset(current, asset))
+      if (asset)
+        setDraft((current) => selectTicketAsset({ asset, draft: current }))
     } catch {
       // Keep the symbol picker available when lookup fails.
     } finally {
@@ -136,26 +164,32 @@ export function OrderTicketProvider({ children, environment }: Props) {
   }
 
   /** Serializes submissions across responsive remounts and preserves broker errors. */
-  async function submitOrder(request: CreateOrderRequest): Promise<void> {
-    if (submitting.current) return
+  async function submitOrder(request: CreateOrderRequest): Promise<boolean> {
+    if (submitting.current) return false
     submitting.current = true
-    setOrderError(null)
-    setOrderSuccess(null)
+    clearOrderMessages()
+    orderKey.current ??= crypto.randomUUID()
     try {
-      await createOrder.mutateAsync(request)
+      await createOrder.mutateAsync({
+        ...request,
+        clientOrderId: orderKey.current,
+      })
       const message = `${request.side === 'buy' ? 'Buy' : 'Sell'} order submitted for ${request.symbol}`
       setOrderSuccess(message)
       showSuccessToast({
         title: message,
         description: `Sent to your ${environment} account.`,
       })
+      orderKey.current = null
       setDraft((current) => ({ ...current, amount: '' }))
+      return true
     } catch (error) {
       setOrderError(
         error instanceof Error
           ? error.message
           : 'Unable to place the order. Try again.'
       )
+      return false
     } finally {
       submitting.current = false
     }
@@ -164,6 +198,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
   return (
     <OrderTicketContext
       value={{
+        clearOrderMessages,
         closeTicket,
         draft,
         environment,

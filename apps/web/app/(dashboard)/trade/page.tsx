@@ -29,7 +29,7 @@ export default function Trade() {
         aria-label="Order ticket"
         className="w-full max-w-xl xl:w-112 xl:shrink-0 xl:border-l xl:pl-8"
       >
-        <OrderTicket />
+        <OrderTicket stickyFooter={false} />
       </section>
     </div>
   )

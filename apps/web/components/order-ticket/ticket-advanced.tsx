@@ -46,6 +46,8 @@ export function TicketAdvanced({ draft, errors, onChange }: Props) {
     ...draft,
     assetClass: draft.asset?.assetClass,
   })
+  // A single allowed duration means the ticket replaced the user's choice.
+  const onlyTime = times.length === 1 ? times[0] : undefined
   const classes = getAllowedOrderClasses(draft.asset?.assetClass)
   const advanced = draft.orderClass !== 'simple'
   const fractional = isFractionalQuantity(draft.amount, draft.quantityMode)
@@ -57,6 +59,11 @@ export function TicketAdvanced({ draft, errors, onChange }: Props) {
   return (
     <div className="flex flex-col gap-6 pt-5">
       <TicketSelect
+        description={
+          onlyTime
+            ? `This order can only use ${timeLabels[onlyTime]}.`
+            : undefined
+        }
         name="timeInForce"
         error={errors.timeInForce}
         label="Time in force"
@@ -67,9 +74,12 @@ export function TicketAdvanced({ draft, errors, onChange }: Props) {
       {draft.asset?.assetClass === 'us_equity' ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="ticket-extended-hours">Extended hours</Label>
+            <Label htmlFor="ticket-extended-hours" id="ticket-extended-label">
+              Extended hours
+            </Label>
             <Checkbox
               aria-describedby="ticket-extended-help"
+              aria-labelledby="ticket-extended-label"
               checked={draft.extendedHours}
               data-order-field="extendedHours"
               disabled={!canExtend}

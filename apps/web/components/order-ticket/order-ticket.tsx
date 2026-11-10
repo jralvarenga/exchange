@@ -27,15 +27,17 @@ import { useMarketClock } from '@/hooks/use-market-clock'
 import { useTicketQuote } from '@/hooks/use-ticket-quote'
 import { createOrderRequestSchema } from '@/lib/alpaca/schemas'
 import {
-  buildTicketRequest,
   canUseDollars,
-  convertTicketAmount,
-  estimateTicketValue,
-  focusTicketField,
-  formatTicketMoney,
   getTicketOrderTypes,
   reconcileTicket,
-} from '@/lib/order-ticket/utils'
+} from '@/lib/order-ticket/draft'
+import { focusTicketField } from '@/lib/order-ticket/focus'
+import {
+  convertTicketAmount,
+  estimateTicketValue,
+  formatTicketMoney,
+} from '@/lib/order-ticket/pricing'
+import { buildTicketRequest } from '@/lib/order-ticket/request'
 import type {
   TicketConversion,
   TicketDraft,
@@ -57,9 +59,15 @@ const typeDescriptions = {
     'Follows the market, then triggers when it reverses by your trail.',
 }
 
+interface Props {
+  /** Pins the submit bar to the bottom of a scrolling panel. Off for the inline Trade page. */
+  stickyFooter?: boolean
+}
+
 /** Renders the same asset-aware order form in the dock, sheet, drawer, and Trade page. */
-export function OrderTicket() {
+export function OrderTicket({ stickyFooter = true }: Props) {
   const {
+    clearOrderMessages,
     draft,
     environment,
     isResolving,
@@ -78,16 +86,16 @@ export function OrderTicket() {
   const request = buildTicketRequest(draft)
   const result = createOrderRequestSchema.safeParse(request)
   const errors: Record<string, string> = {}
-  if (attempted && !orderSuccess && !result.success) {
+  if (attempted && !result.success) {
     for (const issue of result.error.issues)
       errors[String(issue.path[0])] ??= issue.message
   }
-  if (attempted && !orderSuccess && !draft.asset)
+  if (attempted && !draft.asset)
     errors.symbol = 'Select an asset to place an order.'
   const quote =
     draft.side === 'buy' ? snapshot.data?.askPrice : snapshot.data?.bidPrice
   const price = quote && quote > 0 ? quote : snapshot.data?.lastPrice
-  const estimated = estimateTicketValue(draft, price)
+  const estimated = estimateTicketValue({ draft, price })
 
   /** Applies an edit, converting the size when it switches between shares and dollars. */
   function changeDraft(patch: Partial<TicketDraft>): void {
@@ -103,6 +111,7 @@ export function OrderTicket() {
     // Switching straight back restores the exact size instead of a rounded one.
     const amount =
       last &&
+      last.symbol === draft.asset?.symbol &&
       last.mode === draft.quantityMode &&
       last.amount === draft.amount &&
       last.previousMode === next.quantityMode
@@ -113,6 +122,7 @@ export function OrderTicket() {
       mode: next.quantityMode,
       previousAmount: draft.amount,
       previousMode: draft.quantityMode,
+      symbol: draft.asset?.symbol,
     }
     updateDraft({ ...patch, amount })
   }
@@ -157,6 +167,7 @@ export function OrderTicket() {
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
+        clearOrderMessages()
         setAttempted(true)
         if (!draft.asset || !result.success) {
           if (
@@ -181,11 +192,18 @@ export function OrderTicket() {
           // Wait a frame so a just-opened Advanced panel can take focus.
           if (first)
             requestAnimationFrame(() =>
-              focusTicketField({ field: first, form })
+              focusTicketField({
+                field: first,
+                form,
+                orderClass: draft.orderClass,
+              })
             )
           return
         }
-        void submitOrder(result.data)
+        void submitOrder(result.data).then((accepted) => {
+          // The cleared amount of a placed order is not a mistake to flag.
+          if (accepted) setAttempted(false)
+        })
       }}
     >
       <fieldset
@@ -500,7 +518,13 @@ export function OrderTicket() {
             {orderSuccess}
           </p>
         ) : null}
-        <div className="sticky bottom-0 mt-8 flex flex-col gap-3 bg-background pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-10 before:bg-linear-to-t before:from-background before:to-transparent">
+        <div
+          className={
+            stickyFooter
+              ? 'sticky bottom-0 mt-8 flex flex-col gap-3 bg-background pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-10 before:bg-linear-to-t before:from-background before:to-transparent'
+              : 'mt-8 flex flex-col gap-3'
+          }
+        >
           <Button
             className="w-full"
             disabled={isResolving || !draft.asset || isSubmitting || blocked}
