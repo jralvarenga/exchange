@@ -1,12 +1,12 @@
-import { Button } from '@workspace/ui/components/button'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { Search, ShoppingBasket } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import { NavbarBackdrop } from '@/components/navbar-backdrop'
+import { TicketTrigger } from '@/components/order-ticket/ticket-trigger'
 import { UserNav } from '@/components/user-nav'
 import type { ShellUser } from '@/lib/navigation'
 
@@ -29,10 +29,7 @@ export function Navbar({ user }: Props) {
           </InputGroup>
         </search>
         <div className="pointer-events-auto flex items-center gap-2">
-          <Button>
-            <ShoppingBasket />
-            Buy / Sell
-          </Button>
+          <TicketTrigger />
 
           <div className="shrink-0">
             <UserNav user={user} />

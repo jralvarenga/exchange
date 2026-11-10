@@ -25,7 +25,7 @@ export function Balance() {
       <h2 className="sr-only" id="balance-title">
         Balance
       </h2>
-      <div className="flex flex-col gap-6 px-4 pt-6 sm:px-6 md:flex-row md:items-end md:justify-between md:pt-12 md:pl-30">
+      <div className="flex @5xl:flex-row flex-col @5xl:items-end @5xl:justify-between gap-6 px-4 pt-6 sm:px-6 md:pt-12 md:pl-30">
         <BalanceDetails interval={interval} />
         <BalanceIntervalSelector onChange={setInterval} value={interval} />
       </div>
