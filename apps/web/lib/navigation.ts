@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { House, PiggyBank, Settings, Wallet } from 'lucide-react'
+import { CircleUser, House, Wallet } from 'lucide-react'
 
 export type NavItem = {
   href: string
@@ -24,14 +24,9 @@ export const navItems: NavItem[] = [
     title: 'Portfolio',
   },
   {
-    href: '/funds-wallet',
-    icon: PiggyBank,
-    title: 'Funds & Wallet',
-  },
-  {
-    href: '/settings',
-    icon: Settings,
-    title: 'Settings',
+    href: '/account',
+    icon: CircleUser,
+    title: 'Account',
   },
 ]
 

@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      { destination: '/account#keys', permanent: true, source: '/settings' },
+      {
+        destination: '/account#funding',
+        permanent: true,
+        source: '/funds-wallet',
+      },
+    ]
+  },
   serverExternalPackages: ['pg'],
   transpilePackages: ['@workspace/auth', '@workspace/db', '@workspace/ui'],
 }

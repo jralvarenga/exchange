@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import { LogOut, Settings } from 'lucide-react'
+import { CircleUser, LogOut } from 'lucide-react'
 import Link from 'next/link'
 
 import { useSignOut } from '@/hooks/use-sign-out'
@@ -20,7 +20,7 @@ interface Props {
   user: ShellUser
 }
 
-/** Shows the signed-in account with its settings and sign-out actions. */
+/** Shows the signed-in account with its account and sign-out actions. */
 export function UserNav({ user }: Props) {
   const { pending, signOut } = useSignOut()
 
@@ -41,9 +41,9 @@ export function UserNav({ user }: Props) {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem render={<Link href="/settings" />}>
-            <Settings aria-hidden="true" />
-            Settings
+          <DropdownMenuItem render={<Link href="/account" />}>
+            <CircleUser aria-hidden="true" />
+            Account
           </DropdownMenuItem>
           <DropdownMenuItem
             disabled={pending}
