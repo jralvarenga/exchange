@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 
 import { TicketContractStatus } from '@/components/order-ticket/ticket-contract-status'
 import { TicketPills } from '@/components/order-ticket/ticket-pills'
@@ -35,8 +35,7 @@ export function TicketContract({
   )
   const [seenSymbol, setSeenSymbol] = useState(contract?.symbol)
   const [seenUnderlying, setSeenUnderlying] = useState(underlying.symbol)
-  const onClearRef = useRef(onClear)
-  onClearRef.current = onClear
+  const clearContract = useEffectEvent(onClear)
   if (seenUnderlying !== underlying.symbol) {
     setSeenUnderlying(underlying.symbol)
     setSeenSymbol(contract?.symbol)
@@ -75,7 +74,7 @@ export function TicketContract({
   useEffect(() => {
     if (!sameUnderlying || !expirationList || !contract?.expirationDate) return
     if (expirationList.split(',').includes(contract.expirationDate)) return
-    onClearRef.current()
+    clearContract()
   }, [sameUnderlying, expirationList, contract?.expirationDate])
   if (!sameUnderlying) {
     return <TicketContractStatus status={chain.isError ? 'error' : 'loading'} />
