@@ -4,16 +4,23 @@ import { cn } from '@workspace/ui/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
+import { useIsTyping } from '@/hooks/use-is-typing'
 import { isNavItemActive, navItems } from '@/lib/navigation'
 
 /** Adapts the desktop navigation capsule into a mobile bottom tab bar that fades the page out behind it. */
 export function MobileTabBar() {
   const pathname = usePathname()
+  // The keyboard covers the bottom of the screen while typing, and the bar
+  // would sit on top of the focused field.
+  const typing = useIsTyping()
 
   return (
     <nav
       aria-label="Primary"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-linear-to-t from-background via-background/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] md:hidden"
+      className={cn(
+        'pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-linear-to-t from-background via-background/80 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))] transition-[opacity,translate,visibility] duration-300 ease-[cubic-bezier(0.19,1,0.22,1)] motion-reduce:transition-none md:hidden',
+        typing && 'invisible translate-y-full opacity-0'
+      )}
     >
       <ul className="surface-floating pointer-events-auto mx-auto flex w-fit items-center gap-2 rounded-full p-2">
         {navItems.map((item) => {

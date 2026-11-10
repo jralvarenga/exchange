@@ -31,7 +31,9 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       className={cn(
-        'font-sans antialiased',
+        // Focused fields and anchors scroll clear of the floating navbar and
+        // the mobile tab bar.
+        'scroll-pt-24 scroll-pb-32 font-sans antialiased md:scroll-pb-8',
         fontMono.variable,
         'font-sans',
         geist.variable
