@@ -1,19 +1,26 @@
 import { describe, expect, test } from 'bun:test'
 
+import type { OptionContract } from '@/lib/alpaca/market-schemas'
 import { createOrderRequestSchema } from '@/lib/alpaca/schemas'
 import {
   canUseDollars,
   createTicketDraft,
   getTicketOrderTypes,
+  getTicketUnderlying,
+  openTicketDraft,
   reconcileTicket,
   selectTicketAsset,
+  toOptionTicketAsset,
 } from '@/lib/order-ticket/draft'
 import { getTicketErrorField } from '@/lib/order-ticket/focus'
 import {
   convertTicketAmount,
   estimateTicketValue,
 } from '@/lib/order-ticket/pricing'
-import { buildTicketRequest } from '@/lib/order-ticket/request'
+import {
+  buildTicketRequest,
+  isSameTicketSubmission,
+} from '@/lib/order-ticket/request'
 import type { TicketAsset, TicketDraft } from '@/models/order-ticket/ticket'
 
 const stock: TicketAsset = {
@@ -280,6 +287,69 @@ describe('order ticket request contract', () => {
     expect(
       convertTicketAmount({ draft: dollars, next: units, price: 100_000 })
     ).toBe('0.00005')
+    const tiny = reconcileTicket(
+      makeDraft({ asset: crypto, amount: '0.05', quantityMode: 'notional' })
+    )
+    expect(
+      convertTicketAmount({
+        draft: tiny,
+        next: { ...tiny, quantityMode: 'qty' },
+        price: 100_000,
+      })
+    ).toBe('0.0000005')
+    const repeating = reconcileTicket(
+      makeDraft({ asset: crypto, amount: '1', quantityMode: 'notional' })
+    )
+    expect(
+      convertTicketAmount({
+        draft: repeating,
+        next: { ...repeating, quantityMode: 'qty' },
+        price: 3,
+      })
+    ).toBe('0.333333333')
+  })
+  test('reopening the same symbol keeps the draft and its order', () => {
+    const current = makeDraft({ amount: '4', limitPrice: '12', type: 'limit' })
+    const opened = openTicketDraft({
+      current,
+      options: { assetIdentifier: 'AAPL', side: 'buy' },
+    })
+    expect(opened.needsLookup).toBe(false)
+    expect(opened.draft).toBe(current)
+    expect(isSameTicketSubmission({ current, next: opened.draft })).toBe(true)
+    const changed = openTicketDraft({
+      current,
+      options: { assetIdentifier: 'MSFT' },
+    })
+    expect(changed.needsLookup).toBe(true)
+    expect(changed.draft.asset).toBeNull()
+    expect(isSameTicketSubmission({ current, next: changed.draft })).toBe(false)
+  })
+  test('an option contract keeps the stock it is written on', () => {
+    const contract: OptionContract = {
+      expirationDate: '2026-12-18',
+      strike: 200,
+      symbol: 'AAPL1261218C00200000',
+      tradable: true,
+      type: 'call',
+    }
+    const asset = toOptionTicketAsset({
+      contract,
+      underlying: {
+        assetClass: 'us_equity',
+        exchange: stock.exchange,
+        fractionable: stock.fractionable,
+        id: stock.id,
+        name: stock.name,
+        symbol: stock.symbol,
+      },
+    })
+    expect(asset.assetClass).toBe('us_option')
+    expect(asset.symbol).toBe('AAPL1261218C00200000')
+    expect(asset.name).toBe('AAPL Dec 18, 2026 200 call')
+    expect(asset.expirationDate).toBe('2026-12-18')
+    expect(getTicketUnderlying(asset)?.symbol).toBe('AAPL')
+    expect(getTicketUnderlying(stock)?.symbol).toBe('AAPL')
   })
   test('switching away from a priced type drops its hidden prices', () => {
     const market = reconcileTicket(

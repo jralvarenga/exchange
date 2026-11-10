@@ -192,7 +192,7 @@
   );
 
   @supports (animation-timeline: scroll()) {
-    animation: scroll-fade-top linear both;
+    animation: scroll-fade-top 1ms linear both;
     animation-timeline: scroll(self);
     animation-range: 0 4rem;
   }

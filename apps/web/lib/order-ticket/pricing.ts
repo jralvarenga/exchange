@@ -62,11 +62,20 @@ export function convertTicketAmount({
   const shares = amount / reference
   const fractional =
     next.asset?.assetClass === 'crypto' || Boolean(next.asset?.fractionable)
-  // Alpaca accepts up to 9 decimals, which keeps high-priced crypto exact.
-  const rounded = fractional
-    ? Number((Math.floor(shares * 1e9) / 1e9).toFixed(9))
-    : Math.floor(shares)
-  return rounded > 0 ? String(rounded) : ''
+  if (!fractional) {
+    const whole = Math.floor(shares)
+    return whole > 0 ? String(whole) : ''
+  }
+  // Alpaca accepts up to 9 decimals. Keep a plain decimal so values below
+  // 0.000001 are not rejected as scientific notation.
+  return formatFractionalShares(shares)
+}
+
+/** Floors a unit quantity to 9 decimals and prints it without an exponent. */
+function formatFractionalShares(shares: number): string {
+  const truncated = Math.floor(shares * 1e9) / 1e9
+  if (!(truncated > 0)) return ''
+  return truncated.toFixed(9).replace(/\.?0+$/u, '')
 }
 
 /** Formats a known dollar estimate while keeping unavailable data explicit. */

@@ -111,6 +111,11 @@ export function getOptionChainQueryKey(underlying: string, expiration = '') {
   return ['alpaca', 'options', 'chain', underlying, expiration] as const
 }
 
+/** Returns the cache key for one option contract's quote. */
+export function getOptionSnapshotQueryKey(symbol: string) {
+  return ['alpaca', 'options', 'snapshot', symbol] as const
+}
+
 /** Returns the cache key for corporate actions, optionally for one symbol. */
 export function getCorporateActionsQueryKey(symbol = '') {
   return ['alpaca', 'corporate-actions', symbol] as const

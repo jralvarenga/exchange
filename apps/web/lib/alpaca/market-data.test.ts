@@ -4,9 +4,8 @@ mock.module('server-only', () => ({}))
 
 const { describe, expect, test } = await import('bun:test')
 const { AlpacaApiError, toOptionalNumber } = await import('./client')
-const { getMarketSnapshot, getOptionChain, getOrderbook } = await import(
-  './market-data'
-)
+const { getMarketSnapshot, getOptionChain, getOptionSnapshot, getOrderbook } =
+  await import('./market-data')
 
 interface ClientOptions {
   fetcher: typeof fetch
@@ -162,6 +161,47 @@ describe('getMarketSnapshot', () => {
     expect(paths).toEqual(['/v2/stocks/AAPL/snapshot'])
     expect(snapshot.symbol).toBe('AAPL')
     expect(snapshot.lastPrice).toBe(10)
+  })
+})
+
+describe('getOptionSnapshot', () => {
+  test('loads one contract, including an adjusted root, without the chain', async () => {
+    const urls: URL[] = []
+    const snapshot = await getOptionSnapshot({
+      ...withFetcher(async (input) => {
+        const url = requestUrl(input)
+        urls.push(url)
+        return jsonResponse({
+          snapshots: {
+            AAPL1260116C00150000: {
+              latestQuote: quote(1.25),
+              latestTrade: { p: 1.2, s: 1, t: '2026-10-31T00:00:00Z' },
+            },
+          },
+        })
+      }),
+      symbol: 'aapl1260116c00150000',
+    })
+
+    expect(urls).toHaveLength(1)
+    expect(urls[0]?.pathname).toBe('/v1beta1/options/snapshots')
+    expect(urls[0]?.searchParams.get('symbols')).toBe('AAPL1260116C00150000')
+    expect(urls[0]?.searchParams.get('feed')).toBe('indicative')
+    expect(snapshot.symbol).toBe('AAPL1260116C00150000')
+    expect(snapshot.askPrice).toBe(1.25)
+    expect(snapshot.lastPrice).toBe(1.2)
+  })
+
+  test('reports a missing contract quote instead of an empty price', async () => {
+    const snapshot = getOptionSnapshot({
+      ...withFetcher(async () => jsonResponse({ snapshots: {} })),
+      symbol: 'AAPL1260116C00150000',
+    })
+
+    await expect(snapshot).rejects.toMatchObject({
+      message: 'Option quote was not found.',
+      status: 404,
+    })
   })
 })
 

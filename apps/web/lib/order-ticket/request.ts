@@ -1,6 +1,11 @@
 import type { CreateOrderRequest } from '@/lib/alpaca/schemas'
 import type { TicketDraft } from '@/models/order-ticket/ticket'
 
+interface CompareTicketSubmissionsOptions {
+  current: TicketDraft
+  next: TicketDraft
+}
+
 /** Builds a clean request, excluding values belonging to hidden controls. */
 export function buildTicketRequest(draft: TicketDraft): CreateOrderRequest {
   const advanced = draft.orderClass !== 'simple'
@@ -45,4 +50,24 @@ export function buildTicketRequest(draft: TicketDraft): CreateOrderRequest {
         }
       : {}),
   }
+}
+
+/**
+ * Reports whether two drafts would place the same order. A retry can reuse
+ * its client order ID only while this stays true.
+ */
+export function isSameTicketSubmission({
+  current,
+  next,
+}: CompareTicketSubmissionsOptions): boolean {
+  const left = buildTicketRequest(current)
+  const right = buildTicketRequest(next)
+  const fields = new Set<keyof CreateOrderRequest>([
+    ...Object.keys(left),
+    ...Object.keys(right),
+  ] as (keyof CreateOrderRequest)[])
+  for (const field of fields) {
+    if (left[field] !== right[field]) return false
+  }
+  return true
 }

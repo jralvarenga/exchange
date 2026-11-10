@@ -30,6 +30,12 @@ export function TicketSelect<T extends string>({
   value,
 }: Props<T>) {
   const id = useId()
+  const describedBy = [
+    description ? `${id}-description` : undefined,
+    error ? `${id}-error` : undefined,
+  ]
+    .filter((item) => item !== undefined)
+    .join(' ')
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id} id={`${id}-label`}>
@@ -43,7 +49,7 @@ export function TicketSelect<T extends string>({
         value={value}
       >
         <SelectTrigger
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={describedBy || undefined}
           aria-invalid={Boolean(error)}
           aria-labelledby={`${id}-label`}
           className="w-full scroll-mt-24 scroll-mb-32"
@@ -61,7 +67,9 @@ export function TicketSelect<T extends string>({
         </SelectContent>
       </Select>
       {description ? (
-        <p className="text-muted-foreground">{description}</p>
+        <p className="text-muted-foreground" id={`${id}-description`}>
+          {description}
+        </p>
       ) : null}
       {error ? (
         <p className="text-destructive" id={`${id}-error`}>

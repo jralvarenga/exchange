@@ -27,6 +27,7 @@ export function TicketPills<T extends string>({
           key={option.value}
           onClick={() => onChange(option.value)}
           type="button"
+          className="min-h-11 px-3 text-base"
           variant={value === option.value ? 'secondary' : 'ghost'}
         >
           {option.label}

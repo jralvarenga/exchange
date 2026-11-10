@@ -13,11 +13,12 @@ import {
   Clock3,
   ShieldCheck,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { TextMorph } from 'torph/react'
 
 import { AssetCombobox } from '@/components/assets/asset-combobox'
 import { TicketAdvanced } from '@/components/order-ticket/ticket-advanced'
+import { TicketContract } from '@/components/order-ticket/ticket-contract'
 import { TicketField } from '@/components/order-ticket/ticket-field'
 import { TicketPills } from '@/components/order-ticket/ticket-pills'
 import { TicketSelect } from '@/components/order-ticket/ticket-select'
@@ -29,6 +30,7 @@ import { createOrderRequestSchema } from '@/lib/alpaca/schemas'
 import {
   canUseDollars,
   getTicketOrderTypes,
+  getTicketUnderlying,
   reconcileTicket,
 } from '@/lib/order-ticket/draft'
 import { focusTicketField } from '@/lib/order-ticket/focus'
@@ -82,6 +84,15 @@ export function OrderTicket({ stickyFooter = true }: Props) {
   const clock = useMarketClock()
   const [attempted, setAttempted] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [preferOption, setPreferOption] = useState(false)
+  const underlying = useMemo(
+    () => getTicketUnderlying(draft.asset),
+    [draft.asset]
+  )
+  const optionMode =
+    draft.asset?.assetClass === 'us_option' ||
+    (preferOption && underlying?.assetClass === 'us_equity')
+  const choosingContract = optionMode && draft.asset?.assetClass !== 'us_option'
   const conversion = useRef<TicketConversion | null>(null)
   const request = buildTicketRequest(draft)
   const result = createOrderRequestSchema.safeParse(request)
@@ -90,7 +101,9 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     for (const issue of result.error.issues)
       errors[String(issue.path[0])] ??= issue.message
   }
-  if (attempted && !draft.asset)
+  if (attempted && choosingContract)
+    errors.symbol = 'Select an option contract.'
+  else if (attempted && !draft.asset)
     errors.symbol = 'Select an asset to place an order.'
   const quote =
     draft.side === 'buy' ? snapshot.data?.askPrice : snapshot.data?.bidPrice
@@ -126,6 +139,25 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     }
     updateDraft({ ...patch, amount })
   }
+
+  /** Switches between the stock and a contract written on it. */
+  function changeInstrument(next: 'option' | 'shares'): void {
+    if (next === 'option') {
+      setPreferOption(true)
+      return
+    }
+    setPreferOption(false)
+    if (draft.asset?.assetClass === 'us_option' && draft.asset.underlying)
+      updateDraft({ asset: draft.asset.underlying })
+  }
+
+  /** Drops the selected contract while keeping its stock in the ticket. */
+  function clearContract(): void {
+    if (draft.asset?.assetClass !== 'us_option' || !draft.asset.underlying)
+      return
+    setPreferOption(true)
+    updateDraft({ asset: draft.asset.underlying })
+  }
   const power =
     draft.asset?.assetClass === 'us_option'
       ? overview.data?.optionsBuyingPower
@@ -148,6 +180,10 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     overview.data?.tradeSuspendedByUser
   const sideLabel = draft.side === 'buy' ? 'Buy' : 'Sell'
   const environmentLabel = environment === 'paper' ? 'Paper' : 'Live'
+  const tradedName =
+    draft.asset?.assetClass === 'us_option'
+      ? draft.asset.name
+      : (draft.asset?.symbol ?? 'an asset')
   const size =
     draft.quantityMode === 'notional'
       ? formatTicketMoney(Number(draft.amount) || 0)
@@ -169,7 +205,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
         event.preventDefault()
         clearOrderMessages()
         setAttempted(true)
-        if (!draft.asset || !result.success) {
+        if (choosingContract || !draft.asset || !result.success) {
           if (
             advancedErrors ||
             (!result.success &&
@@ -186,9 +222,10 @@ export function OrderTicket({ stickyFooter = true }: Props) {
           )
             setAdvancedOpen(true)
           const form = event.currentTarget
-          const first = draft.asset
-            ? !result.success && String(result.error.issues[0]?.path[0])
-            : 'symbol'
+          const first =
+            !draft.asset || choosingContract
+              ? 'symbol'
+              : !result.success && String(result.error.issues[0]?.path[0])
           // Wait a frame so a just-opened Advanced panel can take focus.
           if (first)
             requestAnimationFrame(() =>
@@ -208,7 +245,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     >
       <fieldset
         className="flex min-w-0 flex-col gap-5 border-0 disabled:opacity-65"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isResolving}
       >
         <legend className="sr-only">Order details</legend>
         <div className="relative isolate flex flex-col gap-4 overflow-hidden border-b pb-5">
@@ -231,23 +268,43 @@ export function OrderTicket({ stickyFooter = true }: Props) {
                     : 'Session unavailable'}
             </span>
           </div>
-          <div data-order-field="symbol">
+          <div className="flex flex-col gap-4" data-order-field="symbol">
             <AssetCombobox
-              onValueChange={(asset) => updateDraft({ asset })}
+              onValueChange={(asset) => {
+                if (asset?.assetClass !== 'us_equity') setPreferOption(false)
+                updateDraft({ asset })
+              }}
               placeholder="Choose a symbol…"
-              value={
-                draft.asset && draft.asset.assetClass !== 'us_option'
-                  ? { ...draft.asset, assetClass: draft.asset.assetClass }
-                  : null
-              }
+              value={underlying}
             />
+            {underlying?.assetClass === 'us_equity' ? (
+              <TicketPills
+                label="Instrument"
+                onChange={changeInstrument}
+                options={[
+                  { label: 'Shares', value: 'shares' },
+                  { label: 'Option', value: 'option' },
+                ]}
+                value={optionMode ? 'option' : 'shares'}
+              />
+            ) : null}
+            {optionMode && underlying ? (
+              <TicketContract
+                contract={
+                  draft.asset?.assetClass === 'us_option' ? draft.asset : null
+                }
+                onClear={clearContract}
+                onSelect={(asset) => updateDraft({ asset })}
+                underlying={underlying}
+              />
+            ) : null}
+            {draft.asset?.assetClass === 'us_option' && !underlying ? (
+              <p className="break-all font-bold">{draft.asset.symbol}</p>
+            ) : null}
+            {errors.symbol ? (
+              <p className="text-destructive">{errors.symbol}</p>
+            ) : null}
           </div>
-          {draft.asset?.assetClass === 'us_option' ? (
-            <p className="break-all font-bold">{draft.asset.symbol}</p>
-          ) : null}
-          {errors.symbol ? (
-            <p className="text-destructive">{errors.symbol}</p>
-          ) : null}
           {isResolving ? (
             <p role="status" className="text-muted-foreground">
               Finding your symbol…
@@ -265,8 +322,10 @@ export function OrderTicket({ stickyFooter = true }: Props) {
             </TextMorph>
             <p className="mt-2 text-muted-foreground tabular-nums">
               {draft.asset
-                ? `${draft.asset.symbol} · ${formatTicketMoney(price)} ${snapshot.isFetching ? 'updating' : 'latest quote'}`
-                : 'Select an asset to get started'}
+                ? `${tradedName} · ${formatTicketMoney(price)} ${snapshot.isFetching ? 'updating' : 'latest quote'}`
+                : choosingContract
+                  ? 'Select a contract to price this order'
+                  : 'Select an asset to get started'}
             </p>
           </div>
         </div>
@@ -526,13 +585,21 @@ export function OrderTicket({ stickyFooter = true }: Props) {
           }
         >
           <Button
-            className="w-full"
-            disabled={isResolving || !draft.asset || isSubmitting || blocked}
+            className="h-auto min-h-11 w-full whitespace-normal py-3"
+            disabled={
+              isResolving ||
+              choosingContract ||
+              !draft.asset ||
+              isSubmitting ||
+              blocked
+            }
             type="submit"
           >
             {isSubmitting
               ? 'Submitting order…'
-              : `${sideLabel} ${size} ${draft.asset?.symbol ?? 'an asset'} · ${environmentLabel}`}
+              : choosingContract
+                ? 'Select a contract'
+                : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
           </Button>
           <p className="text-center text-muted-foreground">
             {environment === 'paper'

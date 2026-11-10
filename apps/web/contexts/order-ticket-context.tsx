@@ -6,6 +6,7 @@ import {
   type ReactNode,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -16,9 +17,11 @@ import type { CreateOrderRequest } from '@/lib/alpaca/schemas'
 import { showSuccessToast } from '@/lib/app-toast'
 import {
   createTicketDraft,
+  openTicketDraft,
   reconcileTicket,
   selectTicketAsset,
 } from '@/lib/order-ticket/draft'
+import { isSameTicketSubmission } from '@/lib/order-ticket/request'
 import type {
   OpenTicketOptions,
   TicketDraft,
@@ -62,6 +65,27 @@ export function OrderTicketProvider({ children, environment }: Props) {
   const orderKey = useRef<string | null>(null)
   const pathname = usePathname()
   const inline = pathname === '/trade'
+  const draftRef = useRef(draft)
+  const environmentRef = useRef(environment)
+  // Handlers read the latest draft. The effect keeps the ref aligned with state.
+  useLayoutEffect(() => {
+    draftRef.current = draft
+  }, [draft])
+  // Drop the previous account's order before paint. The shell stays mounted so
+  // the credentials gate can clear that account's cached queries.
+  useLayoutEffect(() => {
+    if (environmentRef.current === environment) return
+    environmentRef.current = environment
+    resolution.current?.abort()
+    orderKey.current = null
+    const reset = createTicketDraft()
+    draftRef.current = reset
+    setDraft(reset)
+    setIsOpen(false)
+    setIsResolving(false)
+    setOrderError(null)
+    setOrderSuccess(null)
+  }, [environment])
 
   // The Trade page shows the ticket inline, so a floating copy would duplicate it.
   useEffect(() => {
@@ -81,18 +105,9 @@ export function OrderTicketProvider({ children, environment }: Props) {
     setIsResolving(false)
     clearOrderMessages()
     orderKey.current = null
-    setDraft((current) => {
-      const selected =
-        patch.asset !== undefined
-          ? selectTicketAsset({ asset: patch.asset, draft: current })
-          : current
-      const next = reconcileTicket({ ...selected, ...patch })
-      // A unit switch without a converted amount would misread the old size.
-      return current.quantityMode !== next.quantityMode &&
-        patch.amount === undefined
-        ? { ...next, amount: '' }
-        : next
-    })
+    const next = applyDraftPatch({ current: draftRef.current, patch })
+    draftRef.current = next
+    setDraft(next)
   }
 
   /** Opens immediately and resolves a symbol without letting older searches win. */
@@ -105,39 +120,25 @@ export function OrderTicketProvider({ children, environment }: Props) {
           ? document.activeElement
           : null
     if (!inline) setIsOpen(true)
-    setIsResolving(false)
     clearOrderMessages()
-    orderKey.current = null
-    setDraft((current) =>
-      reconcileTicket({
-        ...(options.asset
-          ? selectTicketAsset({ asset: options.asset, draft: current })
-          : current),
-        ...(options.asset ? { asset: options.asset } : {}),
-        ...(options.side
-          ? {
-              side: options.side,
-              positionIntent:
-                options.side === 'buy' ? 'buy_to_open' : 'sell_to_close',
-            }
-          : {}),
-      })
-    )
-    if (!options.assetIdentifier || options.asset) return
-    const identifier = options.assetIdentifier.trim().toLowerCase()
-    // Reopening on the asset already in the ticket keeps the user's draft.
-    if (
-      draft.asset?.id.toLowerCase() === identifier ||
-      draft.asset?.symbol.toLowerCase() === identifier
-    )
+    const current = draftRef.current
+    const opened = openTicketDraft({ current, options })
+    if (!isSameTicketSubmission({ current, next: opened.draft }))
+      orderKey.current = null
+    draftRef.current = opened.draft
+    setDraft(opened.draft)
+    if (!opened.needsLookup) {
+      setIsResolving(false)
       return
+    }
+    const query = options.assetIdentifier?.trim() ?? ''
+    const identifier = query.toLowerCase()
     const controller = new AbortController()
     resolution.current = controller
     setIsResolving(true)
-    setDraft((current) => selectTicketAsset({ asset: null, draft: current }))
     try {
       const result = await searchAssets({
-        query: identifier,
+        query,
         signal: controller.signal,
       })
       if (controller.signal.aborted) return
@@ -146,8 +147,16 @@ export function OrderTicketProvider({ children, environment }: Props) {
           candidate.id.toLowerCase() === identifier ||
           candidate.symbol.toLowerCase() === identifier
       )
-      if (asset)
-        setDraft((current) => selectTicketAsset({ asset, draft: current }))
+      if (asset) {
+        const next = selectTicketAsset({
+          asset,
+          draft: draftRef.current,
+        })
+        if (!isSameTicketSubmission({ current: draftRef.current, next }))
+          orderKey.current = null
+        draftRef.current = next
+        setDraft(next)
+      }
     } catch {
       // Keep the symbol picker available when lookup fails.
     } finally {
@@ -181,7 +190,9 @@ export function OrderTicketProvider({ children, environment }: Props) {
         description: `Sent to your ${environment} account.`,
       })
       orderKey.current = null
-      setDraft((current) => ({ ...current, amount: '' }))
+      const next = { ...draftRef.current, amount: '' }
+      draftRef.current = next
+      setDraft(next)
       return true
     } catch (error) {
       setOrderError(
@@ -215,6 +226,27 @@ export function OrderTicketProvider({ children, environment }: Props) {
       {children}
     </OrderTicketContext>
   )
+}
+
+interface ApplyDraftPatchOptions {
+  current: TicketDraft
+  patch: Partial<TicketDraft>
+}
+
+/** Merges an edit and clears a size that would be misread after a unit switch. */
+function applyDraftPatch({
+  current,
+  patch,
+}: ApplyDraftPatchOptions): TicketDraft {
+  const selected =
+    patch.asset !== undefined
+      ? selectTicketAsset({ asset: patch.asset, draft: current })
+      : current
+  const next = reconcileTicket({ ...selected, ...patch })
+  return current.quantityMode !== next.quantityMode &&
+    patch.amount === undefined
+    ? { ...next, amount: '' }
+    : next
 }
 
 /** Reads the shared ticket controls beneath the authenticated shell. */

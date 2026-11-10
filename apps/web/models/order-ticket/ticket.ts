@@ -10,6 +10,12 @@ import type {
 
 export type TicketAsset = Omit<AssetSearchResult, 'assetClass'> & {
   assetClass: CreateOrderRequest['assetClass']
+  /** Expiration of an option contract, so the chain can reopen on it. */
+  expirationDate?: string
+  /** Call or put. Present only for option contracts. */
+  optionType?: 'call' | 'put'
+  /** Stock an option is written on. The ticket uses it to change contracts. */
+  underlying?: AssetSearchResult
 }
 
 export type TicketDraft = {

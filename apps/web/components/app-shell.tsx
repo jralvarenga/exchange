@@ -16,7 +16,7 @@ interface Props {
 /** Floats the navigation layers over a page that scrolls behind them. */
 export function AppShell({ children, environment, user }: Props) {
   return (
-    <OrderTicketProvider environment={environment} key={environment}>
+    <OrderTicketProvider environment={environment}>
       <div className="flex min-h-dvh flex-col overflow-x-clip bg-background text-foreground">
         <a
           href="#main"

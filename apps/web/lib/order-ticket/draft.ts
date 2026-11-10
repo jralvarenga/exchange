@@ -1,9 +1,15 @@
+import type { OptionContract } from '@/lib/alpaca/market-schemas'
 import {
   getAllowedOrderClasses,
   getAllowedOrderTypes,
   getAllowedTimesInForce,
 } from '@/lib/alpaca/order-constraints'
-import type { TicketAsset, TicketDraft } from '@/models/order-ticket/ticket'
+import type { AssetSearchResult } from '@/lib/alpaca/schemas'
+import type {
+  OpenTicketOptions,
+  TicketAsset,
+  TicketDraft,
+} from '@/models/order-ticket/ticket'
 
 /** Creates an empty ticket without assuming a symbol or account environment. */
 export function createTicketDraft(): TicketDraft {
@@ -102,4 +108,124 @@ export function selectTicketAsset({
     side: draft.side,
     positionIntent: draft.side === 'buy' ? 'buy_to_open' : 'sell_to_close',
   })
+}
+
+interface OpenTicketDraftOptions {
+  current: TicketDraft
+  options: OpenTicketOptions
+}
+
+interface OpenedTicketDraft {
+  draft: TicketDraft
+  /** True when the requested symbol still has to be looked up. */
+  needsLookup: boolean
+}
+
+/**
+ * Applies an open request. Reopening the symbol already on the ticket keeps
+ * that draft so a retry can reuse its client order ID.
+ */
+export function openTicketDraft({
+  current,
+  options,
+}: OpenTicketDraftOptions): OpenedTicketDraft {
+  const identifier = options.assetIdentifier?.trim().toLowerCase()
+  const matches =
+    !options.asset &&
+    (!identifier ||
+      current.asset?.id.toLowerCase() === identifier ||
+      current.asset?.symbol.toLowerCase() === identifier)
+  if (matches) {
+    if (!options.side || options.side === current.side) {
+      return { draft: current, needsLookup: false }
+    }
+    return {
+      draft: reconcileTicket({
+        ...current,
+        positionIntent:
+          options.side === 'buy' ? 'buy_to_open' : 'sell_to_close',
+        side: options.side,
+      }),
+      needsLookup: false,
+    }
+  }
+  const selected = selectTicketAsset({
+    asset: options.asset ?? null,
+    draft: current,
+  })
+  const draft = options.side
+    ? reconcileTicket({
+        ...selected,
+        positionIntent:
+          options.side === 'buy' ? 'buy_to_open' : 'sell_to_close',
+        side: options.side,
+      })
+    : selected
+  return { draft, needsLookup: Boolean(identifier) && !options.asset }
+}
+
+/** Returns the stock or crypto being traded, including an option's underlying. */
+export function getTicketUnderlying(
+  asset: TicketAsset | null
+): AssetSearchResult | null {
+  if (!asset) return null
+  if (asset.assetClass === 'us_option') return asset.underlying ?? null
+  return {
+    assetClass: asset.assetClass,
+    exchange: asset.exchange,
+    fractionable: asset.fractionable,
+    id: asset.id,
+    name: asset.name,
+    symbol: asset.symbol,
+  }
+}
+
+interface OptionTicketAssetOptions {
+  contract: OptionContract
+  underlying: AssetSearchResult
+}
+
+/** Builds the ticket asset for one call or put and remembers the stock behind it. */
+export function toOptionTicketAsset({
+  contract,
+  underlying,
+}: OptionTicketAssetOptions): TicketAsset {
+  return {
+    assetClass: 'us_option',
+    exchange: 'OPRA',
+    expirationDate: contract.expirationDate,
+    fractionable: false,
+    id: contract.symbol,
+    name: formatOptionName({ contract, underlying: underlying.symbol }),
+    optionType: contract.type,
+    symbol: contract.symbol,
+    underlying,
+  }
+}
+
+interface FormatOptionNameOptions {
+  contract: OptionContract
+  underlying: string
+}
+
+const optionExpirationFormat = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+  year: 'numeric',
+})
+const optionStrikeFormat = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+})
+
+/** Renders a contract as readable text, independent of its OCC symbol. */
+function formatOptionName({
+  contract,
+  underlying,
+}: FormatOptionNameOptions): string {
+  const expiration = optionExpirationFormat.format(
+    new Date(`${contract.expirationDate}T00:00:00Z`)
+  )
+  const strike = optionStrikeFormat.format(contract.strike)
+  return `${underlying} ${expiration} ${strike} ${contract.type}`
 }
