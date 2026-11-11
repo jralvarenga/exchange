@@ -4,6 +4,7 @@ import { AccountFact } from '@/components/account/account-fact'
 import { AccountFactsFallback } from '@/components/account/account-facts-fallback'
 import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
 import { SectionHeader } from '@/components/section-header'
+import { SectionStale } from '@/components/section-stale'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { useAccountOverview } from '@/hooks/use-account-overview'
 import { formatCurrency } from '@/lib/utils'
@@ -40,44 +41,55 @@ export function AccountMargin({ ready }: Props) {
           onRetry={() => void overview.refetch()}
         />
       ) : (
-        <dl className="flex flex-col divide-y divide-border border-border border-y">
-          <AccountFact
-            detail={getMultiplierDetail(overview.data.multiplier)}
-            label="Multiplier"
-          >
-            {overview.data.multiplier}×
-          </AccountFact>
-          <AccountFact detail="Needed to open positions" label="Initial margin">
-            {formatCurrency({
-              currency: overview.data.currency,
-              value: overview.data.initialMargin,
-            })}
-          </AccountFact>
-          <AccountFact
-            detail="Needed to keep positions open"
-            label="Maintenance margin"
-          >
-            {formatCurrency({
-              currency: overview.data.currency,
-              value: overview.data.maintenanceMargin,
-            })}
-          </AccountFact>
-          <AccountFact
-            detail="Equity above maintenance before a call"
-            label="Margin cushion"
-          >
-            {formatCurrency({
-              currency: overview.data.currency,
-              value: overview.data.equity - overview.data.maintenanceMargin,
-            })}
-          </AccountFact>
-          <AccountFact detail="Fees charged, not yet paid" label="Accrued fees">
-            {formatCurrency({
-              currency: overview.data.currency,
-              value: overview.data.accruedFees,
-            })}
-          </AccountFact>
-        </dl>
+        <>
+          {overview.isError ? (
+            <SectionStale timestamp={overview.dataUpdatedAt} />
+          ) : null}
+          <dl className="flex flex-col divide-y divide-border border-border border-y">
+            <AccountFact
+              detail={getMultiplierDetail(overview.data.multiplier)}
+              label="Multiplier"
+            >
+              {overview.data.multiplier}×
+            </AccountFact>
+            <AccountFact
+              detail="Needed to open positions"
+              label="Initial margin"
+            >
+              {formatCurrency({
+                currency: overview.data.currency,
+                value: overview.data.initialMargin,
+              })}
+            </AccountFact>
+            <AccountFact
+              detail="Needed to keep positions open"
+              label="Maintenance margin"
+            >
+              {formatCurrency({
+                currency: overview.data.currency,
+                value: overview.data.maintenanceMargin,
+              })}
+            </AccountFact>
+            <AccountFact
+              detail="Equity above maintenance before a call"
+              label="Margin cushion"
+            >
+              {formatCurrency({
+                currency: overview.data.currency,
+                value: overview.data.equity - overview.data.maintenanceMargin,
+              })}
+            </AccountFact>
+            <AccountFact
+              detail="Fees charged, not yet paid"
+              label="Accrued fees"
+            >
+              {formatCurrency({
+                currency: overview.data.currency,
+                value: overview.data.accruedFees,
+              })}
+            </AccountFact>
+          </dl>
+        </>
       )}
     </section>
   )

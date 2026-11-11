@@ -14,6 +14,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { saveAlpacaCredentialAction } from '@/app/(dashboard)/account/actions'
 import { RemoveKeyDialog } from '@/components/account/remove-key-dialog'
 import { StatusPill } from '@/components/status-pill'
+import { getVisibleActionMessage } from '@/lib/account/action-message'
 import { getCredentialStatusInfo } from '@/lib/account/status'
 import type { MaskedAlpacaCredential } from '@/lib/alpaca/credentials'
 
@@ -47,23 +48,19 @@ export function AccountKey({
   const [showsSecret, setShowsSecret] = useState(false)
   const [testing, setTesting] = useState(false)
   const [removing, setRemoving] = useState(false)
-  const [clearedMessage, setClearedMessage] = useState(false)
+  const [dismissedState, setDismissedState] = useState(state)
   const label = environment === 'live' ? 'Live' : 'Paper'
   const titleId = `${environment}-key-title`
   // The server prop is refreshed after every action. The action state would
   // keep showing a key after it was removed or retested.
   const shown = credential
-  const message = clearedMessage ? undefined : state.message
+  const message = getVisibleActionMessage({ dismissedState, state })
 
   useEffect(() => {
     if (state.credential) {
       setEditing(false)
     }
   }, [state.credential])
-
-  useEffect(() => {
-    setClearedMessage(false)
-  }, [])
 
   useEffect(() => {
     if (!editing) {
@@ -84,13 +81,13 @@ export function AccountKey({
 
   /** Opens the key form without carrying a previous save error. */
   function openForm(): void {
-    setClearedMessage(true)
+    setDismissedState(state)
     setEditing(true)
   }
 
   /** Closes the key form and hides the last save error. */
   function closeForm(): void {
-    setClearedMessage(true)
+    setDismissedState(state)
     setEditing(false)
   }
 
@@ -103,7 +100,7 @@ export function AccountKey({
 
       if (removed) {
         setConfirmingRemove(false)
-        setClearedMessage(true)
+        setDismissedState(state)
         setEditing(true)
       }
     } finally {
