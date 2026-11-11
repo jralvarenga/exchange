@@ -7,12 +7,16 @@ import {
 } from '@/lib/alpaca/trading-schemas'
 import { requestJson } from '@/lib/api/request'
 
+interface QueryToggleOptions {
+  enabled?: boolean
+}
+
 /** Loads the active account's trading configuration. */
-export function useAccountConfigurations(): UseQueryResult<
-  AccountConfigurations,
-  Error
-> {
+export function useAccountConfigurations(
+  options: QueryToggleOptions = {}
+): UseQueryResult<AccountConfigurations, Error> {
   return useQuery({
+    enabled: options.enabled ?? true,
     queryFn: ({ signal }) =>
       requestJson({
         fallback: 'Unable to load account settings.',

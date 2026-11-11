@@ -2,35 +2,22 @@
 
 import { useEffect } from 'react'
 
+import {
+  applyTheme,
+  DARK_MODE_QUERY,
+  getStoredTheme,
+  isThemeStorageEvent,
+  setTheme,
+} from '@/lib/theme'
+
 interface Props {
   children: React.ReactNode
 }
-
-type Theme = 'dark' | 'light' | 'system'
-
-const DARK_MODE_QUERY = '(prefers-color-scheme: dark)'
-const STORAGE_KEY = 'theme'
 
 /** Provides script-free system, light, and dark theme behavior. */
 export function ThemeProvider({ children }: Props) {
   useEffect(() => {
     const mediaQuery = window.matchMedia(DARK_MODE_QUERY)
-
-    /** Returns the saved theme or the system default. */
-    function getStoredTheme(): Theme {
-      const storedTheme = window.localStorage.getItem(STORAGE_KEY)
-
-      return isTheme(storedTheme) ? storedTheme : 'system'
-    }
-
-    /** Applies a theme to the root element and browser controls. */
-    function applyTheme(theme: Theme): void {
-      const isDark =
-        theme === 'dark' || (theme === 'system' && mediaQuery.matches)
-
-      document.documentElement.classList.toggle('dark', isDark)
-      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
-    }
 
     /** Applies system changes while the stored preference is system. */
     function onSystemThemeChange(): void {
@@ -41,11 +28,11 @@ export function ThemeProvider({ children }: Props) {
 
     /** Synchronizes theme changes made in another browser tab. */
     function onStorage(event: StorageEvent): void {
-      if (event.key !== STORAGE_KEY) {
+      if (!isThemeStorageEvent(event)) {
         return
       }
 
-      applyTheme(isTheme(event.newValue) ? event.newValue : 'system')
+      applyTheme(getStoredTheme())
     }
 
     /** Toggles light and dark themes with the D keyboard shortcut. */
@@ -62,12 +49,9 @@ export function ThemeProvider({ children }: Props) {
         return
       }
 
-      const theme = document.documentElement.classList.contains('dark')
-        ? 'light'
-        : 'dark'
-
-      window.localStorage.setItem(STORAGE_KEY, theme)
-      applyTheme(theme)
+      setTheme(
+        document.documentElement.classList.contains('dark') ? 'light' : 'dark'
+      )
     }
 
     applyTheme(getStoredTheme())
@@ -83,11 +67,6 @@ export function ThemeProvider({ children }: Props) {
   }, [])
 
   return children
-}
-
-/** Checks whether a stored string is a supported theme. */
-function isTheme(value: string | null): value is Theme {
-  return value === 'dark' || value === 'light' || value === 'system'
 }
 
 /** Checks whether a keyboard event came from an editable control. */

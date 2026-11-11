@@ -153,6 +153,11 @@ export function formatUpdatedAt(options: FormatUpdatedAtOptions): string {
   return updatedAtFormatter.format(options.timestamp)
 }
 
+/** Caption shown when a section keeps last-good values after a failed poll. */
+export function formatStaleRefresh(options: FormatUpdatedAtOptions): string {
+  return `Couldn't refresh. Showing values from ${formatUpdatedAt(options)}.`
+}
+
 interface FormatQuantityOptions {
   value: number
 }

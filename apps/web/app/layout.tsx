@@ -31,7 +31,9 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       className={cn(
-        'font-sans antialiased',
+        // Focused fields scroll clear of the mobile tab bar. Account sections
+        // keep their own scroll-mt so hash jumps do not stack with this.
+        'scroll-pb-32 font-sans antialiased md:scroll-pb-8',
         fontMono.variable,
         'font-sans',
         geist.variable

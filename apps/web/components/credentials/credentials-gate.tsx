@@ -5,13 +5,14 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { CredentialsPrompt } from '@/components/credentials/credentials-prompt'
+import type { MaskedAlpacaCredential } from '@/lib/alpaca/credentials'
 import { isAlpacaCredentialError } from '@/lib/api/error'
 
 interface Props {
   children: React.ReactNode
   credentialVersion: string
+  credentials: Pick<MaskedAlpacaCredential, 'environment' | 'status'>[]
   environment: 'live' | 'paper'
-  hasCredential: boolean
   ready: boolean
 }
 
@@ -19,8 +20,8 @@ interface Props {
 export function CredentialsGate({
   children,
   credentialVersion,
+  credentials,
   environment,
-  hasCredential,
   ready,
 }: Props) {
   const pathname = usePathname()
@@ -38,9 +39,10 @@ export function CredentialsGate({
     setFailed(false)
   }
 
+  // The account page holds the keys form, so it must stay usable without them.
   const showsPrompt =
-    !pathname.startsWith('/settings') &&
-    !pathname.startsWith('/funds-wallet') &&
+    pathname !== '/account' &&
+    !pathname.startsWith('/account/') &&
     (!ready || failed)
 
   useEffect(() => {
@@ -71,11 +73,17 @@ export function CredentialsGate({
     }
   }, [queryClient])
 
+  const active = credentials.find(
+    (credential) => credential.environment === environment
+  )
+  const rejected = failed || active?.status === 'invalid'
+
   if (showsPrompt) {
     return (
       <CredentialsPrompt
+        credentials={credentials}
         environment={environment}
-        rejected={hasCredential || failed}
+        rejected={rejected}
       />
     )
   }

@@ -27,8 +27,11 @@ export default async function DashboardLayout({ children }: Props) {
     >
       <CredentialsGate
         credentialVersion={`${environment}:${active?.status}:${active?.lastVerifiedAt}`}
+        credentials={credentials.map((credential) => ({
+          environment: credential.environment,
+          status: credential.status,
+        }))}
         environment={environment}
-        hasCredential={Boolean(active)}
         ready={ready}
       >
         {children}
