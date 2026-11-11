@@ -200,6 +200,10 @@ export const symbolQuerySchema = z.object({
   symbol: z.string().trim().min(1).max(32),
 })
 
+export const optionSnapshotQuerySchema = z.object({
+  symbol: z.string().trim().min(1).max(64),
+})
+
 export const optionTypeSchema = z.enum(['call', 'put'])
 
 export const alpacaOptionContractSchema = z.looseObject({

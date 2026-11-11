@@ -180,6 +180,35 @@ export async function getMarketSnapshot(
   return toMarketSnapshot(symbol, snapshot)
 }
 
+/** Returns the latest quote for one option contract, without loading its chain. */
+export async function getOptionSnapshot(
+  options: SymbolOptions
+): Promise<MarketSnapshot> {
+  const client = resolveClientOptions(options)
+  const symbol = options.symbol.toUpperCase()
+  const response = await alpacaFetch({
+    baseUrl: client.dataBaseUrl,
+    client,
+    path: '/v1beta1/options/snapshots',
+    query: new URLSearchParams({ feed: 'indicative', symbols: symbol }),
+    schema: alpacaOptionSnapshotsSchema,
+  })
+  const snapshot = response.snapshots[symbol]
+  if (!snapshot) {
+    throw new AlpacaApiError('Option quote was not found.', 404)
+  }
+  return marketSnapshotSchema.parse({
+    askPrice: snapshot.latestQuote?.ap,
+    askSize: snapshot.latestQuote?.as,
+    bidPrice: snapshot.latestQuote?.bp,
+    bidSize: snapshot.latestQuote?.bs,
+    lastPrice: snapshot.latestTrade?.p,
+    lastSize: snapshot.latestTrade?.s,
+    symbol,
+    updatedAt: snapshot.latestTrade?.t ?? snapshot.latestQuote?.t,
+  })
+}
+
 /** Returns latest quotes for many stock and crypto symbols in two requests. */
 export async function getMarketSnapshots(
   options: SymbolsOptions

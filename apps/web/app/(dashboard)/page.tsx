@@ -10,7 +10,7 @@ export default function Home() {
       <Balance />
       <div className="flex flex-col gap-14 md:pl-24">
         <Balances />
-        <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+        <div className="grid @5xl:grid-cols-2 grid-cols-1 @5xl:gap-16 gap-14">
           <TopPositions />
           <RecentOrders />
         </div>
