@@ -161,3 +161,39 @@
     @apply bg-popover backdrop-blur-none;
   }
 }
+
+/* Hides the native scrollbar while keeping wheel, touch, and keyboard scrolling. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@property --scroll-fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes scroll-fade-top {
+  to {
+    --scroll-fade-top: 2.5rem;
+  }
+}
+
+/* Fades content into the top edge only once the element has scrolled. */
+@utility scroll-fade-top {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 var(--scroll-fade-top)
+  );
+
+  @supports (animation-timeline: scroll()) {
+    animation: scroll-fade-top 1ms linear both;
+    animation-timeline: scroll(self);
+    animation-range: 0 4rem;
+  }
+}

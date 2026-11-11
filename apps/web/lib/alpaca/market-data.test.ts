@@ -4,9 +4,8 @@ mock.module('server-only', () => ({}))
 
 const { describe, expect, test } = await import('bun:test')
 const { AlpacaApiError, toOptionalNumber } = await import('./client')
-const { getMarketSnapshot, getOptionChain, getOrderbook } = await import(
-  './market-data'
-)
+const { getMarketSnapshot, getOptionChain, getOptionSnapshot, getOrderbook } =
+  await import('./market-data')
 
 interface ClientOptions {
   fetcher: typeof fetch
@@ -165,6 +164,47 @@ describe('getMarketSnapshot', () => {
   })
 })
 
+describe('getOptionSnapshot', () => {
+  test('loads one contract, including an adjusted root, without the chain', async () => {
+    const urls: URL[] = []
+    const snapshot = await getOptionSnapshot({
+      ...withFetcher(async (input) => {
+        const url = requestUrl(input)
+        urls.push(url)
+        return jsonResponse({
+          snapshots: {
+            AAPL1260116C00150000: {
+              latestQuote: quote(1.25),
+              latestTrade: { p: 1.2, s: 1, t: '2026-10-31T00:00:00Z' },
+            },
+          },
+        })
+      }),
+      symbol: 'aapl1260116c00150000',
+    })
+
+    expect(urls).toHaveLength(1)
+    expect(urls[0]?.pathname).toBe('/v1beta1/options/snapshots')
+    expect(urls[0]?.searchParams.get('symbols')).toBe('AAPL1260116C00150000')
+    expect(urls[0]?.searchParams.get('feed')).toBe('indicative')
+    expect(snapshot.symbol).toBe('AAPL1260116C00150000')
+    expect(snapshot.askPrice).toBe(1.25)
+    expect(snapshot.lastPrice).toBe(1.2)
+  })
+
+  test('reports a missing contract quote instead of an empty price', async () => {
+    const snapshot = getOptionSnapshot({
+      ...withFetcher(async () => jsonResponse({ snapshots: {} })),
+      symbol: 'AAPL1260116C00150000',
+    })
+
+    await expect(snapshot).rejects.toMatchObject({
+      message: 'Option quote was not found.',
+      status: 404,
+    })
+  })
+})
+
 describe('getOptionChain', () => {
   test('follows next_page_token for contracts and snapshots', async () => {
     const urls: URL[] = []
@@ -251,6 +291,40 @@ describe('getOptionChain', () => {
       status: 502,
     })
     expect(calls).toBe(20)
+  })
+
+  test('falls back to the first listed expiration when the requested date is gone', async () => {
+    const chain = await getOptionChain({
+      ...withFetcher(async (input) => {
+        const url = requestUrl(input)
+
+        if (url.pathname === '/v2/options/contracts') {
+          return jsonResponse({
+            next_page_token: null,
+            option_contracts: [
+              contract('AAPL270115C00090000', '2027-01-15', 'call', '90'),
+              contract('AAPL270618C00100000', '2027-06-18', 'call', '100'),
+            ],
+          })
+        }
+
+        return jsonResponse({
+          next_page_token: null,
+          snapshots: {
+            AAPL270115C00090000: {
+              latestQuote: quote(1.5),
+            },
+          },
+        })
+      }),
+      expiration: '2020-01-17',
+      underlying: 'AAPL',
+    })
+
+    expect(chain.expirationDate).toBe('2027-01-15')
+    expect(chain.expirations).toEqual(['2027-01-15', '2027-06-18'])
+    expect(chain.calls).toHaveLength(1)
+    expect(chain.calls[0]?.symbol).toBe('AAPL270115C00090000')
   })
 
   test('propagates snapshot failures instead of returning empty quotes', async () => {

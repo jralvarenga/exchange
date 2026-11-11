@@ -21,7 +21,10 @@ export default async function DashboardLayout({ children }: Props) {
   const ready = active?.status === 'valid'
 
   return (
-    <AppShell user={{ email: session.user.email, name: session.user.name }}>
+    <AppShell
+      environment={environment}
+      user={{ email: session.user.email, name: session.user.name }}
+    >
       <CredentialsGate
         credentialVersion={`${environment}:${active?.status}:${active?.lastVerifiedAt}`}
         credentials={credentials.map((credential) => ({

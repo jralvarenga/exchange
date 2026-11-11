@@ -1,0 +1,57 @@
+import type {
+  AlpacaOrderClass,
+  AlpacaOrderSide,
+  AlpacaOrderType,
+  AlpacaQuantityMode,
+  AlpacaTimeInForce,
+  AssetSearchResult,
+  CreateOrderRequest,
+} from '@/lib/alpaca/schemas'
+
+export type TicketAsset = Omit<AssetSearchResult, 'assetClass'> & {
+  assetClass: CreateOrderRequest['assetClass']
+  /** Expiration of an option contract, so the chain can reopen on it. */
+  expirationDate?: string
+  /** Call or put. Present only for option contracts. */
+  optionType?: 'call' | 'put'
+  /** Stock an option is written on. The ticket uses it to change contracts. */
+  underlying?: AssetSearchResult
+}
+
+export type TicketDraft = {
+  amount: string
+  asset: TicketAsset | null
+  extendedHours: boolean
+  limitPrice: string
+  orderClass: AlpacaOrderClass
+  /** Stays with the draft so option-picking survives layout remounts. */
+  preferOption: boolean
+  positionIntent: NonNullable<CreateOrderRequest['positionIntent']>
+  quantityMode: AlpacaQuantityMode
+  side: AlpacaOrderSide
+  stopLossLimitPrice: string
+  stopLossStopPrice: string
+  stopPrice: string
+  takeProfitLimitPrice: string
+  timeInForce: AlpacaTimeInForce
+  trail: string
+  trailMode: 'percent' | 'dollars'
+  type: AlpacaOrderType
+  otoLeg: 'take_profit' | 'stop_loss'
+}
+
+export type OpenTicketOptions = {
+  asset?: TicketAsset
+  assetIdentifier?: string
+  side?: AlpacaOrderSide
+}
+
+/** The last shares/dollars switch, so switching back restores the exact size. */
+export type TicketConversion = {
+  amount: string
+  mode: AlpacaQuantityMode
+  previousAmount: string
+  previousMode: AlpacaQuantityMode
+  /** The asset the sizes were priced for; another asset never reuses them. */
+  symbol?: string
+}
