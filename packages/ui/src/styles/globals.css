@@ -180,8 +180,9 @@
 
 /*
  * Elevation: the tactile "bubble" every interactive primitive is built from.
- * Each utility only sets `--tw-shadow`, so Tailwind focus and invalid rings
- * still compose on top of it.
+ * Raised and pressed also set a sheen `background-image`. Each utility writes
+ * `--tw-shadow` and an explicit `box-shadow` that includes Tailwind's ring
+ * variables, so focus and invalid rings still compose on top.
  */
 @utility elevation-raised {
   background-image: linear-gradient(

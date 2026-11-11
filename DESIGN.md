@@ -66,13 +66,13 @@ Fonts are loaded in [layout.tsx](apps/web/app/layout.tsx) with `next/font`.
 
 Interactive primitives feel like physical controls: a soft, raised bubble you press, or a recessed well you type into. Content (lists, stats, headings) stays flat on the page; only controls get elevation.
 
-The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read the `--elevation-*` tokens, which are tuned per theme. They only set `--tw-shadow`, so focus and invalid rings still stack on top.
+The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read the `--elevation-*` tokens, which are tuned per theme. Raised and pressed also paint a sheen with `background-image`. Each utility writes `--tw-shadow` and an explicit `box-shadow` that includes Tailwind's ring variables, so focus and invalid rings still stack on top.
 
 | Utility | Look | Used by |
 | --- | --- | --- |
-| `elevation-raised` | Top sheen and inner highlight, darker inner bottom edge, faint 1px inner edge (never an outer border), soft drop shadow | `Button` (all variants but `ghost` and `link`), pressed `ghost` toggles, `SelectTrigger`, checked `Checkbox`, `Switch` thumb, active `TabsTrigger` |
-| `elevation-pressed` | Sheen flips, inner shadow, no drop | `:active` state of every raised control |
-| `elevation-well` | Inner top shadow and a lit bottom lip on a `bg-muted/50` fill | `Input`, `Textarea`, `InputGroup`, unchecked `Checkbox`, `Switch` track, `TabsList` |
+| `elevation-raised` | Top sheen and inner highlight, darker inner bottom edge, faint 1px inner edge (never an outer border), soft drop shadow | `Button` (all variants but `ghost` and `link`), pressed `ghost` toggles, `SelectTrigger`, checked `Checkbox`, `Switch` thumb, active default `TabsTrigger` (line tabs stay flat) |
+| `elevation-pressed` | Sheen flips, inner shadow, no drop | Press of every raised control (`:active`; Base UI `data-pressed` on `SelectTrigger`) |
+| `elevation-well` | Inner top shadow and a lit bottom lip. Fill is set by the control, not the utility | `Input`, `Textarea`, `InputGroup`, unchecked `Checkbox` (`bg-muted/50`), `Switch` track (`bg-input` / `bg-primary`), default `TabsList` (`bg-muted`) |
 
 - Never stack elevation on content containers or rows; it marks something you can operate.
 - New interactive primitives pick one of the three utilities instead of a `shadow-*` class.
