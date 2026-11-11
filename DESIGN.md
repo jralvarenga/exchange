@@ -36,7 +36,7 @@ Tokens live in [globals.css](packages/ui/src/styles/globals.css) and are used th
 
 - Gains and losses always carry a sign and an arrow (`ArrowUpRight` / `ArrowDownRight`), never color alone.
 - Status pills tint with the tone at 10% (`bg-market-up/10 text-market-up`) and always include the status word.
-- Gradients are allowed only to fade something into `background`: the chart fill, its edges, the navbar backdrop and the mobile tab bar.
+- Gradients are allowed only to fade something into `background` (the chart fill, its edges, the navbar backdrop and the mobile tab bar) and as the sheen inside the `elevation-*` utilities.
 
 ## Typography
 
@@ -62,6 +62,21 @@ Fonts are loaded in [layout.tsx](apps/web/app/layout.tsx) with `next/font`.
 - Sentence case everywhere. No all caps, no wide tracking.
 - Avoid text below 16px in primary UI text; the default `Button` size and compact chart tooltips (`text-xs` on the shared chart primitive) are the exceptions.
 
+## Elevation
+
+Interactive primitives feel like physical controls: a soft, raised bubble you press, or a recessed well you type into. Content (lists, stats, headings) stays flat on the page; only controls get elevation.
+
+The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read the `--elevation-*` tokens, which are tuned per theme. They only set `--tw-shadow`, so focus and invalid rings still stack on top.
+
+| Utility | Look | Used by |
+| --- | --- | --- |
+| `elevation-raised` | Top sheen and inner highlight, darker inner bottom edge, faint 1px inner edge (never an outer border), soft drop shadow | `Button` (all variants but `ghost` and `link`), pressed `ghost` toggles, `SelectTrigger`, checked `Checkbox`, `Switch` thumb, active `TabsTrigger` |
+| `elevation-pressed` | Sheen flips, inner shadow, no drop | `:active` state of every raised control |
+| `elevation-well` | Inner top shadow and a lit bottom lip on a `bg-muted/50` fill | `Input`, `Textarea`, `InputGroup`, unchecked `Checkbox`, `Switch` track, `TabsList` |
+
+- Never stack elevation on content containers or rows; it marks something you can operate.
+- New interactive primitives pick one of the three utilities instead of a `shadow-*` class.
+
 ## Spacing and layout
 
 - Mobile first, single column. Page gutter is 16px mobile, 24px from `sm` (`px-4 sm:px-6`, set by the shell).
@@ -84,7 +99,8 @@ Shared primitives live in [packages/ui/src/components](packages/ui/src/component
 | Component | Use |
 | --- | --- |
 | `Button` | Prefer existing variants (`default`, `outline`, `secondary`, `ghost`, `destructive`, `link`). Toggle groups use `ghost` |
-| `PillGroup` | Single-choice filters (chart period, asset class, order status): `ghost` buttons, the active one `aria-pressed` with `bg-muted` |
+| `Switch` | Binary settings: recessed track, raised thumb |
+| `PillGroup` | Single-choice filters (chart period, asset class, order status): default-size `ghost` buttons, the active one `aria-pressed` and `secondary` (a raised bubble), no size or color overrides |
 | `SectionHeader` | Section title with an optional "View all →" link and controls below |
 | `Chart` (`ChartContainer`) | Recharts wrapper; area charts have no axes, a fading gradient fill and a dashed `border` cursor |
 | `Skeleton` | `bg-muted` pulse, sized like the content it replaces |
@@ -128,5 +144,5 @@ Row patterns:
 ## Open questions
 
 - `success` is still neutral black / white instead of matching a brand or `market-up` color.
-- Default `Button` height (32px) is under the 44px touch target used elsewhere; `PillGroup` uses `h-11`.
+- Default `Button` height (32px) is under the 44px touch target; pills use it as is.
 - `/portfolio` still uses the previous card and table design and should move to this system.

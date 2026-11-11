@@ -14,7 +14,7 @@ interface Props<T extends string> {
   value: T
 }
 
-/** Renders a row of ghost buttons where exactly one option is active. */
+/** Renders a row of ghost buttons where the one active option is a raised secondary button. */
 export function PillGroup<T extends string>({
   label,
   onChange,
@@ -27,10 +27,10 @@ export function PillGroup<T extends string>({
       {options.map((option) => (
         <Button
           aria-pressed={option.value === value}
-          className="h-11 aria-pressed:bg-muted aria-pressed:text-foreground"
           key={option.value}
           onClick={() => onChange(option.value)}
-          variant="ghost"
+          type="button"
+          variant={option.value === value ? 'secondary' : 'ghost'}
         >
           {option.label}
         </Button>
