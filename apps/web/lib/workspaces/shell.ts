@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { redirect } from 'next/navigation'
 import { cache } from 'react'
 
 import {
@@ -10,6 +11,7 @@ import {
 import type { ShellWorkspace } from '@/lib/navigation'
 import {
   type ActiveWorkspace,
+  NoWorkspaceError,
   resolveActiveWorkspace,
 } from '@/lib/workspaces/workspace'
 
@@ -29,6 +31,7 @@ export type LoadedWorkspace = {
 /**
  * Loads the active workspace and its masked connections once per request.
  * The active connection is the member's pick, else the workspace default.
+ * Sends someone with no workspace to onboarding.
  */
 export function loadWorkspace(user: ShellUserInput): Promise<LoadedWorkspace> {
   return loadWorkspaceFor(user.id, user.name)
@@ -39,7 +42,17 @@ const loadWorkspaceFor = cache(async function loadWorkspaceFor(
   userId: string,
   userName: string
 ): Promise<LoadedWorkspace> {
-  const workspace = await resolveActiveWorkspace({ id: userId, name: userName })
+  const workspace = await resolveActiveWorkspace({
+    id: userId,
+    name: userName,
+  }).catch((error: unknown) => {
+    // Someone with no workspace yet sets one up before seeing the dashboard.
+    if (error instanceof NoWorkspaceError) {
+      redirect('/onboarding')
+    }
+
+    throw error
+  })
   const connections = await listMaskedConnections(workspace.workspaceId)
   const activeId = activeConnectionId(workspace)
   const active = connections.find((connection) => connection.id === activeId)

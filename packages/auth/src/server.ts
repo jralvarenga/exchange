@@ -1,5 +1,4 @@
 import { db } from '@workspace/db/client'
-import { createWorkspace } from '@workspace/db/queries/workspaces'
 import {
   accounts,
   rateLimits,
@@ -17,7 +16,7 @@ import { canLinkTrustedProvider } from './account-linking'
 import { queueAuthEmail, sendAuthEmail } from './email'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
-import { isAllowedProfileImage, personalWorkspaceName } from './profile'
+import { isAllowedProfileImage } from './profile'
 import { isSignUpEmailAllowed, resolveSignUpPolicy } from './sign-up-policy'
 
 /**
@@ -92,12 +91,6 @@ function createAuth() {
             }
 
             return { data: user }
-          },
-          after: async function createPersonalWorkspace(user) {
-            await createWorkspace({
-              name: personalWorkspaceName(user.name),
-              userId: user.id,
-            })
           },
         },
         update: {

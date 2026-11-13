@@ -1,0 +1,77 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useCallback } from 'react'
+
+import { createWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
+import { OnboardingHeader } from '@/components/onboarding/onboarding-header'
+import { OnboardingInvitation } from '@/components/onboarding/onboarding-invitation'
+import { WorkspaceNameForm } from '@/components/workspace/workspace-name-form'
+import type { IncomingInvitation } from '@/models/workspace/members'
+
+interface Props {
+  defaultName: string
+  invitations: IncomingInvitation[]
+}
+
+/** First onboarding step: join a workspace you were invited to, or create your own. */
+export function OnboardingWorkspace({ defaultName, invitations }: Props) {
+  const router = useRouter()
+  const invited = invitations.length > 0
+
+  const handleCreated = useCallback(
+    function handleCreated(): void {
+      router.push('/onboarding?step=connect')
+    },
+    [router]
+  )
+
+  return (
+    <div className="flex flex-col gap-8">
+      <OnboardingHeader
+        description={
+          invited
+            ? 'Join a workspace you were invited to, or start your own.'
+            : 'A workspace holds your Alpaca connections and the people you trade with. You can create more later.'
+        }
+        step={1}
+        title={invited ? 'Pick a workspace' : 'Create your workspace'}
+        total={invited ? 1 : 2}
+      />
+      {invited ? (
+        <section aria-labelledby="invitations-title" className="flex flex-col">
+          <h2 className="font-bold text-lg" id="invitations-title">
+            Invitations
+          </h2>
+          <ul className="flex flex-col divide-y divide-border border-border border-b">
+            {invitations.map((invitation) => (
+              <OnboardingInvitation
+                invitation={invitation}
+                key={invitation.id}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <section aria-labelledby="create-title" className="flex flex-col gap-3">
+        {invited ? (
+          <h2 className="font-bold text-lg" id="create-title">
+            Or start your own
+          </h2>
+        ) : (
+          <h2 className="sr-only" id="create-title">
+            New workspace
+          </h2>
+        )}
+        <WorkspaceNameForm
+          action={createWorkspaceAction}
+          defaultName={defaultName}
+          label="Workspace name"
+          onSaved={handleCreated}
+          pendingLabel="Creating…"
+          submitLabel="Create workspace"
+        />
+      </section>
+    </div>
+  )
+}

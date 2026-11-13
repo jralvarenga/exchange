@@ -350,6 +350,64 @@ export async function findInvitationByTokenHash(tokenHash: string): Promise<
     : undefined
 }
 
+/** A pending invitation as the person invited sees it. */
+export type IncomingInvitationRow = {
+  expiresAt: Date
+  id: string
+  invitedByName: string | null
+  role: WorkspaceRole
+  workspaceName: string
+}
+
+/** Lists invitations to this email that were not accepted and have not expired. */
+export async function listPendingInvitationsForEmail(
+  email: string
+): Promise<IncomingInvitationRow[]> {
+  const rows = await db
+    .select({
+      expiresAt: workspaceInvitations.expiresAt,
+      id: workspaceInvitations.id,
+      invitedByName: users.name,
+      role: workspaceInvitations.role,
+      workspaceName: workspaces.name,
+    })
+    .from(workspaceInvitations)
+    .innerJoin(workspaces, eq(workspaces.id, workspaceInvitations.workspaceId))
+    .leftJoin(users, eq(users.id, workspaceInvitations.invitedByUserId))
+    .where(
+      and(
+        eq(workspaceInvitations.email, email.toLowerCase()),
+        isNull(workspaceInvitations.acceptedAt),
+        gt(workspaceInvitations.expiresAt, new Date())
+      )
+    )
+    .orderBy(asc(workspaceInvitations.createdAt))
+
+  return rows.map((row) => ({ ...row, role: toWorkspaceRole(row.role) }))
+}
+
+/** Finds an invitation by id, with the workspace name. */
+export async function findInvitationById(invitationId: string): Promise<
+  | (WorkspaceInvitationRow & {
+      workspaceName: string
+    })
+  | undefined
+> {
+  const [row] = await db
+    .select({
+      invitation: workspaceInvitations,
+      workspaceName: workspaces.name,
+    })
+    .from(workspaceInvitations)
+    .innerJoin(workspaces, eq(workspaces.id, workspaceInvitations.workspaceId))
+    .where(eq(workspaceInvitations.id, invitationId))
+    .limit(1)
+
+  return row
+    ? { ...row.invitation, workspaceName: row.workspaceName }
+    : undefined
+}
+
 /** Deletes an invitation that was not accepted yet. */
 export async function deleteWorkspaceInvitation(input: {
   invitationId: string

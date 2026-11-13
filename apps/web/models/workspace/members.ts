@@ -16,3 +16,12 @@ export type PendingInvitation = {
   id: string
   role: WorkspaceRole
 }
+
+/** An invitation to the signed-in person, shown during onboarding. */
+export type IncomingInvitation = {
+  expiresAt: string
+  id: string
+  invitedByName: string | null
+  role: WorkspaceRole
+  workspaceName: string
+}

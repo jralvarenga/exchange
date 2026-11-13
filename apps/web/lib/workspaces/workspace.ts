@@ -1,9 +1,7 @@
 import 'server-only'
 
-import { personalWorkspaceName } from '@workspace/auth/profile'
 import type { ActivityActor } from '@workspace/db/queries/activity'
 import {
-  createWorkspace,
   findActiveWorkspaceId,
   listUserMemberships,
   setActiveWorkspace,
@@ -39,10 +37,18 @@ export class WorkspacePermissionError extends Error {
   }
 }
 
+/** Raised when the user belongs to no workspace yet. Pages send them to onboarding. */
+export class NoWorkspaceError extends Error {
+  constructor() {
+    super('Create or join a workspace to continue.')
+    this.name = 'NoWorkspaceError'
+  }
+}
+
 /**
- * Loads the user's active workspace. A user with no workspace (for example one
- * created before workspaces existed) gets their own one here.
- * A stale active workspace falls back to the oldest membership.
+ * Loads the user's active workspace. A stale active workspace falls back to
+ * the oldest membership. Throws `NoWorkspaceError` when there is none: a new
+ * account, or one removed from its last workspace.
  */
 export function resolveActiveWorkspace(
   user: WorkspaceUser
@@ -56,15 +62,10 @@ const loadActiveWorkspace = cache(async function loadActiveWorkspace(
   userName: string
 ): Promise<ActiveWorkspace> {
   const user = { id: userId, name: userName }
-
-  let memberships = await listUserMemberships(user.id)
+  const memberships = await listUserMemberships(user.id)
 
   if (memberships.length === 0) {
-    await createWorkspace({
-      name: personalWorkspaceName(user.name),
-      userId: user.id,
-    })
-    memberships = await listUserMemberships(user.id)
+    throw new NoWorkspaceError()
   }
 
   const activeWorkspaceId = await findActiveWorkspaceId(user.id)
@@ -74,7 +75,7 @@ const loadActiveWorkspace = cache(async function loadActiveWorkspace(
     ) ?? memberships[0]
 
   if (!active) {
-    throw new Error('Workspace could not be created.')
+    throw new NoWorkspaceError()
   }
 
   if (active.workspaceId !== activeWorkspaceId) {

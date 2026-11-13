@@ -7,6 +7,7 @@ import {
   createWorkspaceInvitation,
   deleteWorkspace,
   deleteWorkspaceInvitation,
+  findInvitationById,
   findInvitationByTokenHash,
   listPendingInvitations,
   listWorkspaceMembers,
@@ -481,10 +482,39 @@ export async function acceptInvitationAction(
     return { message: 'This invitation link is not valid.' }
   }
 
-  const invitation = await findInvitationByTokenHash(
-    hashInvitationToken(parsedToken.data)
+  return joinInvitation(
+    session,
+    await findInvitationByTokenHash(hashInvitationToken(parsedToken.data))
   )
+}
 
+/**
+ * Joins a workspace from an invitation listed during onboarding. The same
+ * checks apply as for a link: verified email matching the invited address.
+ */
+export async function joinInvitationAction(
+  invitationId: string
+): Promise<WorkspaceActionState> {
+  const session = await requireSession()
+  const parsedId = idSchema.safeParse(invitationId)
+
+  if (!parsedId.success) {
+    return { message: 'This invitation has expired or was already used.' }
+  }
+
+  return joinInvitation(session, await findInvitationById(parsedId.data))
+}
+
+type Session = Awaited<ReturnType<typeof requireSession>>
+
+/**
+ * Checks an invitation against the signed-in user, adds the membership and
+ * opens the dashboard. Returns a message when it cannot.
+ */
+async function joinInvitation(
+  session: Session,
+  invitation: Awaited<ReturnType<typeof findInvitationById>>
+): Promise<WorkspaceActionState> {
   if (
     !invitation ||
     invitation.acceptedAt ||

@@ -11,7 +11,10 @@ import {
   resolveAlpacaRequestContext,
 } from '@/lib/alpaca/connections'
 import { tradeLock } from '@/lib/workspaces/permissions'
-import { resolveActiveWorkspace } from '@/lib/workspaces/workspace'
+import {
+  NoWorkspaceError,
+  resolveActiveWorkspace,
+} from '@/lib/workspaces/workspace'
 import { AlpacaApiError } from './client'
 
 type ApiHandlerContext = Pick<AlpacaRequestContext, 'actor' | 'alpaca'>
@@ -104,6 +107,18 @@ export async function createApiResponse(
 
     return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
   } catch (error) {
+    if (error instanceof NoWorkspaceError) {
+      return createErrorResponse(
+        {
+          error: {
+            code: 'WORKSPACE_REQUIRED',
+            message: error.message,
+          },
+        },
+        428
+      )
+    }
+
     if (error instanceof AlpacaCredentialsError) {
       return credentialErrorResponse(error.code)
     }

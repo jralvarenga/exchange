@@ -45,13 +45,14 @@ const {
 } = await import('@/lib/alpaca/connections')
 const { AlpacaApiError } = await import('@/lib/alpaca/client')
 const { createApiResponse } = await import('@/lib/alpaca/http')
-const { resolveActiveWorkspace, WorkspacePermissionError } = await import(
-  '@/lib/workspaces/workspace'
-)
+const { NoWorkspaceError, resolveActiveWorkspace, WorkspacePermissionError } =
+  await import('@/lib/workspaces/workspace')
 const { workspaceMembers } = await import('@workspace/db/schema/workspaces')
 const {
   createWorkspace,
+  createWorkspaceInvitation,
   deleteWorkspace,
+  listPendingInvitationsForEmail,
   removeWorkspaceMember,
   updateMemberRole,
 } = await import('@workspace/db/queries/workspaces')
@@ -95,6 +96,61 @@ describe('alpaca connections', () => {
         updatedAt: now,
       },
     ])
+    // Sign-up no longer creates a workspace; onboarding does.
+    await createWorkspace({ name: "User A's workspace", userId: userA })
+    await createWorkspace({ name: "User B's workspace", userId: userB })
+  })
+
+  integrationTest('sends someone with no workspace to onboarding', async () => {
+    const loner = crypto.randomUUID()
+    const now = new Date()
+    await db.insert(users).values({
+      createdAt: now,
+      email: `${loner}@example.com`,
+      emailVerified: true,
+      id: loner,
+      name: 'Loner',
+      updatedAt: now,
+    })
+    currentSession = { user: { id: loner, name: 'Loner' } }
+
+    try {
+      await expect(
+        resolveActiveWorkspace({ id: loner, name: 'Loner' })
+      ).rejects.toBeInstanceOf(NoWorkspaceError)
+      const response = await createApiResponse(async () => ({ ok: true }))
+      expect(response.status).toBe(428)
+      expect(await response.json()).toMatchObject({
+        error: { code: 'WORKSPACE_REQUIRED' },
+      })
+    } finally {
+      await db.delete(users).where(eq(users.id, loner))
+    }
+  })
+
+  integrationTest('lists invitations for the invited email', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const email = `invitee-${crypto.randomUUID()}@example.com`
+    await createWorkspaceInvitation({
+      email,
+      expiresAt: new Date(Date.now() + 60_000),
+      id: crypto.randomUUID(),
+      invitedByUserId: userA,
+      role: 'paper_member',
+      tokenHash: crypto.randomUUID(),
+      workspaceId: owned.workspaceId,
+    })
+
+    const invitations = await listPendingInvitationsForEmail(
+      email.toUpperCase()
+    )
+
+    expect(invitations).toHaveLength(1)
+    expect(invitations[0]).toMatchObject({
+      invitedByName: 'User A',
+      role: 'paper_member',
+      workspaceName: owned.workspaceName,
+    })
   })
 
   afterAll(async () => {
@@ -338,9 +394,15 @@ describe('alpaca connections', () => {
           workspaceId: workspace.workspaceId,
         })
       ).toBe(false)
+      // Hand ownership back to User A so removing User B leaves A set up.
+      await updateMemberRole({
+        role: 'owner',
+        userId: userA,
+        workspaceId: workspace.workspaceId,
+      })
       expect(
         await removeWorkspaceMember({
-          userId: lastOwner === userA ? userB : userA,
+          userId: userB,
           workspaceId: workspace.workspaceId,
         })
       ).toBe(true)
