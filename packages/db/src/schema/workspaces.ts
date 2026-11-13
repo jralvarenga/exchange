@@ -17,6 +17,12 @@ import { users } from './auth'
  * A shared trading setup someone creates or is invited into. Sign-up does not
  * create one; onboarding does. The default connection is what members trade
  * with until they pick another.
+ *
+ * Last-owner and last-workspace protection lives in
+ * `0004_better_auth_workspaces.sql` (`workspace_exit_guards` and the
+ * `require_*` triggers). Those objects are listed in `src/sql-extras.ts`
+ * and are not declared here so `db:generate` does not emit a second
+ * CREATE TABLE.
  */
 export const workspaces = pgTable('workspaces', {
   id: text().primaryKey(),

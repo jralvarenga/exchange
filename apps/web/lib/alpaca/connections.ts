@@ -400,12 +400,12 @@ export function activeConnectionId(
 }
 
 /**
- * Decrypts the member's active connection for an Alpaca call.
- * Throws when there is none or Alpaca rejected it.
+ * Loads the member's active connection without decrypting keys. Throws when
+ * there is none or Alpaca has already rejected it.
  */
-export async function resolveAlpacaRequestContext(
+export async function loadActiveAlpacaConnection(
   workspace: ActiveWorkspace
-): Promise<AlpacaRequestContext> {
+): Promise<AlpacaConnectionRow> {
   const connectionId = activeConnectionId(workspace)
 
   if (!connectionId) {
@@ -425,19 +425,47 @@ export async function resolveAlpacaRequestContext(
     throw new AlpacaCredentialsError('INVALID')
   }
 
-  const alpaca = decryptConnection(row)
+  return row
+}
+
+interface DecryptAlpacaRequestContextInput {
+  row: AlpacaConnectionRow
+  workspace: ActiveWorkspace
+}
+
+/**
+ * Decrypts a loaded active connection for an Alpaca call. Trading routes must
+ * apply `tradeLock` before calling this so a 403 never unwraps keys.
+ */
+export function decryptAlpacaRequestContext(
+  input: DecryptAlpacaRequestContextInput
+): AlpacaRequestContext {
+  const alpaca = decryptConnection(input.row)
 
   return {
     actor: {
-      connectionId: row.id,
-      connectionName: row.name,
+      connectionId: input.row.id,
+      connectionName: input.row.name,
       environment: alpaca.environment,
-      userId: workspace.userId,
-      workspaceId: workspace.workspaceId,
+      userId: input.workspace.userId,
+      workspaceId: input.workspace.workspaceId,
     },
     alpaca,
-    connectionUpdatedAt: row.updatedAt,
+    connectionUpdatedAt: input.row.updatedAt,
   }
+}
+
+/**
+ * Decrypts the member's active connection for an Alpaca call.
+ * Throws when there is none or Alpaca rejected it.
+ */
+export async function resolveAlpacaRequestContext(
+  workspace: ActiveWorkspace
+): Promise<AlpacaRequestContext> {
+  return decryptAlpacaRequestContext({
+    row: await loadActiveAlpacaConnection(workspace),
+    workspace,
+  })
 }
 
 /** Builds an activity actor for a connection-scoped action outside an API route. */

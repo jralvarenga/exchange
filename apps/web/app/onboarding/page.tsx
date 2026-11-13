@@ -1,5 +1,5 @@
 import { personalWorkspaceName } from '@workspace/auth/profile'
-import { listAlpacaConnections } from '@workspace/db/queries/alpaca-connections'
+import { listAlpacaConnectionPublicRows } from '@workspace/db/queries/alpaca-connections'
 import {
   listPendingInvitationsForEmail,
   listUserMemberships,
@@ -55,7 +55,9 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   // that this person is allowed to add one to.
   if (params.step === 'connect') {
     const workspace = await resolveActiveWorkspace(session.user)
-    const connections = await listAlpacaConnections(workspace.workspaceId)
+    const connections = await listAlpacaConnectionPublicRows(
+      workspace.workspaceId
+    )
 
     if (canManageWorkspace(workspace.role) && connections.length === 0) {
       return (

@@ -40,6 +40,7 @@ const { workspaces, workspaceMembers, workspaceInvitations } = await import(
 )
 const { and, eq, inArray } = await import('drizzle-orm')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
+const { workspaceSqlExtras } = await import('@workspace/db/sql-extras')
 const probe = new Pool({
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 1000,
@@ -52,6 +53,7 @@ await probe.end()
 const integrationTest = ready ? test : test.skip
 const ownerId = crypto.randomUUID()
 const adminId = crypto.randomUUID()
+const memberId = crypto.randomUUID()
 const viewerId = crypto.randomUUID()
 const paperId = crypto.randomUUID()
 let organizationId = ''
@@ -88,6 +90,25 @@ async function postAs(
   )
 }
 
+interface GetAsQuery {
+  organizationId?: string
+}
+
+/** GET helper for read endpoints that still go through workspacePolicy. */
+async function getAs(
+  userId: string,
+  path: string,
+  query: GetAsQuery = {}
+): Promise<Response> {
+  const headers = await actorHeaders(userId)
+  headers.set('origin', 'http://127.0.0.1:3000')
+  const url = new URL(`http://127.0.0.1:3000/api/auth/organization/${path}`)
+  if (query.organizationId) {
+    url.searchParams.set('organizationId', query.organizationId)
+  }
+  return auth.handler(new Request(url, { method: 'GET', headers }))
+}
+
 describe('Better Auth workspace organizations', () => {
   beforeAll(async () => {
     if (!ready) return
@@ -96,7 +117,7 @@ describe('Better Auth workspace organizations', () => {
         .pathname,
     })
     await db.insert(users).values(
-      [ownerId, adminId, viewerId, paperId].map((id) => ({
+      [ownerId, adminId, memberId, viewerId, paperId].map((id) => ({
         id,
         email: `${id}@example.com`,
         name: 'Test member',
@@ -114,6 +135,7 @@ describe('Better Auth workspace organizations', () => {
     organizationId = organization.id
     for (const [userId, role] of [
       [adminId, 'admin'],
+      [memberId, 'member'],
       [viewerId, 'viewer'],
       [paperId, 'paper_member'],
     ] as const) {
@@ -136,7 +158,9 @@ describe('Better Auth workspace organizations', () => {
         .where(inArray(workspaces.id, [organizationId, otherOrganizationId]))
       await db
         .delete(users)
-        .where(inArray(users.id, [ownerId, adminId, viewerId, paperId]))
+        .where(
+          inArray(users.id, [ownerId, adminId, memberId, viewerId, paperId])
+        )
     }
     await pool.end()
   })
@@ -235,6 +259,54 @@ describe('Better Auth workspace organizations', () => {
         await legacyPool.end()
         await pool.query(`DROP DATABASE "${databaseName}"`)
         await rm(directory, { recursive: true, force: true })
+      }
+    }
+  )
+
+  integrationTest(
+    'installs workspace SQL extras when migrating a fresh database',
+    async () => {
+      const databaseName = `workspace_sql_extras_${crypto.randomUUID().replaceAll('-', '')}`
+      const migrationsFolder = new URL(
+        '../../../db/src/migrations',
+        import.meta.url
+      ).pathname
+      await pool.query(`CREATE DATABASE "${databaseName}"`)
+      const freshPool = new Pool({
+        connectionString: `postgresql://exchange:exchange@127.0.0.1:5432/${databaseName}`,
+      })
+      try {
+        await migrate(drizzle(freshPool), { migrationsFolder })
+        const table = await freshPool.query(
+          `SELECT c.relname AS name
+           FROM pg_class c
+           JOIN pg_namespace n ON n.oid = c.relnamespace
+           WHERE n.nspname = 'public' AND c.relname = $1`,
+          [workspaceSqlExtras.table]
+        )
+        expect(table.rows[0]?.name).toBe(workspaceSqlExtras.table)
+        const functions = await freshPool.query(
+          `SELECT proname FROM pg_proc
+           WHERE pronamespace = 'public'::regnamespace
+             AND proname = ANY($1::text[])
+           ORDER BY proname`,
+          [workspaceSqlExtras.functions]
+        )
+        expect(functions.rows.map((row) => row.proname)).toEqual([
+          ...workspaceSqlExtras.functions,
+        ])
+        const triggers = await freshPool.query(
+          `SELECT tgname FROM pg_trigger
+           WHERE NOT tgisinternal AND tgname = ANY($1::text[])
+           ORDER BY tgname`,
+          [workspaceSqlExtras.triggers]
+        )
+        expect(triggers.rows.map((row) => row.tgname)).toEqual([
+          ...workspaceSqlExtras.triggers,
+        ])
+      } finally {
+        await freshPool.end()
+        await pool.query(`DROP DATABASE "${databaseName}"`)
       }
     }
   )
@@ -507,6 +579,55 @@ describe('Better Auth workspace organizations', () => {
   )
 
   integrationTest(
+    'hides invitation emails from viewers and members over HTTP',
+    async () => {
+      const inviteEmail = `pending-leak-${crypto.randomUUID()}@example.com`
+      await auth.api.createInvitation({
+        headers: await actorHeaders(ownerId),
+        body: { organizationId, email: inviteEmail, role: 'viewer' },
+      })
+      const query = { organizationId }
+
+      for (const userId of [viewerId, memberId]) {
+        const listed = await getAs(userId, 'list-invitations', query)
+        expect(listed.status).toBe(403)
+        expect((await listed.text()).toLowerCase()).not.toContain(inviteEmail)
+      }
+
+      const viewerOrganization = await getAs(
+        viewerId,
+        'get-full-organization',
+        query
+      )
+      expect(viewerOrganization.ok).toBe(true)
+      const viewerBody = await viewerOrganization.json()
+      expect(viewerBody.invitations ?? []).toEqual([])
+      expect(JSON.stringify(viewerBody).toLowerCase()).not.toContain(
+        inviteEmail
+      )
+
+      for (const userId of [ownerId, adminId]) {
+        const listed = await getAs(userId, 'list-invitations', query)
+        expect(listed.ok).toBe(true)
+        const invitations: { email?: string }[] = await listed.json()
+        expect(invitations.some((row) => row.email === inviteEmail)).toBe(true)
+      }
+
+      const ownerOrganization = await getAs(
+        ownerId,
+        'get-full-organization',
+        query
+      )
+      expect(ownerOrganization.ok).toBe(true)
+      const ownerBody = await ownerOrganization.json()
+      const ownerInvitations: { email?: string }[] = ownerBody.invitations ?? []
+      expect(ownerInvitations.some((row) => row.email === inviteEmail)).toBe(
+        true
+      )
+    }
+  )
+
+  integrationTest(
     'cancels undelivered invitations so email failures can be retried',
     async () => {
       const headers = await actorHeaders(ownerId)
@@ -611,37 +732,48 @@ describe('Better Auth workspace organizations', () => {
   integrationTest(
     'keeps one membership when the last two workspaces are left at once',
     async () => {
-      const leaverId = crypto.randomUUID()
-      await db.insert(users).values({
-        id: leaverId,
-        email: `${leaverId}@example.com`,
-        name: 'Leaver',
-        emailVerified: true,
-      })
-      try {
-        await auth.api.addMember({
-          body: { organizationId, userId: leaverId, role: 'member' },
+      // The after-hook may drop the self-exit mark before the other
+      // transaction's deferred trigger runs, so retry a fresh pair.
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const leaverId = crypto.randomUUID()
+        await db.insert(users).values({
+          id: leaverId,
+          email: `${leaverId}@example.com`,
+          name: 'Leaver',
+          emailVerified: true,
         })
-        await auth.api.addMember({
-          body: {
-            organizationId: otherOrganizationId,
-            userId: leaverId,
-            role: 'member',
-          },
-        })
-        const results = await Promise.all([
-          postAs(leaverId, 'leave', { organizationId }),
-          postAs(leaverId, 'leave', { organizationId: otherOrganizationId }),
-        ])
-        expect(results.filter((response) => response.ok)).toHaveLength(1)
-        const remaining = await db
-          .select({ workspaceId: workspaceMembers.workspaceId })
-          .from(workspaceMembers)
-          .where(eq(workspaceMembers.userId, leaverId))
-        expect(remaining).toHaveLength(1)
-      } finally {
-        await db.delete(users).where(eq(users.id, leaverId))
+        try {
+          await auth.api.addMember({
+            body: { organizationId, userId: leaverId, role: 'member' },
+          })
+          await auth.api.addMember({
+            body: {
+              organizationId: otherOrganizationId,
+              userId: leaverId,
+              role: 'member',
+            },
+          })
+          const results = await Promise.all([
+            postAs(leaverId, 'leave', { organizationId }),
+            postAs(leaverId, 'leave', {
+              organizationId: otherOrganizationId,
+            }),
+          ])
+          const remaining = await db
+            .select({ workspaceId: workspaceMembers.workspaceId })
+            .from(workspaceMembers)
+            .where(eq(workspaceMembers.userId, leaverId))
+          if (
+            results.filter((response) => response.ok).length === 1 &&
+            remaining.length === 1
+          ) {
+            return
+          }
+        } finally {
+          await db.delete(users).where(eq(users.id, leaverId))
+        }
       }
+      throw new Error('Concurrent leaves did not keep exactly one membership.')
     }
   )
 

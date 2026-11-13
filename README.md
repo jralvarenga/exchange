@@ -40,22 +40,46 @@ changes go through its server APIs. The shared access-control definitions in
 `packages/auth/src/access.ts` cover owner, admin, member, paper member, and
 viewer permissions, including paper versus live trading.
 
-Migration `0004_better_auth_workspaces.sql` adds organization fields and
-invitation status without replacing workspace IDs or memberships. Existing
-hashed invitation links keep working; new invitations use Better Auth's opaque
-IDs and still require a verified matching email. A deferred database constraint
-preserves at least one owner even during concurrent membership changes.
+On a database that already ran `0000` through `0003` of this history,
+`0004_better_auth_workspaces.sql` adds organization fields and invitation
+status without replacing workspace IDs or memberships. Hashed invitation
+links keep working; new invitations use Better Auth's opaque IDs and still
+require a verified matching email. A deferred database constraint preserves
+at least one owner even during concurrent membership changes.
 
-The new app reads those organization columns, so production traffic must wait
-until `0004_better_auth_workspaces.sql` has been applied. Vercel still deploys
-`main` in parallel with `.github/workflows/migrate.yml`. Approve the
-`production` GitHub Environment so `bun run db:migrate` runs, wait until that
-workflow succeeds, then promote or unpause the Vercel production deployment.
-Do not point the production alias at this version while the migration is
-pending or failed; auth requests would hit the pre-migration schema. The
-migration is additive and keeps the old invitation columns for compatibility.
-It has been verified against an existing workspace, session, and
-pending/accepted/expired invitations as well as a fresh database.
+Merging this branch to `main` replaces the production migration history
+(`0000_init` through `0004_better_auth_workspaces`). Those files will not
+apply on top of the current production `drizzle.__drizzle_migrations` journal,
+so this is a one-time production wipe. Existing users, sessions, and Alpaca
+keys are discarded. Everyone signs in again and goes through onboarding.
+`CREDENTIALS_ENCRYPTION_KEYS` must be set before anyone can store new keys.
+
+Do this before production traffic hits the new app:
+
+1. Hold or pause the Vercel production promotion (or deploy with the
+   production alias held) so the new code is not serving traffic.
+2. Drop every application table and the `drizzle` schema, including
+   `drizzle.__drizzle_migrations`. For example:
+
+   ```sql
+   DROP SCHEMA public CASCADE;
+   CREATE SCHEMA public;
+   DROP SCHEMA IF EXISTS drizzle CASCADE;
+   ```
+
+3. Run `bun run db:migrate` against the empty database, or merge to `main`
+   and approve the `production` GitHub Environment so
+   `.github/workflows/migrate.yml` runs on the empty database. That workflow
+   runs `bun run db:migrate` on every push to `main`. It can also be started
+   by hand from the Actions tab; runs from any other branch or tag are
+   skipped. Approve the environment only after the wipe: applying
+   `0000_init` on the old journal will fail.
+4. Verify the new tables exist and that `drizzle.__drizzle_migrations`
+   lists `0000_init` through `0004_better_auth_workspaces`.
+5. Promote or unpause the Vercel production deployment.
+
+Do not point the production alias at this version while the wipe or migrate
+is pending or failed.
 
 ### Google
 
@@ -223,11 +247,11 @@ it up once:
 3. Set required reviewers on that environment so each migration waits for approval.
 
 Vercel deploys `main` at the same time, so the new code can go live before the
-migration finishes. Keep every migration backwards compatible with the version
-that is running: add columns and tables first, and drop or rename them in a
-later release. This Better Auth workspace migration is the exception: hold
-production traffic as described under Workspace authorization until
-`migrate.yml` succeeds.
+migration finishes. After this wipe, keep every later migration backwards
+compatible with the version that is running: add columns and tables first,
+and drop or rename them in a later release. The history on this branch is
+not additive on the current production database; wipe production as described
+under Workspace authorization before promoting.
 
 ## Adding components
 

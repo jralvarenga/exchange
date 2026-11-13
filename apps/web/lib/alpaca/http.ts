@@ -7,9 +7,11 @@ import { z } from 'zod'
 import {
   AlpacaCredentialsError,
   type AlpacaRequestContext,
+  decryptAlpacaRequestContext,
+  loadActiveAlpacaConnection,
   markConnectionInvalid,
-  resolveAlpacaRequestContext,
 } from '@/lib/alpaca/connections'
+import { alpacaEnvironmentSchema } from '@/lib/alpaca/schemas'
 import { tradeLock } from '@/lib/workspaces/permissions'
 import {
   NoWorkspaceError,
@@ -71,11 +73,11 @@ export async function createApiResponse(
 
   try {
     const workspace = await resolveActiveWorkspace(session.user)
-    request = await resolveAlpacaRequestContext(workspace)
+    const row = await loadActiveAlpacaConnection(workspace)
 
     const lock = options.trading
       ? tradeLock({
-          environment: request.alpaca.environment,
+          environment: alpacaEnvironmentSchema.parse(row.environment),
           role: workspace.role,
         })
       : null
@@ -99,6 +101,8 @@ export async function createApiResponse(
         403
       )
     }
+
+    request = decryptAlpacaRequestContext({ row, workspace })
 
     const data = await handler({
       actor: request.actor,

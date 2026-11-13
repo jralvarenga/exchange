@@ -66,10 +66,13 @@ const {
   AlpacaCredentialsError,
   addConnection,
   listMaskedConnections,
+  loadActiveAlpacaConnection,
   removeConnection,
   resolveAlpacaRequestContext,
   testConnection,
 } = await import('@/lib/alpaca/connections')
+const { alpacaEnvironmentSchema } = await import('@/lib/alpaca/schemas')
+const { tradeLock } = await import('@/lib/workspaces/permissions')
 const { AlpacaApiError } = await import('@/lib/alpaca/client')
 const { createApiResponse } = await import('@/lib/alpaca/http')
 const { NoWorkspaceError, resolveActiveWorkspace, WorkspacePermissionError } =
@@ -503,6 +506,17 @@ describe('alpaca connections', () => {
         )
       )
     currentSession = { user: { id: userB, name: 'User B' } }
+    const workspace = await resolveActiveWorkspace({
+      id: userB,
+      name: 'User B',
+    })
+    const row = await loadActiveAlpacaConnection(workspace)
+    expect(
+      tradeLock({
+        environment: alpacaEnvironmentSchema.parse(row.environment),
+        role: workspace.role,
+      })
+    ).toBe('viewer')
     let traded = false
 
     const read = await createApiResponse(async () => ({ ok: true }))
@@ -542,6 +556,17 @@ describe('alpaca connections', () => {
         )
       )
     currentSession = { user: { id: userA, name: 'User A' } }
+    const workspace = await resolveActiveWorkspace({
+      id: userA,
+      name: 'User A',
+    })
+    const row = await loadActiveAlpacaConnection(workspace)
+    expect(
+      tradeLock({
+        environment: alpacaEnvironmentSchema.parse(row.environment),
+        role: workspace.role,
+      })
+    ).toBe('paper_only')
 
     const trade = await createApiResponse(async () => ({ ok: true }), {
       trading: true,
