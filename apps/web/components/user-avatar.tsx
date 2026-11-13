@@ -1,5 +1,8 @@
+'use client'
+
 import { cn } from '@workspace/ui/lib/utils'
 import Image from 'next/image'
+import { useState } from 'react'
 
 import { getInitials } from '@/lib/utils'
 
@@ -28,9 +31,12 @@ interface Props {
   size: keyof typeof avatarSizes
 }
 
-/** A round profile photo, or the person's initials when they have none. */
+/** A round profile photo, or the person's initials when there is none or it fails to load. */
 export function UserAvatar({ className, email, image, name, size }: Props) {
   const avatarSize = avatarSizes[size]
+  // Remembers which photo failed, so a new photo gets a fresh try.
+  const [failedImage, setFailedImage] = useState<string>()
+  const showsImage = Boolean(image) && image !== failedImage
 
   return (
     <span
@@ -41,14 +47,17 @@ export function UserAvatar({ className, email, image, name, size }: Props) {
         className
       )}
     >
-      {image ? (
+      {showsImage && image ? (
         <Image
           alt=""
           className="size-full object-cover"
           height={avatarSize.pixel}
+          onError={() => setFailedImage(image)}
+          // Google refuses profile photos requested with another site's referrer.
+          referrerPolicy="no-referrer"
+          src={image}
           // Photos are data URLs from sign-up or Google profile pictures.
           unoptimized
-          src={image}
           width={avatarSize.pixel}
         />
       ) : (
