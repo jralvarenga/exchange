@@ -277,7 +277,9 @@
 
 /*
  * Scrolls a row whose items are rendered twice end to end, so moving it by
- * half its width loops seamlessly. Reduced motion keeps it still.
+ * half its width loops seamlessly. A row with a `gap` also needs end padding
+ * of one gap (`gap-4 pr-4`), so each half spans its items and their gaps.
+ * Reduced motion keeps it still.
  */
 @utility animate-marquee {
   animation: marquee var(--marquee-duration, 40s) linear infinite;

@@ -61,7 +61,7 @@ export function AuthShowcase() {
         <div className="mask-x-from-80% mask-x-to-100% w-full overflow-hidden">
           <ul
             aria-label="Stocks and ETFs you can trade"
-            className="flex w-max animate-marquee gap-4 [--marquee-duration:50s]"
+            className="flex w-max animate-marquee gap-4 pr-4 [--marquee-duration:50s]"
           >
             {marqueeItems.map(({ copy, symbol }) => (
               <li
