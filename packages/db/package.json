@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    "./workspace-roles": "./src/workspace-roles.ts",
     "./client": "./src/client.ts",
     "./schema/auth": "./src/schema/auth.ts",
     "./queries/rate-limits": "./src/queries/rate-limits.ts",

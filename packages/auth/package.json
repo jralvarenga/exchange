@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    "./access": "./src/access.ts",
     "./server": "./src/server.ts",
     "./client": "./src/client.ts",
     "./password": "./src/password.ts",

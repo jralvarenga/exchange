@@ -1,36 +1,22 @@
 'use server'
 
-import { sendAuthEmail } from '@workspace/auth/email'
+import { auth } from '@workspace/auth/server'
 import {
-  acceptWorkspaceInvitation,
-  createWorkspace,
-  createWorkspaceInvitation,
-  deleteWorkspace,
-  deleteWorkspaceInvitation,
   findInvitationById,
-  findInvitationByTokenHash,
   listPendingInvitations,
   listWorkspaceMembers,
-  removeWorkspaceMember,
-  renameWorkspace,
   setActiveWorkspace,
-  updateMemberRole,
   type WorkspaceRole,
   workspaceRoles,
 } from '@workspace/db/queries/workspaces'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { recordActivity } from '@/lib/activity/record'
 import { requireSession } from '@/lib/auth/require-session'
-import { env } from '@/lib/env'
-import {
-  createInvitationToken,
-  hashInvitationToken,
-  INVITATION_TTL_MS,
-  invitationEmail,
-} from '@/lib/workspaces/invitations'
+import { findInvitationByLink } from '@/lib/workspaces/invitations'
 import {
   canAssignRole,
   canDeleteWorkspace,
@@ -79,6 +65,10 @@ export async function switchWorkspaceAction(
     return { message: 'You are not a member of that workspace.' }
   }
 
+  await auth.api.setActiveOrganization({
+    body: { organizationId: target.workspaceId },
+    headers: await headers(),
+  })
   await setActiveWorkspace({
     userId: session.user.id,
     workspaceId: target.workspaceId,
@@ -146,10 +136,12 @@ async function createOwnWorkspace(
   }
 
   try {
-    const workspaceId = await createWorkspace({
-      name: name.data,
-      userId: session.user.id,
+    const created = await auth.api.createOrganization({
+      body: { name: name.data, slug: crypto.randomUUID() },
+      headers: await headers(),
     })
+    if (!created) return 'The workspace could not be created.'
+    const workspaceId = created.id
     await recordActivity({
       action: 'workspace.created',
       actor: workspaceActor({ userId: session.user.id, workspaceId }),
@@ -187,10 +179,17 @@ export async function renameWorkspaceAction(
     return { message: OWNER_ONLY_MESSAGE }
   }
 
-  await renameWorkspace({
-    name: name.data,
-    workspaceId: workspace.workspaceId,
-  })
+  try {
+    await auth.api.updateOrganization({
+      body: {
+        data: { name: name.data },
+        organizationId: workspace.workspaceId,
+      },
+      headers: await headers(),
+    })
+  } catch {
+    return { message: 'The workspace could not be renamed.' }
+  }
   await recordActivity({
     action: 'workspace.renamed',
     actor: workspaceActor(workspace),
@@ -250,44 +249,19 @@ export async function inviteMemberAction(
     return { message: 'That person already has a pending invitation.' }
   }
 
-  const token = createInvitationToken()
-  const invitationId = crypto.randomUUID()
-
+  let invitationId: string
   try {
-    const created = await createWorkspaceInvitation({
-      email: parsed.data.email,
-      expiresAt: new Date(Date.now() + INVITATION_TTL_MS),
-      id: invitationId,
-      invitedByUserId: session.user.id,
-      role: parsed.data.role,
-      tokenHash: hashInvitationToken(token),
-      workspaceId: workspace.workspaceId,
+    const invitation = await auth.api.createInvitation({
+      body: {
+        email: parsed.data.email,
+        role: parsed.data.role,
+        organizationId: workspace.workspaceId,
+      },
+      headers: await headers(),
     })
-
-    if (!created) {
-      return { message: 'That person already has a pending invitation.' }
-    }
+    invitationId = invitation.id
   } catch {
-    return { message: 'The invitation could not be sent.' }
-  }
-
-  try {
-    await sendAuthEmail({
-      ...invitationEmail({
-        inviterName: session.user.name || session.user.email,
-        url: new URL(`/invite/${token}`, env.BETTER_AUTH_URL).toString(),
-        workspaceName: workspace.workspaceName,
-      }),
-      to: parsed.data.email,
-    })
-  } catch {
-    // Nobody received it, so drop it: a retry should not find it pending.
-    await deleteWorkspaceInvitation({
-      invitationId,
-      workspaceId: workspace.workspaceId,
-    }).catch(() => undefined)
-
-    return { message: 'The invitation email could not be sent. Try again.' }
+    return { message: 'The invitation could not be sent. Try again.' }
   }
 
   await recordActivity({
@@ -324,16 +298,21 @@ export async function revokeInvitationAction(
     return { message: OWNER_ONLY_MESSAGE }
   }
 
-  const revoked = await deleteWorkspaceInvitation({
-    invitationId: parsedId.data,
-    workspaceId: workspace.workspaceId,
-  })
-
-  // Accepted or already canceled in the meantime: nothing was revoked.
-  if (!revoked) {
-    revalidatePath('/', 'layout')
-
+  const invitation = await findInvitationById(parsedId.data)
+  if (
+    !invitation ||
+    invitation.workspaceId !== workspace.workspaceId ||
+    invitation.status !== 'pending'
+  ) {
     return { message: 'That invitation was already accepted or canceled.' }
+  }
+  try {
+    await auth.api.cancelInvitation({
+      body: { invitationId: parsedId.data },
+      headers: await headers(),
+    })
+  } catch {
+    return { message: 'That invitation could not be canceled.' }
   }
 
   await recordActivity({
@@ -389,14 +368,20 @@ export async function updateMemberRoleAction(
     return { message: OWNER_ROLE_MESSAGE }
   }
 
-  const changed = await updateMemberRole({
-    role: parsed.data.role,
-    userId: target.userId,
-    workspaceId: workspace.workspaceId,
-  })
-
-  if (!changed) {
-    return { message: 'A workspace needs at least one owner.' }
+  try {
+    await auth.api.updateMemberRole({
+      body: {
+        memberId: target.id,
+        role: parsed.data.role,
+        organizationId: workspace.workspaceId,
+      },
+      headers: await headers(),
+    })
+  } catch {
+    return {
+      message:
+        'The role could not be changed. A workspace needs at least one owner.',
+    }
   }
 
   await recordActivity({
@@ -445,12 +430,15 @@ export async function removeMemberAction(
     return { message: OWNER_ROLE_MESSAGE }
   }
 
-  const removed = await removeWorkspaceMember({
-    userId: parsedId.data,
-    workspaceId: workspace.workspaceId,
-  })
-
-  if (!removed) {
+  try {
+    await auth.api.removeMember({
+      body: {
+        memberIdOrEmail: target.id,
+        organizationId: workspace.workspaceId,
+      },
+      headers: await headers(),
+    })
+  } catch {
     return { message: LAST_OWNER_MESSAGE }
   }
 
@@ -480,12 +468,12 @@ export async function leaveWorkspaceAction(
     return { message: 'This is your only workspace, so you cannot leave it.' }
   }
 
-  const left = await removeWorkspaceMember({
-    userId: session.user.id,
-    workspaceId: workspace.workspaceId,
-  })
-
-  if (!left) {
+  try {
+    await auth.api.leaveOrganization({
+      body: { organizationId: workspace.workspaceId },
+      headers: await headers(),
+    })
+  } catch {
     return { message: LAST_OWNER_MESSAGE }
   }
 
@@ -523,13 +511,13 @@ export async function deleteWorkspaceAction(
   }
 
   // Nothing is logged: the activity log goes with the workspace.
-  const deleted = await deleteWorkspace({
-    ownerUserId: session.user.id,
-    workspaceId: workspace.workspaceId,
-  })
-
-  if (!deleted) {
-    return { message: 'Only workspace owners can delete it.' }
+  try {
+    await auth.api.deleteOrganization({
+      body: { organizationId: workspace.workspaceId },
+      headers: await headers(),
+    })
+  } catch {
+    return { message: 'The workspace could not be deleted.' }
   }
 
   revalidatePath('/', 'layout')
@@ -551,10 +539,7 @@ export async function acceptInvitationAction(
     return { message: 'This invitation link is not valid.' }
   }
 
-  return joinInvitation(
-    session,
-    await findInvitationByTokenHash(hashInvitationToken(parsedToken.data))
-  )
+  return joinInvitation(session, await findInvitationByLink(parsedToken.data))
 }
 
 /**
@@ -585,8 +570,7 @@ async function joinInvitation(
   invitation: Awaited<ReturnType<typeof findInvitationById>>
 ): Promise<WorkspaceActionState> {
   if (
-    !invitation ||
-    invitation.acceptedAt ||
+    invitation?.status !== 'pending' ||
     invitation.expiresAt.getTime() <= Date.now()
   ) {
     return { message: 'This invitation has expired or was already used.' }
@@ -601,12 +585,29 @@ async function joinInvitation(
     }
   }
 
-  const workspaceId = await acceptWorkspaceInvitation({
-    invitationId: invitation.id,
-    userId: session.user.id,
-  })
-
-  if (!workspaceId) {
+  const workspaceId = invitation.workspaceId
+  const existingMember = (await listWorkspaceMembers(workspaceId)).some(
+    (member) => member.userId === session.user.id
+  )
+  try {
+    if (existingMember) {
+      // An old invitation must never replace an existing membership's role.
+      await auth.api.rejectInvitation({
+        body: { invitationId: invitation.id },
+        headers: await headers(),
+      })
+      await setActiveWorkspace({ userId: session.user.id, workspaceId })
+      await auth.api.setActiveOrganization({
+        body: { organizationId: workspaceId },
+        headers: await headers(),
+      })
+    } else {
+      await auth.api.acceptInvitation({
+        body: { invitationId: invitation.id },
+        headers: await headers(),
+      })
+    }
+  } catch {
     return { message: 'This invitation has expired or was already used.' }
   }
 

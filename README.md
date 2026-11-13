@@ -32,6 +32,25 @@ Session cookies are Secure. Locally, set `BETTER_AUTH_URL` to
 `http://127.0.0.1:3000`. Chrome treats that host as a secure context, so the
 cookie is sent on local HTTP. Production stays behind HTTPS.
 
+### Workspace authorization
+
+Workspaces use Better Auth's organization plugin, mapped to `workspaces`,
+`workspace_members`, and `workspace_invitations`. Membership and invitation
+changes go through its server APIs. The shared access-control definitions in
+`packages/auth/src/access.ts` cover owner, admin, member, paper member, and
+viewer permissions, including paper versus live trading.
+
+Migration `0004_better_auth_workspaces.sql` adds organization fields and
+invitation status without replacing workspace IDs or memberships. Existing
+hashed invitation links keep working; new invitations use Better Auth's opaque
+IDs and still require a verified matching email. A deferred database constraint
+preserves at least one owner even during concurrent membership changes.
+
+Apply `bun run db:migrate` before deploying this version. The migration is
+additive and keeps the old invitation columns for compatibility. It has been
+verified against an existing workspace, session, and pending/accepted/expired
+invitations as well as a fresh database.
+
 ### Google
 
 In Google Cloud, create an OAuth client and set the authorized redirect URI to:

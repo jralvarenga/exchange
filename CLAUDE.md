@@ -26,6 +26,13 @@ init
 
 - Don't look over the browser unless I ask you to and give you permission
 
+- Workspace authorization uses Better Auth's organization plugin. Route membership,
+  role, invitation, and workspace lifecycle changes through `auth.api`; keep
+  Drizzle queries for reads and application-specific connection preferences.
+- Define role permissions in `packages/auth/src/access.ts`. Both server trading
+  checks and the organization client use these definitions. Keep the database
+  last-owner constraint and legacy invitation-link compatibility when migrating.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

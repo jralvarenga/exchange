@@ -1,15 +1,4 @@
-import {
-  and,
-  asc,
-  count,
-  eq,
-  exists,
-  gt,
-  isNull,
-  lte,
-  ne,
-  sql,
-} from 'drizzle-orm'
+import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm'
 
 import { db } from '../client'
 import { alpacaConnections } from '../schema/alpaca-connections'
@@ -19,20 +8,13 @@ import {
   workspaceMembers,
   workspaces,
 } from '../schema/workspaces'
+import { toWorkspaceRole, type WorkspaceRole } from '../workspace-roles'
 
-export const workspaceRoles = [
-  'owner',
-  'admin',
-  'member',
-  'paper_member',
-  'viewer',
-] as const
-
-/**
- * Highest first. Owners can also delete the workspace, admins run it, members
- * trade, paper members trade on paper only, viewers only look.
- */
-export type WorkspaceRole = (typeof workspaceRoles)[number]
+export {
+  toWorkspaceRole,
+  type WorkspaceRole,
+  workspaceRoles,
+} from '../workspace-roles'
 
 export type WorkspaceMembershipRow = {
   activeConnectionId: string | null
@@ -43,6 +25,7 @@ export type WorkspaceMembershipRow = {
 }
 
 export type WorkspaceMemberRow = {
+  id: string
   email: string
   image: string | null
   joinedAt: Date
@@ -54,11 +37,6 @@ export type WorkspaceMemberRow = {
 export type WorkspaceInvitationRow = typeof workspaceInvitations.$inferSelect
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
-
-interface CreateWorkspaceInput {
-  name: string
-  userId: string
-}
 
 interface MembershipIdentity {
   userId: string
@@ -72,75 +50,6 @@ interface SetMemberConnectionInput extends MembershipIdentity {
 interface SetDefaultConnectionInput {
   connectionId: string | null
   workspaceId: string
-}
-
-interface UpdateMemberRoleInput extends MembershipIdentity {
-  role: WorkspaceRole
-}
-
-interface CreateInvitationInput {
-  email: string
-  expiresAt: Date
-  id: string
-  invitedByUserId: string
-  role: WorkspaceRole
-  tokenHash: string
-  workspaceId: string
-}
-
-interface AcceptInvitationInput {
-  invitationId: string
-  userId: string
-}
-
-interface RenameWorkspaceInput {
-  name: string
-  workspaceId: string
-}
-
-/**
- * Creates a workspace owned by the user and makes it their active one.
- * Returns the new workspace id.
- */
-export async function createWorkspace(
-  input: CreateWorkspaceInput
-): Promise<string> {
-  const workspaceId = crypto.randomUUID()
-  const now = new Date()
-
-  await db.transaction(async (tx) => {
-    await tx.insert(workspaces).values({
-      createdAt: now,
-      createdByUserId: input.userId,
-      id: workspaceId,
-      name: input.name,
-      updatedAt: now,
-    })
-    await tx.insert(workspaceMembers).values({
-      createdAt: now,
-      id: crypto.randomUUID(),
-      role: 'owner',
-      updatedAt: now,
-      userId: input.userId,
-      workspaceId,
-    })
-    await tx
-      .update(users)
-      .set({ activeWorkspaceId: workspaceId, updatedAt: now })
-      .where(eq(users.id, input.userId))
-  })
-
-  return workspaceId
-}
-
-/** Renames a workspace. */
-export async function renameWorkspace(
-  input: RenameWorkspaceInput
-): Promise<void> {
-  await db
-    .update(workspaces)
-    .set({ name: input.name, updatedAt: new Date() })
-    .where(eq(workspaces.id, input.workspaceId))
 }
 
 /** Lists every workspace the user belongs to, oldest membership first. */
@@ -351,6 +260,7 @@ export async function listWorkspaceMembers(
     .select({
       email: users.email,
       image: users.image,
+      id: workspaceMembers.id,
       joinedAt: workspaceMembers.createdAt,
       name: users.name,
       role: workspaceMembers.role,
@@ -367,126 +277,6 @@ export async function listWorkspaceMembers(
   }))
 }
 
-/**
- * Changes a member's role. Returns false, changing nothing, when it would
- * demote the last owner.
- */
-export async function updateMemberRole(
-  input: UpdateMemberRoleInput
-): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    if (input.role !== 'owner' && !(await hasOtherOwner(tx, input))) {
-      return false
-    }
-
-    await tx
-      .update(workspaceMembers)
-      .set({ role: input.role, updatedAt: new Date() })
-      .where(membershipWhere(input))
-
-    return true
-  })
-}
-
-/**
- * Removes a member. The connections they added stay with the workspace.
- * Their active workspace is cleared so the next request picks another one.
- * Returns false, changing nothing, when they are the last owner.
- */
-export async function removeWorkspaceMember(
-  input: MembershipIdentity
-): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    if (!(await hasOtherOwner(tx, input))) {
-      return false
-    }
-
-    await tx.delete(workspaceMembers).where(membershipWhere(input))
-    await tx
-      .update(users)
-      .set({ activeWorkspaceId: null, updatedAt: new Date() })
-      .where(
-        and(
-          eq(users.id, input.userId),
-          eq(users.activeWorkspaceId, input.workspaceId)
-        )
-      )
-
-    return true
-  })
-}
-
-/**
- * Deletes a workspace with everything in it: members, invitations,
- * connections and activity. Users who had it open fall back to another one.
- */
-export async function deleteWorkspace(input: {
-  ownerUserId: string
-  workspaceId: string
-}): Promise<boolean> {
-  // The owner check is part of the delete, so a demotion that lands first wins.
-  const deleted = await db
-    .delete(workspaces)
-    .where(
-      and(
-        eq(workspaces.id, input.workspaceId),
-        exists(
-          db
-            .select({ id: workspaceMembers.id })
-            .from(workspaceMembers)
-            .where(
-              and(
-                eq(workspaceMembers.workspaceId, input.workspaceId),
-                eq(workspaceMembers.userId, input.ownerUserId),
-                eq(workspaceMembers.role, 'owner')
-              )
-            )
-        )
-      )
-    )
-    .returning({ id: workspaces.id })
-
-  return deleted.length > 0
-}
-
-/**
- * Stores a new invitation; only the token hash is kept. An expired invitation
- * to the same address is replaced. Returns false when one is still pending,
- * which the database enforces even for two requests at once.
- */
-export async function createWorkspaceInvitation(
-  input: CreateInvitationInput
-): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    await tx
-      .delete(workspaceInvitations)
-      .where(
-        and(
-          eq(workspaceInvitations.workspaceId, input.workspaceId),
-          eq(workspaceInvitations.email, input.email),
-          isNull(workspaceInvitations.acceptedAt),
-          lte(workspaceInvitations.expiresAt, new Date())
-        )
-      )
-    const inserted = await tx
-      .insert(workspaceInvitations)
-      .values({
-        createdAt: new Date(),
-        email: input.email,
-        expiresAt: input.expiresAt,
-        id: input.id,
-        invitedByUserId: input.invitedByUserId,
-        role: input.role,
-        tokenHash: input.tokenHash,
-        workspaceId: input.workspaceId,
-      })
-      .onConflictDoNothing()
-      .returning({ id: workspaceInvitations.id })
-
-    return inserted.length > 0
-  })
-}
-
 /** Lists invitations that were not accepted and have not expired. */
 export async function listPendingInvitations(
   workspaceId: string
@@ -497,7 +287,7 @@ export async function listPendingInvitations(
     .where(
       and(
         eq(workspaceInvitations.workspaceId, workspaceId),
-        isNull(workspaceInvitations.acceptedAt),
+        eq(workspaceInvitations.status, 'pending'),
         gt(workspaceInvitations.expiresAt, new Date())
       )
     )
@@ -555,7 +345,7 @@ export async function listPendingInvitationsForEmail(
     .where(
       and(
         eq(workspaceInvitations.email, email.toLowerCase()),
-        isNull(workspaceInvitations.acceptedAt),
+        eq(workspaceInvitations.status, 'pending'),
         gt(workspaceInvitations.expiresAt, new Date())
       )
     )
@@ -586,102 +376,6 @@ export async function findInvitationById(invitationId: string): Promise<
     : undefined
 }
 
-/** Deletes an invitation that was not accepted yet. Returns whether one was. */
-export async function deleteWorkspaceInvitation(input: {
-  invitationId: string
-  workspaceId: string
-}): Promise<boolean> {
-  const deleted = await db
-    .delete(workspaceInvitations)
-    .where(
-      and(
-        eq(workspaceInvitations.id, input.invitationId),
-        eq(workspaceInvitations.workspaceId, input.workspaceId),
-        isNull(workspaceInvitations.acceptedAt)
-      )
-    )
-    .returning({ id: workspaceInvitations.id })
-
-  return deleted.length > 0
-}
-
-/**
- * Accepts an invitation: adds the membership (keeping an existing one), marks
- * the invitation used and switches the user to that workspace.
- * Returns the workspace id, or undefined when the invitation was already used.
- */
-export async function acceptWorkspaceInvitation(
-  input: AcceptInvitationInput
-): Promise<string | undefined> {
-  return db.transaction(async (tx) => {
-    const now = new Date()
-    const [invitation] = await tx
-      .update(workspaceInvitations)
-      .set({ acceptedAt: now })
-      .where(
-        and(
-          eq(workspaceInvitations.id, input.invitationId),
-          isNull(workspaceInvitations.acceptedAt),
-          gt(workspaceInvitations.expiresAt, now)
-        )
-      )
-      .returning()
-
-    if (!invitation) {
-      return undefined
-    }
-
-    await tx
-      .insert(workspaceMembers)
-      .values({
-        createdAt: now,
-        id: crypto.randomUUID(),
-        role: invitation.role,
-        updatedAt: now,
-        userId: input.userId,
-        workspaceId: invitation.workspaceId,
-      })
-      .onConflictDoNothing({
-        target: [workspaceMembers.workspaceId, workspaceMembers.userId],
-      })
-    await tx
-      .update(users)
-      .set({ activeWorkspaceId: invitation.workspaceId, updatedAt: now })
-      .where(eq(users.id, input.userId))
-
-    return invitation.workspaceId
-  })
-}
-
-/**
- * Locks the workspace row, then checks that someone other than this user owns
- * it. The lock makes two owners demoting or removing each other at the same
- * time run one after the other, so a workspace never ends up without an owner.
- */
-async function hasOtherOwner(
-  tx: Transaction,
-  input: MembershipIdentity
-): Promise<boolean> {
-  await tx
-    .select({ id: workspaces.id })
-    .from(workspaces)
-    .where(eq(workspaces.id, input.workspaceId))
-    .for('update')
-
-  const [row] = await tx
-    .select({ value: count() })
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, input.workspaceId),
-        eq(workspaceMembers.role, 'owner'),
-        ne(workspaceMembers.userId, input.userId)
-      )
-    )
-
-  return (row?.value ?? 0) > 0
-}
-
 /** Matches one user's membership in one workspace. */
 function membershipWhere(input: MembershipIdentity) {
   return and(
@@ -695,12 +389,4 @@ function toMembershipRow(
   row: Omit<WorkspaceMembershipRow, 'role'> & { role: string }
 ): WorkspaceMembershipRow {
   return { ...row, role: toWorkspaceRole(row.role) }
-}
-
-/**
- * Narrows stored role text to a known role. Anything unexpected becomes a
- * viewer, the role that can change nothing.
- */
-export function toWorkspaceRole(value: string): WorkspaceRole {
-  return workspaceRoles.find((role) => role === value) ?? 'viewer'
 }
