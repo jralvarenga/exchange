@@ -63,4 +63,34 @@ $$;--> statement-breakpoint
 CREATE CONSTRAINT TRIGGER workspace_requires_owner
 AFTER UPDATE OR DELETE ON workspace_members
 DEFERRABLE INITIALLY DEFERRED
-FOR EACH ROW EXECUTE FUNCTION require_workspace_owner();
+FOR EACH ROW EXECUTE FUNCTION require_workspace_owner();--> statement-breakpoint
+-- Leave and delete check membership count before writing. Recheck at commit
+-- when the request marked itself as a self-exit, so concurrent leaves cannot
+-- drop the user's last two workspaces. Being removed by someone else still
+-- allows zero memberships (onboarding). Stale marks expire after a minute.
+CREATE TABLE workspace_exit_guards (
+  user_id text PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);--> statement-breakpoint
+CREATE FUNCTION require_workspace_on_self_exit() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM workspace_exit_guards
+    WHERE user_id = OLD.user_id AND created_at > now() - interval '1 minute'
+  ) THEN
+    RETURN NULL;
+  END IF;
+  PERFORM id FROM users WHERE id = OLD.user_id FOR UPDATE;
+  IF FOUND AND NOT EXISTS (
+    SELECT 1 FROM workspace_members WHERE user_id = OLD.user_id
+  ) THEN
+    RAISE EXCEPTION 'This is your only workspace, so you cannot leave or delete it.' USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NULL;
+END;
+$$;--> statement-breakpoint
+CREATE CONSTRAINT TRIGGER workspace_requires_membership_on_self_exit
+AFTER DELETE ON workspace_members
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW EXECUTE FUNCTION require_workspace_on_self_exit();

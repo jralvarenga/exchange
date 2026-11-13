@@ -35,7 +35,12 @@ interface WorkspaceActionState {
   saved?: boolean
 }
 
-const workspaceNameSchema = z.string().trim().min(1).max(40)
+const workspaceNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .refine((name) => !/[\r\n]/u.test(name))
 const idSchema = z.string().trim().min(1).max(64)
 const roleSchema = z.enum(workspaceRoles)
 
@@ -68,10 +73,6 @@ export async function switchWorkspaceAction(
   await auth.api.setActiveOrganization({
     body: { organizationId: target.workspaceId },
     headers: await headers(),
-  })
-  await setActiveWorkspace({
-    userId: session.user.id,
-    workspaceId: target.workspaceId,
   })
   await recordActivity({
     action: 'workspace.switched',
@@ -245,7 +246,11 @@ export async function inviteMemberAction(
     return { message: 'That person is already a member.' }
   }
 
-  if (pending.some((invitation) => invitation.email === parsed.data.email)) {
+  if (
+    pending.some(
+      (invitation) => invitation.email.toLowerCase() === parsed.data.email
+    )
+  ) {
     return { message: 'That person already has a pending invitation.' }
   }
 
@@ -377,10 +382,13 @@ export async function updateMemberRoleAction(
       },
       headers: await headers(),
     })
-  } catch {
+  } catch (error) {
     return {
-      message:
-        'The role could not be changed. A workspace needs at least one owner.',
+      message: workspaceMutationMessage(error, {
+        fallback: 'The role could not be changed. Try again.',
+        lastOwner:
+          'The role could not be changed. A workspace needs at least one owner.',
+      }),
     }
   }
 
@@ -438,8 +446,13 @@ export async function removeMemberAction(
       },
       headers: await headers(),
     })
-  } catch {
-    return { message: LAST_OWNER_MESSAGE }
+  } catch (error) {
+    return {
+      message: workspaceMutationMessage(error, {
+        fallback: 'That member could not be removed. Try again.',
+        lastOwner: LAST_OWNER_MESSAGE,
+      }),
+    }
   }
 
   await recordActivity({
@@ -473,8 +486,13 @@ export async function leaveWorkspaceAction(
       body: { organizationId: workspace.workspaceId },
       headers: await headers(),
     })
-  } catch {
-    return { message: LAST_OWNER_MESSAGE }
+  } catch (error) {
+    return {
+      message: workspaceMutationMessage(error, {
+        fallback: 'You could not leave this workspace. Try again.',
+        lastOwner: LAST_OWNER_MESSAGE,
+      }),
+    }
   }
 
   // The user_id column only references users, so the row stays valid after
@@ -578,7 +596,7 @@ async function joinInvitation(
 
   if (
     !session.user.emailVerified ||
-    session.user.email.toLowerCase() !== invitation.email
+    session.user.email.toLowerCase() !== invitation.email.toLowerCase()
   ) {
     return {
       message: `This invitation is for ${invitation.email}. Sign in with that address to join.`,
@@ -620,4 +638,65 @@ async function joinInvitation(
   })
   revalidatePath('/', 'layout')
   redirect('/')
+}
+
+interface WorkspaceMutationMessages {
+  fallback: string
+  lastOwner: string
+}
+
+/**
+ * Returns the last-owner copy only when that constraint (or Better Auth's
+ * equivalent) caused the failure. Other authorization, database, and
+ * transient errors get an action-specific retry message.
+ */
+function workspaceMutationMessage(
+  error: unknown,
+  messages: WorkspaceMutationMessages
+): string {
+  return isLastOwnerFailure(error) ? messages.lastOwner : messages.fallback
+}
+
+/** True when a role change, removal, or leave would leave the workspace without an owner. */
+function isLastOwnerFailure(error: unknown): boolean {
+  return /at least one owner|only owner|without an owner/iu.test(
+    describeError(error)
+  )
+}
+
+/** Flattens a thrown Better Auth or database error into searchable text. */
+function describeError(error: unknown): string {
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (!error || typeof error !== 'object') {
+    return ''
+  }
+
+  const parts: string[] = []
+
+  if ('message' in error && typeof error.message === 'string') {
+    parts.push(error.message)
+  }
+
+  if ('code' in error && typeof error.code === 'string') {
+    parts.push(error.code)
+  }
+
+  if (
+    'body' in error &&
+    error.body &&
+    typeof error.body === 'object' &&
+    'message' in error.body &&
+    typeof error.body.message === 'string'
+  ) {
+    parts.push(error.body.message)
+  }
+
+  if ('cause' in error) {
+    parts.push(describeError(error.cause))
+  }
+
+  return parts.join(' ')
 }

@@ -34,7 +34,7 @@ process.env.GOOGLE_CLIENT_SECRET = 'test-secret'
 
 const { auth } = await import('../server')
 const { db, pool } = await import('@workspace/db/client')
-const { users } = await import('@workspace/db/schema/auth')
+const { sessions, users } = await import('@workspace/db/schema/auth')
 const { workspaces, workspaceMembers, workspaceInvitations } = await import(
   '@workspace/db/schema/workspaces'
 )
@@ -330,6 +330,15 @@ describe('Better Auth workspace organizations', () => {
         headers,
         body: { organizationId, data: { name: 'Renamed by admin' } },
       })
+      const [renamed] = await db
+        .select({ name: workspaces.name })
+        .from(workspaces)
+        .where(eq(workspaces.id, organizationId))
+      expect(renamed?.name).toBe('Renamed by admin')
+      await auth.api.updateOrganization({
+        headers: await actorHeaders(ownerId),
+        body: { organizationId, data: { name: 'Organization test' } },
+      })
       expect((await postAs(adminId, 'delete', { organizationId })).ok).toBe(
         false
       )
@@ -426,12 +435,27 @@ describe('Better Auth workspace organizations', () => {
   integrationTest(
     'synchronizes direct organization switches with the app preference',
     async () => {
-      await auth.api.setActiveOrganization({
-        headers: await actorHeaders(ownerId),
-        body: { organizationId },
-      })
+      const headers = await actorHeaders(ownerId)
+      await Promise.all([
+        auth.api.setActiveOrganization({
+          headers: new Headers(headers),
+          body: { organizationId },
+        }),
+        auth.api.setActiveOrganization({
+          headers: new Headers(headers),
+          body: { organizationId: otherOrganizationId },
+        }),
+      ])
+      const sessionToken = sessionTokenFromHeaders(headers)
+      const [session] = await db
+        .select({ activeOrganizationId: sessions.activeOrganizationId })
+        .from(sessions)
+        .where(eq(sessions.token, sessionToken))
       const [user] = await db.select().from(users).where(eq(users.id, ownerId))
-      expect(user?.activeWorkspaceId).toBe(organizationId)
+      expect(user?.activeWorkspaceId).toBe(session?.activeOrganizationId)
+      expect([organizationId, otherOrganizationId]).toContain(
+        user?.activeWorkspaceId
+      )
     }
   )
 
@@ -439,6 +463,16 @@ describe('Better Auth workspace organizations', () => {
     'creates, emails, cancels and retries invitations through Better Auth',
     async () => {
       const headers = await actorHeaders(ownerId)
+      const mixedCase = `Invite.${crypto.randomUUID()}@Example.COM`
+      const mixedInvitation = await auth.api.createInvitation({
+        headers,
+        body: { organizationId, email: mixedCase, role: 'viewer' },
+      })
+      const [storedMixed] = await db
+        .select({ email: workspaceInvitations.email })
+        .from(workspaceInvitations)
+        .where(eq(workspaceInvitations.id, mixedInvitation.id))
+      expect(storedMixed?.email).toBe(mixedCase.toLowerCase())
       const email = `${crypto.randomUUID()}@example.com`
       const invitation = await auth.api.createInvitation({
         headers,
@@ -556,4 +590,112 @@ describe('Better Auth workspace organizations', () => {
       }
     }
   )
+
+  integrationTest('rejects CR/LF in a workspace name', async () => {
+    await expect(
+      auth.api.updateOrganization({
+        headers: await actorHeaders(ownerId),
+        body: {
+          organizationId,
+          data: { name: 'Desk\r\nBcc: attacker@example.com' },
+        },
+      })
+    ).rejects.toThrow()
+    const [workspace] = await db
+      .select({ name: workspaces.name })
+      .from(workspaces)
+      .where(eq(workspaces.id, organizationId))
+    expect(workspace?.name).toBe('Organization test')
+  })
+
+  integrationTest(
+    'keeps one membership when the last two workspaces are left at once',
+    async () => {
+      const leaverId = crypto.randomUUID()
+      await db.insert(users).values({
+        id: leaverId,
+        email: `${leaverId}@example.com`,
+        name: 'Leaver',
+        emailVerified: true,
+      })
+      try {
+        await auth.api.addMember({
+          body: { organizationId, userId: leaverId, role: 'member' },
+        })
+        await auth.api.addMember({
+          body: {
+            organizationId: otherOrganizationId,
+            userId: leaverId,
+            role: 'member',
+          },
+        })
+        const results = await Promise.all([
+          postAs(leaverId, 'leave', { organizationId }),
+          postAs(leaverId, 'leave', { organizationId: otherOrganizationId }),
+        ])
+        expect(results.filter((response) => response.ok)).toHaveLength(1)
+        const remaining = await db
+          .select({ workspaceId: workspaceMembers.workspaceId })
+          .from(workspaceMembers)
+          .where(eq(workspaceMembers.userId, leaverId))
+        expect(remaining).toHaveLength(1)
+      } finally {
+        await db.delete(users).where(eq(users.id, leaverId))
+      }
+    }
+  )
+
+  integrationTest(
+    'clears the removed member active workspace preference',
+    async () => {
+      const removedId = crypto.randomUUID()
+      await db.insert(users).values({
+        id: removedId,
+        email: `${removedId}@example.com`,
+        name: 'Removed',
+        emailVerified: true,
+      })
+      try {
+        await auth.api.addMember({
+          body: { organizationId, userId: removedId, role: 'viewer' },
+        })
+        const [member] = await db
+          .select({ id: workspaceMembers.id })
+          .from(workspaceMembers)
+          .where(
+            and(
+              eq(workspaceMembers.workspaceId, organizationId),
+              eq(workspaceMembers.userId, removedId)
+            )
+          )
+        await db
+          .update(users)
+          .set({ activeWorkspaceId: organizationId })
+          .where(eq(users.id, removedId))
+        await auth.api.removeMember({
+          headers: await actorHeaders(ownerId),
+          body: {
+            memberIdOrEmail: member?.id ?? '',
+            organizationId,
+          },
+        })
+        const [removed] = await db
+          .select({ activeWorkspaceId: users.activeWorkspaceId })
+          .from(users)
+          .where(eq(users.id, removedId))
+        expect(removed?.activeWorkspaceId).toBeNull()
+      } finally {
+        await db.delete(users).where(eq(users.id, removedId))
+      }
+    }
+  )
 })
+
+/** Reads the unsigned session token Better Auth stored in the test cookie. */
+function sessionTokenFromHeaders(headers: Headers): string {
+  const cookie = headers.get('cookie') ?? ''
+  const value = cookie.slice(cookie.indexOf('=') + 1)
+  const [token] = decodeURIComponent(value).split('.')
+  if (!token) throw new Error('Test session cookie is missing a token.')
+  return token
+}

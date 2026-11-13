@@ -12,13 +12,20 @@ interface InvitationEmail {
 
 /** Builds the invitation email. Every value is escaped before it reaches HTML. */
 export function invitationEmail(input: InvitationEmailInput): InvitationEmail {
-  const summary = `${input.inviterName} invited you to the ${input.workspaceName} workspace on Exchange.`
+  const workspaceName = headerSafe(input.workspaceName)
+  const inviterName = headerSafe(input.inviterName)
+  const summary = `${inviterName} invited you to the ${workspaceName} workspace on Exchange.`
 
   return {
     html: `<p>${escapeHtml(summary)}</p><p><a href="${escapeHtml(input.url)}">Join the workspace</a></p><p>The link works for 7 days.</p>`,
-    subject: `Join ${input.workspaceName} on Exchange`,
+    subject: `Join ${workspaceName} on Exchange`,
     text: `${summary}\nJoin the workspace: ${input.url}\nThe link works for 7 days.`,
   }
+}
+
+/** Strips CR/LF so a workspace name cannot split an SMTP header. */
+function headerSafe(value: string): string {
+  return value.replace(/[\r\n]+/gu, ' ').trim()
 }
 
 /** Escapes text placed in an HTML email body. */

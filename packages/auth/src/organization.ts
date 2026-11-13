@@ -55,6 +55,7 @@ export function workspaceOrganization() {
           assertWorkspaceName(organization.name)
       },
       beforeCreateInvitation: async function prepareInvitation({ invitation }) {
+        const email = invitation.email.toLowerCase()
         assertWorkspaceRole(invitation.role)
         // Expired rows are retained as history without occupying the pending slot.
         await db
@@ -63,11 +64,12 @@ export function workspaceOrganization() {
           .where(
             and(
               eq(workspaceInvitations.workspaceId, invitation.organizationId),
-              eq(workspaceInvitations.email, invitation.email.toLowerCase()),
+              eq(workspaceInvitations.email, email),
               eq(workspaceInvitations.status, 'pending'),
               lte(workspaceInvitations.expiresAt, new Date())
             )
           )
+        return { data: { ...invitation, email } }
       },
       beforeAddMember: async function validateMember({ member }) {
         assertWorkspaceRole(member.role)
@@ -80,6 +82,20 @@ export function workspaceOrganization() {
         organization,
       }) {
         await activateWorkspace(user.id, organization.id)
+      },
+      afterRemoveMember: async function clearRemovedActiveWorkspace({
+        user,
+        organization,
+      }) {
+        await db
+          .update(users)
+          .set({ activeWorkspaceId: null, updatedAt: new Date() })
+          .where(
+            and(
+              eq(users.id, user.id),
+              eq(users.activeWorkspaceId, organization.id)
+            )
+          )
       },
     },
     sendInvitationEmail: async function sendWorkspaceInvitation({
@@ -120,7 +136,12 @@ export function workspaceOrganization() {
 
 /** Applies the workspace name limit to direct organization API calls too. */
 function assertWorkspaceName(name: string | undefined): void {
-  if (!name || name.trim().length < 1 || name.trim().length > 40) {
+  if (
+    !name ||
+    /[\r\n]/u.test(name) ||
+    name.trim().length < 1 ||
+    name.trim().length > 40
+  ) {
     throw new APIError('BAD_REQUEST', {
       message: 'Use a name between 1 and 40 characters.',
     })

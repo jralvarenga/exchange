@@ -38,7 +38,7 @@ export default async function InvitePage({ params }: PageProps) {
     )
   }
 
-  if (session.user.email.toLowerCase() !== invitation.email) {
+  if (session.user.email.toLowerCase() !== invitation.email.toLowerCase()) {
     return (
       <AuthPage>
         <InvitationUnavailable

@@ -344,7 +344,7 @@ export async function listPendingInvitationsForEmail(
     .leftJoin(users, eq(users.id, workspaceInvitations.invitedByUserId))
     .where(
       and(
-        eq(workspaceInvitations.email, email.toLowerCase()),
+        sql`lower(${workspaceInvitations.email}) = ${email.toLowerCase()}`,
         eq(workspaceInvitations.status, 'pending'),
         gt(workspaceInvitations.expiresAt, new Date())
       )
