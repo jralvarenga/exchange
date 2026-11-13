@@ -20,8 +20,9 @@ import { externalLinks, support } from '@/lib/links'
     <ul>
       <li>
         <strong>Account:</strong> your name, email address, whether you verified it, and a scrypt hash
-        of your password. If you sign in with Google, we also store the Google account link and your
-        Google profile photo URL.
+        of your password. If you sign in with Google, we also store the Google account link, the
+        access, refresh and ID tokens Google issues with the scopes you granted, and your Google
+        profile photo URL.
       </li>
       <li>
         <strong>Profile photo:</strong> the PNG, JPEG or WebP photo you add at sign-up, up to 90 KB,
@@ -86,8 +87,14 @@ import { externalLinks, support } from '@/lib/links'
         <strong>Our hosting and database providers</strong> run the app and store the data above.
       </li>
       <li>
-        <strong>Parqet</strong> serves the company and fund logos. Your browser loads them straight
-        from Parqet, so Parqet sees your IP address and the symbols you view.
+        <strong>Parqet</strong> serves the company and fund logos. In the app, our server fetches
+        them through its image proxy, so Parqet sees our server and the symbols shown, not your IP
+        address. On this site, your browser loads them straight from Parqet, so Parqet sees your IP
+        address.
+      </li>
+      <li>
+        <strong>randomuser.me</strong> serves the sample profile photos on this site's home page.
+        Your browser loads them straight from randomuser.me, so it sees your IP address.
       </li>
     </ul>
     <p>We don't sell your data or share it with anyone else, unless the law makes us.</p>
@@ -116,7 +123,8 @@ import { externalLinks, support } from '@/lib/links'
     </ul>
     <p>
       Orders and activity you made in a workspace you didn't own stay in that workspace's history,
-      but your name is removed from them.
+      but your name is removed from them. Invitation entries keep the email address that was
+      invited.
     </p>
   </LegalSection>
 
