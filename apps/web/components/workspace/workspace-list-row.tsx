@@ -2,12 +2,9 @@
 
 import { Button } from '@workspace/ui/components/button'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 
-import { switchWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
 import { WorkspaceMark } from '@/components/workspace/workspace-mark'
-import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
+import { useWorkspaceSwitcher } from '@/hooks/use-workspace-switcher'
 import { workspaceRoleLabel } from '@/lib/workspaces/roles'
 import type { WorkspaceSummary } from '@/models/workspace/members'
 
@@ -17,27 +14,7 @@ interface Props {
 
 /** One workspace: name, your role, its size, and a way to open or manage it. */
 export function WorkspaceListRow({ workspace }: Props) {
-  const router = useRouter()
-  const [pending, setPending] = useState(false)
-
-  /** Makes this workspace the active one and opens the dashboard in it. */
-  async function handleOpen(): Promise<void> {
-    setPending(true)
-
-    try {
-      const result = await switchWorkspaceAction(workspace.id)
-
-      if (result.message) {
-        showErrorToast({ description: result.message, title: 'Not opened' })
-        return
-      }
-
-      showSuccessToast({ title: `Opened ${workspace.name}` })
-      router.push('/')
-    } finally {
-      setPending(false)
-    }
-  }
+  const switcher = useWorkspaceSwitcher()
 
   return (
     <li className="flex items-center justify-between gap-4 py-4">
@@ -71,14 +48,14 @@ export function WorkspaceListRow({ workspace }: Props) {
       ) : (
         <Button
           className="shrink-0"
-          disabled={pending}
+          disabled={switcher.pending}
           onClick={() => {
-            void handleOpen()
+            void switcher.switchWorkspace(workspace, { navigateTo: '/' })
           }}
           type="button"
           variant="secondary"
         >
-          {pending ? 'Opening…' : 'Open'}
+          {switcher.pending ? 'Opening…' : 'Open'}
         </Button>
       )}
     </li>

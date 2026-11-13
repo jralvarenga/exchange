@@ -31,8 +31,9 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
   const {
     createWorkspace,
     listUserMemberships,
+    findActiveWorkspaceId,
+    setDefaultConnectionIfUnset,
     setMemberActiveConnection,
-    setWorkspaceDefaultConnection,
   } = await import('../packages/db/src/queries/workspaces')
   const { personalWorkspaceName } = await import('../packages/auth/src/profile')
   const { upsertCryptoWallet } = await import(
@@ -129,7 +130,12 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       console.log('Password login already exists and was left unchanged.')
     }
 
-    const [membership] = await listUserMemberships(userId)
+    // The owner's active workspace, else their oldest one, else a new one.
+    const memberships = await listUserMemberships(userId)
+    const activeWorkspaceId = await findActiveWorkspaceId(userId)
+    const membership =
+      memberships.find((item) => item.workspaceId === activeWorkspaceId) ??
+      memberships[0]
     const workspaceId =
       membership?.workspaceId ??
       (await createWorkspace({
@@ -140,16 +146,22 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
     if (alpaca && keys) {
       const name = alpaca.environment === 'live' ? 'Main live' : 'Main paper'
       const stored = await listAlpacaConnections(workspaceId)
+      // Names are unique per workspace ignoring case, like the database index.
+      const existingConnection = stored.find(
+        (connection) => connection.name.toLowerCase() === name.toLowerCase()
+      )
+      let connectionId = existingConnection?.id
 
-      if (stored.some((connection) => connection.name === name)) {
+      if (existingConnection) {
         console.log(
-          `Connection "${name}" already exists and was left unchanged.`
+          `Connection "${existingConnection.name}" already exists; its keys were left unchanged.`
         )
       } else {
-        const connectionId = crypto.randomUUID()
+        connectionId = crypto.randomUUID()
+        const newConnectionId = connectionId
         const aad = (field: 'keyId' | 'secret') =>
           credentialAad({
-            connectionId,
+            connectionId: newConnectionId,
             environment: alpaca.environment,
             field,
           })
@@ -173,9 +185,13 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
           }),
           workspaceId,
         })
-        await setWorkspaceDefaultConnection({ connectionId, workspaceId })
-        await setMemberActiveConnection({ connectionId, userId, workspaceId })
         console.log(`Stored encrypted Alpaca keys as "${name}".`)
+      }
+
+      // Run on every pass, so a rerun finishes what an interrupted one left.
+      if (connectionId) {
+        await setDefaultConnectionIfUnset({ connectionId, workspaceId })
+        await setMemberActiveConnection({ connectionId, userId, workspaceId })
       }
     }
 

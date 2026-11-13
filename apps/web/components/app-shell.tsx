@@ -26,7 +26,11 @@ export function AppShell({
   workspace,
 }: Props) {
   return (
-    <OrderTicketProvider environment={environment} tradeLock={tradeLock}>
+    <OrderTicketProvider
+      accountKey={`${workspace.id}:${workspace.activeConnectionId ?? 'none'}`}
+      environment={environment}
+      tradeLock={tradeLock}
+    >
       <div className="flex min-h-dvh flex-col overflow-x-clip bg-background text-foreground">
         <a
           href="#main"

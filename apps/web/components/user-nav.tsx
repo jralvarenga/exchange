@@ -26,6 +26,7 @@ import type {
   ShellUser,
   ShellWorkspace,
 } from '@/lib/navigation'
+import { canManageWorkspace, tradeLock } from '@/lib/workspaces/permissions'
 import { workspaceRoleLabel } from '@/lib/workspaces/roles'
 
 interface Props {
@@ -138,7 +139,11 @@ export function UserNav({ user, workspace }: Props) {
             <DropdownMenuLabel>Trading with</DropdownMenuLabel>
             {workspace.connections.map((connection) => (
               <DropdownMenuRadioItem
-                disabled={switcher.pending || connection.status !== 'valid'}
+                disabled={
+                  switcher.pending ||
+                  connection.status !== 'valid' ||
+                  isPaperOnlyLive(workspace.role, connection.environment)
+                }
                 key={connection.id}
                 value={connection.id}
               >
@@ -152,7 +157,8 @@ export function UserNav({ user, workspace }: Props) {
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
-          {workspace.connections.length === 0 ? (
+          {workspace.connections.length === 0 &&
+          canManageWorkspace(workspace.role) ? (
             <DropdownMenuItem render={<Link href="/account#connections" />}>
               <Plus aria-hidden="true" />
               Add a connection
@@ -212,4 +218,15 @@ function pickShownWorkspaces(
   const others = workspace.workspaces.filter((item) => item.id !== workspace.id)
 
   return [...current, ...others].slice(0, MENU_WORKSPACE_LIMIT)
+}
+
+/**
+ * Live connections are off-limits to paper members, so the menu does not
+ * offer them, matching what the server allows.
+ */
+function isPaperOnlyLive(
+  role: ShellWorkspace['role'],
+  environment: 'live' | 'paper'
+): boolean {
+  return tradeLock({ environment, role }) === 'paper_only'
 }

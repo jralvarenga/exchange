@@ -6,7 +6,7 @@ import {
   InputGroup,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { useActionState, useEffect, useId, useRef } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 
 interface WorkspaceFormState {
   message?: string
@@ -43,6 +43,8 @@ export function WorkspaceNameForm({
   const [state, formAction, pending] = useActionState(action, {})
   const handledState = useRef(state)
   const id = useId()
+  // Controlled so a failed save keeps what was typed instead of resetting it.
+  const [value, setValue] = useState(defaultName ?? '')
 
   // Each save result is reported once, even when the parent re-renders.
   useEffect(() => {
@@ -61,12 +63,13 @@ export function WorkspaceNameForm({
         <FieldLabel htmlFor={`${id}-name`}>{label}</FieldLabel>
         <InputGroup>
           <InputGroupInput
-            defaultValue={defaultName}
             disabled={pending}
             id={`${id}-name`}
             maxLength={40}
             name="name"
+            onChange={(event) => setValue(event.target.value)}
             required
+            value={value}
           />
         </InputGroup>
       </Field>

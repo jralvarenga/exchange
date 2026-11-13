@@ -33,6 +33,7 @@ import {
   depositChains,
 } from '@/lib/wallet/deposit-addresses'
 import {
+  NoWorkspaceError,
   resolveActiveWorkspace,
   WorkspacePermissionError,
   workspaceActor,
@@ -358,11 +359,10 @@ export async function saveDepositAddressAction(
 
   try {
     await saveDepositAddress({ ...parsed.data, userId: session.user.id })
-    const workspace = await resolveActiveWorkspace(session.user)
-    await recordActivity({
+    await recordDepositActivity({
       action: 'deposit_address.saved',
-      actor: workspaceActor(workspace),
       metadata: { asset: parsed.data.asset, chain: parsed.data.chain },
+      user: session.user,
     })
     revalidatePath('/', 'layout')
 
@@ -386,17 +386,49 @@ export async function removeDepositAddressAction(slot: {
 
   try {
     await removeDepositAddress({ ...parsed.data, userId: session.user.id })
-    const workspace = await resolveActiveWorkspace(session.user)
-    await recordActivity({
+    await recordDepositActivity({
       action: 'deposit_address.removed',
-      actor: workspaceActor(workspace),
       metadata: parsed.data,
+      user: session.user,
     })
     revalidatePath('/', 'layout')
 
     return {}
   } catch {
     return { message: 'That address could not be removed.' }
+  }
+}
+
+interface RecordDepositActivityInput {
+  action: 'deposit_address.removed' | 'deposit_address.saved'
+  metadata: Record<string, unknown>
+  user: { id: string; name: string }
+}
+
+/**
+ * Logs a deposit address change in the active workspace. Deposit addresses
+ * belong to the user, so someone with no workspace yet still saves them; the
+ * log is simply skipped.
+ */
+async function recordDepositActivity(
+  input: RecordDepositActivityInput
+): Promise<void> {
+  const workspace = await resolveActiveWorkspace(input.user).catch(
+    (error: unknown) => {
+      if (error instanceof NoWorkspaceError) {
+        return undefined
+      }
+
+      throw error
+    }
+  )
+
+  if (workspace) {
+    await recordActivity({
+      action: input.action,
+      actor: workspaceActor(workspace),
+      metadata: input.metadata,
+    })
   }
 }
 

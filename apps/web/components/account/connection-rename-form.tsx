@@ -18,6 +18,8 @@ interface Props {
 export function ConnectionRenameForm({ name, onCancel, onRename }: Props) {
   const [message, setMessage] = useState<string>()
   const [pending, setPending] = useState(false)
+  // Controlled so a refused name stays in the field instead of being reset.
+  const [value, setValue] = useState(name)
   const id = useId()
 
   /** Sends the new name and keeps the form open when the server refuses it. */
@@ -40,12 +42,13 @@ export function ConnectionRenameForm({ name, onCancel, onRename }: Props) {
         <FieldLabel htmlFor={`${id}-name`}>Name</FieldLabel>
         <InputGroup>
           <InputGroupInput
-            defaultValue={name}
             disabled={pending}
             id={`${id}-name`}
             maxLength={40}
             name="name"
+            onChange={(event) => setValue(event.target.value)}
             required
+            value={value}
           />
         </InputGroup>
       </Field>

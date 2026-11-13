@@ -88,6 +88,10 @@ export const workspaceInvitations = pgTable(
   (table) => [
     index('workspace_invitations_workspace_idx').on(table.workspaceId),
     index('workspace_invitations_email_idx').on(table.email),
+    // At most one invitation waiting per address; accepted ones are history.
+    uniqueIndex('workspace_invitations_pending_unique')
+      .on(table.workspaceId, table.email)
+      .where(sql`${table.acceptedAt} is null`),
     check(
       'workspace_invitations_role_check',
       sql`${table.role} in ('owner', 'admin', 'member', 'paper_member', 'viewer')`

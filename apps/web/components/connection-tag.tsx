@@ -6,8 +6,9 @@ interface Props {
 }
 
 /**
- * Names a connection's environment, or its problem when Alpaca rejected it.
- * Live is tinted as a warning because it moves real money.
+ * Names a connection's environment, or its problem when it cannot be used.
+ * Rejected keys read as danger; unverified ones and live, which moves real
+ * money, read as warnings, matching the account's status pills.
  */
 export function ConnectionTag({ environment, status }: Props) {
   const problem =
@@ -21,9 +22,9 @@ export function ConnectionTag({ environment, status }: Props) {
     <span
       className={cn(
         'shrink-0 rounded-full px-2 font-medium',
-        problem
+        status === 'invalid'
           ? 'bg-danger/10 text-danger'
-          : environment === 'live'
+          : problem || environment === 'live'
             ? 'bg-warning/10 text-warning'
             : 'bg-muted text-muted-foreground'
       )}

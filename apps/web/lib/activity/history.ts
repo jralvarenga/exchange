@@ -100,11 +100,21 @@ function orderEventTitle(event: OrderEventWithOrder): string {
 }
 
 /** Summarizes the size and prices of an order. */
+/** Names what an order's quantity counts: shares, option contracts, or crypto units. */
+function quantityUnit(assetClass: string | null): string {
+  if (assetClass === 'crypto') {
+    return 'units'
+  }
+
+  return assetClass === 'us_option' ? 'contracts' : 'shares'
+}
+
+/** Describes an order's size, type and prices: "10 shares · limit · at 150". */
 function describeOrder(order: OrderRow): string {
   const size = order.notional
     ? `$${trimDecimal(order.notional)}`
     : order.quantity
-      ? `${trimDecimal(order.quantity)} ${order.assetClass === 'crypto' ? 'units' : 'shares'}`
+      ? `${trimDecimal(order.quantity)} ${quantityUnit(order.assetClass)}`
       : null
   const parts = [
     size,
@@ -120,8 +130,10 @@ function describeOrder(order: OrderRow): string {
 function describeMetadata(log: ActivityLogRow): string | null {
   const metadata = log.metadata ?? {}
 
-  if (log.action === 'invitation.sent' && typeof metadata.email === 'string') {
-    return metadata.email
+  // Everyone in the workspace reads this history, so name the role, not the
+  // invitee's email: pending invitations are only shown to owners and admins.
+  if (log.action === 'invitation.sent' && typeof metadata.role === 'string') {
+    return `As ${metadata.role.replaceAll('_', ' ')}`
   }
 
   if (log.action === 'workspace.renamed' && typeof metadata.to === 'string') {

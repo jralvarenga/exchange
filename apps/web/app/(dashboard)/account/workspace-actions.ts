@@ -250,11 +250,11 @@ export async function inviteMemberAction(
     return { message: 'That person already has a pending invitation.' }
   }
 
-  try {
-    const token = createInvitationToken()
-    const invitationId = crypto.randomUUID()
+  const token = createInvitationToken()
+  const invitationId = crypto.randomUUID()
 
-    await createWorkspaceInvitation({
+  try {
+    const created = await createWorkspaceInvitation({
       email: parsed.data.email,
       expiresAt: new Date(Date.now() + INVITATION_TTL_MS),
       id: invitationId,
@@ -263,6 +263,15 @@ export async function inviteMemberAction(
       tokenHash: hashInvitationToken(token),
       workspaceId: workspace.workspaceId,
     })
+
+    if (!created) {
+      return { message: 'That person already has a pending invitation.' }
+    }
+  } catch {
+    return { message: 'The invitation could not be sent.' }
+  }
+
+  try {
     await sendAuthEmail({
       ...invitationEmail({
         inviterName: session.user.name || session.user.email,
@@ -271,19 +280,26 @@ export async function inviteMemberAction(
       }),
       to: parsed.data.email,
     })
-    await recordActivity({
-      action: 'invitation.sent',
-      actor: workspaceActor(workspace),
-      metadata: { email: parsed.data.email, role: parsed.data.role },
-      targetId: invitationId,
-      targetType: 'invitation',
-    })
-    revalidatePath('/', 'layout')
-
-    return { saved: true }
   } catch {
-    return { message: 'The invitation could not be sent.' }
+    // Nobody received it, so drop it: a retry should not find it pending.
+    await deleteWorkspaceInvitation({
+      invitationId,
+      workspaceId: workspace.workspaceId,
+    }).catch(() => undefined)
+
+    return { message: 'The invitation email could not be sent. Try again.' }
   }
+
+  await recordActivity({
+    action: 'invitation.sent',
+    actor: workspaceActor(workspace),
+    metadata: { email: parsed.data.email, role: parsed.data.role },
+    targetId: invitationId,
+    targetType: 'invitation',
+  })
+  revalidatePath('/', 'layout')
+
+  return { saved: true }
 }
 
 /** Cancels a pending invitation. Owners and admins. */
@@ -308,10 +324,18 @@ export async function revokeInvitationAction(
     return { message: OWNER_ONLY_MESSAGE }
   }
 
-  await deleteWorkspaceInvitation({
+  const revoked = await deleteWorkspaceInvitation({
     invitationId: parsedId.data,
     workspaceId: workspace.workspaceId,
   })
+
+  // Accepted or already canceled in the meantime: nothing was revoked.
+  if (!revoked) {
+    revalidatePath('/', 'layout')
+
+    return { message: 'That invitation was already accepted or canceled.' }
+  }
+
   await recordActivity({
     action: 'invitation.revoked',
     actor: workspaceActor(workspace),
@@ -499,7 +523,15 @@ export async function deleteWorkspaceAction(
   }
 
   // Nothing is logged: the activity log goes with the workspace.
-  await deleteWorkspace(workspace.workspaceId)
+  const deleted = await deleteWorkspace({
+    ownerUserId: session.user.id,
+    workspaceId: workspace.workspaceId,
+  })
+
+  if (!deleted) {
+    return { message: 'Only workspace owners can delete it.' }
+  }
+
   revalidatePath('/', 'layout')
 
   return {}

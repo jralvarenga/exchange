@@ -84,6 +84,7 @@ export function AccountConnections({
               canManage={canManage}
               canTest={canTest}
               connection={connection}
+              hasOtherConnections={connections.length > 1}
               isDefault={connection.id === defaultConnectionId}
               key={connection.id}
               onMakeDefault={async () => {

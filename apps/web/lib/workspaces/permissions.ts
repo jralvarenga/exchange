@@ -60,23 +60,32 @@ export function canRemoveMember(input: CanRemoveMemberInput): boolean {
 /**
  * Returns why this role cannot change the Alpaca account on this connection,
  * or null when it can. Changing covers orders, positions, trading settings and
- * watchlists. Paper members change paper accounts only; viewers nothing.
+ * watchlists. Roles are allowed explicitly: anything not listed is read-only.
  */
 export function tradeLock(input: TradeLockInput): TradeLock | null {
-  if (input.role === 'viewer') {
-    return 'viewer'
+  switch (input.role) {
+    case 'owner':
+    case 'admin':
+    case 'member':
+      return null
+    case 'paper_member':
+      return input.environment === 'paper' ? null : 'paper_only'
+    default:
+      return 'viewer'
   }
-
-  if (input.role === 'paper_member' && input.environment === 'live') {
-    return 'paper_only'
-  }
-
-  return null
 }
 
-/** Everyone but viewers can test a connection's keys. */
+/** Roles that may test a connection's keys. Anything not listed may not. */
 export function canTestConnection(role: WorkspaceRole): boolean {
-  return role !== 'viewer'
+  switch (role) {
+    case 'owner':
+    case 'admin':
+    case 'member':
+    case 'paper_member':
+      return true
+    default:
+      return false
+  }
 }
 
 /** The last owner cannot leave, so a workspace always has someone in charge. */

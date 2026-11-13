@@ -50,6 +50,11 @@ export interface TicketContextValue {
 }
 
 interface Props {
+  /**
+   * Identifies the account orders go to: the workspace and its active
+   * connection. Any change resets the ticket and drops in-flight orders.
+   */
+  accountKey: string
   children: ReactNode
   environment: 'live' | 'paper'
   tradeLock: TradeLock | null
@@ -59,6 +64,7 @@ export const OrderTicketContext = createContext<TicketContextValue | null>(null)
 
 /** Shares one persistent draft between every ticket placement and entry point. */
 export function OrderTicketProvider({
+  accountKey,
   children,
   environment,
   tradeLock,
@@ -77,14 +83,15 @@ export function OrderTicketProvider({
   const pathname = usePathname()
   const inline = isTradePath(pathname)
   const draftRef = useRef(draft)
-  const environmentRef = useRef(environment)
+  const accountKeyRef = useRef(accountKey)
   // Ignore an in-flight order after the trader switches accounts.
   const submitEpoch = useRef(0)
-  // Drop the previous account's order before paint. The shell stays mounted so
-  // the credentials gate can clear that account's cached queries.
+  // Drop the previous account's order before paint, whether the switch was to
+  // another workspace, another connection, or between paper and live. The
+  // shell stays mounted so the credentials gate can clear cached queries.
   useLayoutEffect(() => {
-    if (environmentRef.current === environment) return
-    environmentRef.current = environment
+    if (accountKeyRef.current === accountKey) return
+    accountKeyRef.current = accountKey
     submitEpoch.current += 1
     submitting.current = false
     resolution.current?.abort()
@@ -96,7 +103,7 @@ export function OrderTicketProvider({
     setIsResolving(false)
     setOrderError(null)
     setOrderSuccess(null)
-  }, [environment])
+  }, [accountKey])
 
   // The Trade page shows the ticket inline, so a floating copy would duplicate it.
   useEffect(() => {

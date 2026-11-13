@@ -1,4 +1,15 @@
-import { and, asc, count, eq, gt, isNull, ne, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  eq,
+  exists,
+  gt,
+  isNull,
+  lte,
+  ne,
+  sql,
+} from 'drizzle-orm'
 
 import { db } from '../client'
 import { alpacaConnections } from '../schema/alpaca-connections'
@@ -194,6 +205,28 @@ export async function findActiveWorkspaceId(
   return row?.activeWorkspaceId ?? undefined
 }
 
+/**
+ * Repairs a stale active workspace, but only while the stored value is still
+ * the stale one, so it never overwrites a switch made in the meantime.
+ */
+export async function repairActiveWorkspace(input: {
+  staleWorkspaceId: string | null
+  userId: string
+  workspaceId: string
+}): Promise<void> {
+  await db
+    .update(users)
+    .set({ activeWorkspaceId: input.workspaceId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(users.id, input.userId),
+        input.staleWorkspaceId === null
+          ? isNull(users.activeWorkspaceId)
+          : eq(users.activeWorkspaceId, input.staleWorkspaceId)
+      )
+    )
+}
+
 /** Switches the workspace the dashboard reads from. */
 export async function setActiveWorkspace(
   input: MembershipIdentity
@@ -225,19 +258,86 @@ export async function setWorkspaceDefaultConnection(
 }
 
 /**
- * Picks a replacement default after the old one is removed: the oldest paper
- * connection, else the oldest live one.
+ * Makes a connection the default only when the workspace has none yet, so two
+ * first connections saved at once cannot both claim it.
+ */
+export async function setDefaultConnectionIfUnset(
+  input: SetDefaultConnectionInput & { connectionId: string }
+): Promise<void> {
+  await db
+    .update(workspaces)
+    .set({ defaultConnectionId: input.connectionId, updatedAt: new Date() })
+    .where(
+      and(
+        eq(workspaces.id, input.workspaceId),
+        isNull(workspaces.defaultConnectionId)
+      )
+    )
+}
+
+/**
+ * Deletes a connection and, when it was the default, promotes a replacement in
+ * the same transaction, reading the default as it is now rather than as the
+ * caller last saw it.
+ */
+export async function deleteConnectionAndRepairDefault(input: {
+  connectionId: string
+  workspaceId: string
+}): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(eq(workspaces.id, input.workspaceId))
+      .for('update')
+    await tx
+      .delete(alpacaConnections)
+      .where(
+        and(
+          eq(alpacaConnections.id, input.connectionId),
+          eq(alpacaConnections.workspaceId, input.workspaceId)
+        )
+      )
+
+    // The foreign key cleared the default if it pointed at this connection.
+    const [workspace] = await tx
+      .select({ defaultConnectionId: workspaces.defaultConnectionId })
+      .from(workspaces)
+      .where(eq(workspaces.id, input.workspaceId))
+
+    if (workspace && workspace.defaultConnectionId === null) {
+      const fallback = await findFallbackConnectionId(input.workspaceId, tx)
+
+      if (fallback) {
+        await tx
+          .update(workspaces)
+          .set({ defaultConnectionId: fallback, updatedAt: new Date() })
+          .where(eq(workspaces.id, input.workspaceId))
+      }
+    }
+  })
+}
+
+/**
+ * Picks a replacement default after the old one is removed: the oldest valid
+ * paper connection, else the oldest valid live one.
  */
 export async function findFallbackConnectionId(
-  workspaceId: string
+  workspaceId: string,
+  executor: Transaction | typeof db = db
 ): Promise<string | undefined> {
-  const rows = await db
+  const rows = await executor
     .select({
       environment: alpacaConnections.environment,
       id: alpacaConnections.id,
     })
     .from(alpacaConnections)
-    .where(eq(alpacaConnections.workspaceId, workspaceId))
+    .where(
+      and(
+        eq(alpacaConnections.workspaceId, workspaceId),
+        eq(alpacaConnections.status, 'valid')
+      )
+    )
     .orderBy(asc(alpacaConnections.createdAt))
 
   return (rows.find((row) => row.environment === 'paper') ?? rows[0])?.id
@@ -320,23 +420,70 @@ export async function removeWorkspaceMember(
  * Deletes a workspace with everything in it: members, invitations,
  * connections and activity. Users who had it open fall back to another one.
  */
-export async function deleteWorkspace(workspaceId: string): Promise<void> {
-  await db.delete(workspaces).where(eq(workspaces.id, workspaceId))
+export async function deleteWorkspace(input: {
+  ownerUserId: string
+  workspaceId: string
+}): Promise<boolean> {
+  // The owner check is part of the delete, so a demotion that lands first wins.
+  const deleted = await db
+    .delete(workspaces)
+    .where(
+      and(
+        eq(workspaces.id, input.workspaceId),
+        exists(
+          db
+            .select({ id: workspaceMembers.id })
+            .from(workspaceMembers)
+            .where(
+              and(
+                eq(workspaceMembers.workspaceId, input.workspaceId),
+                eq(workspaceMembers.userId, input.ownerUserId),
+                eq(workspaceMembers.role, 'owner')
+              )
+            )
+        )
+      )
+    )
+    .returning({ id: workspaces.id })
+
+  return deleted.length > 0
 }
 
-/** Stores a new invitation. Only the token hash is kept. */
+/**
+ * Stores a new invitation; only the token hash is kept. An expired invitation
+ * to the same address is replaced. Returns false when one is still pending,
+ * which the database enforces even for two requests at once.
+ */
 export async function createWorkspaceInvitation(
   input: CreateInvitationInput
-): Promise<void> {
-  await db.insert(workspaceInvitations).values({
-    createdAt: new Date(),
-    email: input.email,
-    expiresAt: input.expiresAt,
-    id: input.id,
-    invitedByUserId: input.invitedByUserId,
-    role: input.role,
-    tokenHash: input.tokenHash,
-    workspaceId: input.workspaceId,
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    await tx
+      .delete(workspaceInvitations)
+      .where(
+        and(
+          eq(workspaceInvitations.workspaceId, input.workspaceId),
+          eq(workspaceInvitations.email, input.email),
+          isNull(workspaceInvitations.acceptedAt),
+          lte(workspaceInvitations.expiresAt, new Date())
+        )
+      )
+    const inserted = await tx
+      .insert(workspaceInvitations)
+      .values({
+        createdAt: new Date(),
+        email: input.email,
+        expiresAt: input.expiresAt,
+        id: input.id,
+        invitedByUserId: input.invitedByUserId,
+        role: input.role,
+        tokenHash: input.tokenHash,
+        workspaceId: input.workspaceId,
+      })
+      .onConflictDoNothing()
+      .returning({ id: workspaceInvitations.id })
+
+    return inserted.length > 0
   })
 }
 
@@ -439,12 +586,12 @@ export async function findInvitationById(invitationId: string): Promise<
     : undefined
 }
 
-/** Deletes an invitation that was not accepted yet. */
+/** Deletes an invitation that was not accepted yet. Returns whether one was. */
 export async function deleteWorkspaceInvitation(input: {
   invitationId: string
   workspaceId: string
-}): Promise<void> {
-  await db
+}): Promise<boolean> {
+  const deleted = await db
     .delete(workspaceInvitations)
     .where(
       and(
@@ -453,6 +600,9 @@ export async function deleteWorkspaceInvitation(input: {
         isNull(workspaceInvitations.acceptedAt)
       )
     )
+    .returning({ id: workspaceInvitations.id })
+
+  return deleted.length > 0
 }
 
 /**

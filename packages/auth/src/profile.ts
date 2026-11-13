@@ -4,9 +4,14 @@ export const MAX_PROFILE_IMAGE_LENGTH = 120_000
 const DATA_IMAGE_PATTERN =
   /^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/u
 
+/** Hosts Google serves profile pictures from. Other image hosts are refused. */
+const GOOGLE_PHOTO_HOST = /(^|\.)googleusercontent\.com$/u
+
 /**
- * Accepts a missing photo, an https URL (Google profile pictures) or a small
- * base64 PNG, JPEG or WebP data URL from the sign-up form.
+ * Accepts a missing photo, a Google profile picture URL, or a small base64
+ * PNG, JPEG or WebP data URL from the sign-up form. Both are capped in length,
+ * and other hosts are refused so a photo cannot make members' browsers load
+ * an arbitrary third-party URL.
  */
 export function isAllowedProfileImage(
   image: string | null | undefined
@@ -15,14 +20,18 @@ export function isAllowedProfileImage(
     return true
   }
 
+  if (image.length > MAX_PROFILE_IMAGE_LENGTH) {
+    return false
+  }
+
   if (image.startsWith('data:')) {
-    return (
-      image.length <= MAX_PROFILE_IMAGE_LENGTH && DATA_IMAGE_PATTERN.test(image)
-    )
+    return DATA_IMAGE_PATTERN.test(image)
   }
 
   try {
-    return new URL(image).protocol === 'https:'
+    const url = new URL(image)
+
+    return url.protocol === 'https:' && GOOGLE_PHOTO_HOST.test(url.hostname)
   } catch {
     return false
   }

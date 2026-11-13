@@ -118,6 +118,8 @@ export function WorkspaceSettings({
       if (settle(await leaveWorkspaceAction(workspaceId), `Left ${name}`)) {
         setConfirmingLeave(false)
       }
+    } catch {
+      showErrorToast({ title: 'Not left' })
     } finally {
       setLeaving(false)
     }
@@ -131,6 +133,8 @@ export function WorkspaceSettings({
       if (settle(await deleteWorkspaceAction(workspaceId), `Deleted ${name}`)) {
         setConfirmingDelete(false)
       }
+    } catch {
+      showErrorToast({ title: 'Not deleted' })
     } finally {
       setDeleting(false)
     }

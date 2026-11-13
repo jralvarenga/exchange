@@ -23,11 +23,16 @@ export function CredentialsPrompt({
       ? `Reconnect ${active.name}`
       : `Check ${active.name}`
     : 'Connect your Alpaca account'
+  const nextStep = canManage
+    ? 'Test them again, replace them, or switch to another connection.'
+    : 'Switch to another connection or ask an owner or admin to replace them.'
   const description = active
-    ? `Alpaca is not accepting the keys of ${active.name}, so balances and orders are hidden. ${canManage ? 'Test them again, replace them, or switch to another connection.' : 'Switch to another connection or ask an owner to replace them.'}`
+    ? rejected
+      ? `Alpaca is not accepting the keys of ${active.name}, so balances and orders are hidden. ${nextStep}`
+      : `The keys of ${active.name} have not been checked with Alpaca yet, so balances and orders are hidden. ${nextStep}`
     : canManage
       ? 'Add a named paper or live key pair to see your balance, positions and orders. One is enough to start.'
-      : 'This workspace has no connection yet. Ask a workspace owner to add one.'
+      : 'This workspace has no connection yet. Ask a workspace owner or admin to add one.'
 
   return (
     <section

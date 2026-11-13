@@ -4,7 +4,7 @@ import type { ActivityActor } from '@workspace/db/queries/activity'
 import {
   findActiveWorkspaceId,
   listUserMemberships,
-  setActiveWorkspace,
+  repairActiveWorkspace,
   type WorkspaceMembershipRow,
   type WorkspaceRole,
 } from '@workspace/db/queries/workspaces'
@@ -79,7 +79,8 @@ const loadActiveWorkspace = cache(async function loadActiveWorkspace(
   }
 
   if (active.workspaceId !== activeWorkspaceId) {
-    await setActiveWorkspace({
+    await repairActiveWorkspace({
+      staleWorkspaceId: activeWorkspaceId ?? null,
       userId: user.id,
       workspaceId: active.workspaceId,
     })
@@ -96,8 +97,8 @@ const loadActiveWorkspace = cache(async function loadActiveWorkspace(
   }
 })
 
-/** Throws unless the user is an owner or admin of the workspace. */
-export function assertWorkspaceOwner(workspace: ActiveWorkspace): void {
+/** Throws unless the user can manage the workspace: an owner or an admin. */
+export function assertWorkspaceManager(workspace: ActiveWorkspace): void {
   if (!canManageWorkspace(workspace.role)) {
     throw new WorkspacePermissionError()
   }

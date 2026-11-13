@@ -125,7 +125,7 @@ export function DataTable<TData extends RowData>({
           {rows.length === 0 ? (
             <TableRow>
               <TableCell className="text-center" colSpan={columnCount}>
-                {emptyMessage}
+                <p className="py-10 text-muted-foreground">{emptyMessage}</p>
               </TableCell>
             </TableRow>
           ) : null}

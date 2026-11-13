@@ -22,6 +22,13 @@
       "when": 1794539117677,
       "tag": "0002_admin_paper_member_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794541659543,
+      "tag": "0003_review_hardening",
+      "breakpoints": true
     }
   ]
 }

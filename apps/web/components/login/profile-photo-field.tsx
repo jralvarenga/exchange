@@ -83,7 +83,7 @@ export function ProfilePhotoField({
         {value ? (
           <Button
             className="ml-auto"
-            disabled={disabled}
+            disabled={disabled || reading}
             onClick={() => onChange(undefined)}
             type="button"
             variant="ghost"

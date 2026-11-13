@@ -17,6 +17,8 @@ interface Props {
   /** Viewers cannot test connections. */
   canTest: boolean
   connection: MaskedConnection
+  /** Whether the workspace keeps another connection once this one is removed. */
+  hasOtherConnections: boolean
   isDefault: boolean
   onMakeDefault: () => Promise<void>
   onRemove: () => Promise<boolean>
@@ -34,6 +36,7 @@ export function ConnectionRow({
   canManage,
   canTest,
   connection,
+  hasOtherConnections,
   isDefault,
   onMakeDefault,
   onRemove,
@@ -223,9 +226,11 @@ export function ConnectionRow({
         busyLabel="Removing…"
         confirmLabel="Remove connection"
         description={
-          isDefault
+          isDefault && hasOtherConnections
             ? 'Everyone in this workspace stops using these keys, and another connection becomes the default. Nothing changes in Alpaca.'
-            : 'Everyone in this workspace stops using these keys. Nothing changes in Alpaca.'
+            : isDefault
+              ? 'Everyone in this workspace stops using these keys, and the workspace has no connection until one is added. Nothing changes in Alpaca.'
+              : 'Everyone in this workspace stops using these keys. Nothing changes in Alpaca.'
         }
         keepLabel="Keep connection"
         onConfirm={() => {

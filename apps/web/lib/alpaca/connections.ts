@@ -1,9 +1,11 @@
 import 'server-only'
 
-import type { ActivityActor } from '@workspace/db/queries/activity'
+import type {
+  ActivityActor,
+  ConnectionActor,
+} from '@workspace/db/queries/activity'
 import {
   type AlpacaConnectionRow,
-  deleteAlpacaConnection,
   findAlpacaConnection,
   insertAlpacaConnection,
   listAlpacaConnections,
@@ -13,7 +15,8 @@ import {
   updateAlpacaConnectionStatus,
 } from '@workspace/db/queries/alpaca-connections'
 import {
-  findFallbackConnectionId,
+  deleteConnectionAndRepairDefault,
+  setDefaultConnectionIfUnset,
   setMemberActiveConnection,
   setWorkspaceDefaultConnection,
 } from '@workspace/db/queries/workspaces'
@@ -35,7 +38,7 @@ import { env } from '@/lib/env'
 import { canTestConnection } from '@/lib/workspaces/permissions'
 import {
   type ActiveWorkspace,
-  assertWorkspaceOwner,
+  assertWorkspaceManager,
   WorkspacePermissionError,
 } from '@/lib/workspaces/workspace'
 
@@ -99,7 +102,7 @@ interface MarkConnectionInvalidInput {
 
 /** Everything an API route needs to call Alpaca and record what it did. */
 export type AlpacaRequestContext = {
-  actor: ActivityActor & { connectionId: string; connectionName: string }
+  actor: ConnectionActor & { connectionId: string; connectionName: string }
   alpaca: AlpacaClientOptions & { environment: 'live' | 'paper' }
   connectionUpdatedAt: Date
 }
@@ -135,7 +138,7 @@ export class ConnectionNameTakenError extends Error {
 export async function addConnection(
   input: AddConnectionInput
 ): Promise<MaskedConnection> {
-  assertWorkspaceOwner(input.workspace)
+  assertWorkspaceManager(input.workspace)
 
   const name = connectionNameSchema.parse(input.name)
   const environment = alpacaEnvironmentSchema.parse(input.environment)
@@ -176,12 +179,11 @@ export async function addConnection(
     throw error
   }
 
-  if (!input.workspace.defaultConnectionId) {
-    await setWorkspaceDefaultConnection({
-      connectionId: id,
-      workspaceId: input.workspace.workspaceId,
-    })
-  }
+  // A no-op unless the workspace still has no default when this lands.
+  await setDefaultConnectionIfUnset({
+    connectionId: id,
+    workspaceId: input.workspace.workspaceId,
+  })
 
   return toMaskedConnection(row, keys.keyId)
 }
@@ -190,7 +192,7 @@ export async function addConnection(
 export async function replaceConnectionKeys(
   input: ReplaceConnectionKeysInput
 ): Promise<MaskedConnection> {
-  assertWorkspaceOwner(input.workspace)
+  assertWorkspaceManager(input.workspace)
 
   const row = await requireConnection(input)
   const environment = alpacaEnvironmentSchema.parse(row.environment)
@@ -244,8 +246,10 @@ export async function testConnection(
     })
   } catch (error) {
     if (isRejectedCredential(error)) {
+      // Only the keys that were tested: a replacement saved since stays valid.
       await markAlpacaConnectionInvalid({
         id: row.id,
+        updatedAt: row.updatedAt,
         workspaceId: row.workspaceId,
       })
       throw new AlpacaCredentialsError('INVALID')
@@ -272,7 +276,7 @@ export async function testConnection(
 export async function renameConnection(
   input: RenameConnectionInput
 ): Promise<void> {
-  assertWorkspaceOwner(input.workspace)
+  assertWorkspaceManager(input.workspace)
 
   const row = await requireConnection(input)
 
@@ -292,24 +296,20 @@ export async function renameConnection(
 }
 
 /**
- * Deletes a connection. When it was the default, the oldest paper connection
- * (else the oldest live one) takes over. Members who had picked it fall back
- * to the default.
+ * Deletes a connection. When it was the default, the oldest valid paper
+ * connection (else the oldest valid live one) takes over. Members who had
+ * picked it fall back to the default.
  */
 export async function removeConnection(
   input: ConnectionActionInput
 ): Promise<AlpacaConnectionRow> {
-  assertWorkspaceOwner(input.workspace)
+  assertWorkspaceManager(input.workspace)
 
   const row = await requireConnection(input)
-  await deleteAlpacaConnection({ id: row.id, workspaceId: row.workspaceId })
-
-  if (input.workspace.defaultConnectionId === row.id) {
-    await setWorkspaceDefaultConnection({
-      connectionId: (await findFallbackConnectionId(row.workspaceId)) ?? null,
-      workspaceId: row.workspaceId,
-    })
-  }
+  await deleteConnectionAndRepairDefault({
+    connectionId: row.id,
+    workspaceId: row.workspaceId,
+  })
 
   return row
 }
@@ -337,7 +337,7 @@ export async function setActiveConnection(
 export async function setDefaultConnection(
   input: ConnectionActionInput
 ): Promise<AlpacaConnectionRow> {
-  assertWorkspaceOwner(input.workspace)
+  assertWorkspaceManager(input.workspace)
 
   const row = await requireConnection(input)
 

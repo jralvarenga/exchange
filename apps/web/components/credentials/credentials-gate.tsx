@@ -42,11 +42,8 @@ export function CredentialsGate({
     setFailed(false)
   }
 
-  // The account page holds the connection form, so it must stay usable without them.
-  const showsPrompt =
-    pathname !== '/account' &&
-    !pathname.startsWith('/account/') &&
-    (!ready || failed)
+  // Some pages must stay usable without them; see isUngatedPath.
+  const showsPrompt = !isUngatedPath(pathname) && (!ready || failed)
 
   useEffect(() => {
     function markFailed(error: unknown): void {
@@ -92,4 +89,15 @@ export function CredentialsGate({
   }
 
   return children
+}
+
+/**
+ * Pages that must work without a valid connection: Account holds the
+ * connection form, and Workspaces lets people switch to or create a workspace
+ * that has one.
+ */
+function isUngatedPath(pathname: string): boolean {
+  return ['/account', '/workspaces'].some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  )
 }

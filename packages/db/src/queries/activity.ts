@@ -18,8 +18,13 @@ export type ActivityActor = {
   workspaceId: string
 }
 
+/** An actor acting through a connection, so its environment is known. */
+export type ConnectionActor = ActivityActor & {
+  environment: 'live' | 'paper'
+}
+
 interface InsertOrderInput {
-  actor: ActivityActor
+  actor: ConnectionActor
   alpacaOrderId: string
   assetClass?: string | null
   clientOrderId?: string | null
@@ -68,38 +73,86 @@ export async function insertOrder(input: InsertOrderInput): Promise<string> {
   const id = crypto.randomUUID()
   const now = new Date()
 
-  await db.transaction(async (tx) => {
-    await tx.insert(orders).values({
-      ...input.actor,
-      alpacaOrderId: input.alpacaOrderId,
-      assetClass: input.assetClass ?? null,
-      clientOrderId: input.clientOrderId ?? null,
-      createdAt: now,
-      id,
-      limitPrice: input.limitPrice || null,
-      notional: input.notional || null,
-      orderClass: input.orderClass ?? null,
-      quantity: input.quantity || null,
-      side: input.side,
-      source: input.source,
-      status: input.status,
-      stopPrice: input.stopPrice || null,
-      symbol: input.symbol,
-      timeInForce: input.timeInForce ?? null,
-      type: input.type,
-      updatedAt: now,
-    })
+  return db.transaction(async (tx) => {
+    const [inserted] = await tx
+      .insert(orders)
+      .values({
+        ...input.actor,
+        alpacaOrderId: input.alpacaOrderId,
+        assetClass: input.assetClass ?? null,
+        clientOrderId: input.clientOrderId ?? null,
+        createdAt: now,
+        id,
+        limitPrice: input.limitPrice || null,
+        notional: input.notional || null,
+        orderClass: input.orderClass ?? null,
+        quantity: input.quantity || null,
+        side: input.side,
+        source: input.source,
+        status: input.status,
+        stopPrice: input.stopPrice || null,
+        symbol: input.symbol,
+        timeInForce: input.timeInForce ?? null,
+        type: input.type,
+        updatedAt: now,
+      })
+      .onConflictDoNothing({
+        target: [orders.workspaceId, orders.alpacaOrderId],
+      })
+      .returning({ id: orders.id })
+
+    // Already recorded, for example by a retried request: keep the first row.
+    if (!inserted) {
+      const [existing] = await tx
+        .select({ id: orders.id })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.workspaceId, input.actor.workspaceId),
+            eq(orders.alpacaOrderId, input.alpacaOrderId)
+          )
+        )
+        .limit(1)
+
+      return existing?.id ?? id
+    }
+
     await tx.insert(orderEvents).values({
       ...input.actor,
       alpacaOrderId: input.alpacaOrderId,
       createdAt: now,
       id: crypto.randomUUID(),
-      orderId: id,
+      orderId: inserted.id,
       type: 'placed',
     })
-  })
 
-  return id
+    return inserted.id
+  })
+}
+
+/**
+ * Points an order at the id Alpaca gave its replacement, so later events on
+ * the replacement (a cancel, say) still find the order Exchange placed.
+ */
+export async function replaceOrderAlpacaId(input: {
+  fromAlpacaOrderId: string
+  status: string
+  toAlpacaOrderId: string
+  workspaceId: string
+}): Promise<void> {
+  await db
+    .update(orders)
+    .set({
+      alpacaOrderId: input.toAlpacaOrderId,
+      status: input.status,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(orders.workspaceId, input.workspaceId),
+        eq(orders.alpacaOrderId, input.fromAlpacaOrderId)
+      )
+    )
 }
 
 /** Finds the Exchange record of an Alpaca order in a workspace. */

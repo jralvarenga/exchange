@@ -20,6 +20,18 @@ describe('isAllowedProfileImage', () => {
     expect(isAllowedProfileImage('data:image/webp;base64,UklGRg==')).toBe(true)
   })
 
+  test('rejects photo hosts other than Google and oversized URLs', () => {
+    expect(isAllowedProfileImage('https://example.com/me.png')).toBe(false)
+    expect(
+      isAllowedProfileImage('https://evil.com/googleusercontent.com.png')
+    ).toBe(false)
+    expect(
+      isAllowedProfileImage(
+        `https://lh3.googleusercontent.com/${'a'.repeat(130_000)}`
+      )
+    ).toBe(false)
+  })
+
   test('rejects other schemes, types and oversized data', () => {
     expect(isAllowedProfileImage('http://example.com/a.png')).toBe(false)
     expect(isAllowedProfileImage('javascript:alert(1)')).toBe(false)

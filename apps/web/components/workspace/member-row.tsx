@@ -13,6 +13,7 @@ import { useState } from 'react'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { UserAvatar } from '@/components/user-avatar'
+import { showErrorToast } from '@/lib/app-toast'
 import { canRemoveMember } from '@/lib/workspaces/permissions'
 import {
   assignableRoleOptions,
@@ -57,6 +58,8 @@ export function MemberRow({
 
     try {
       await task()
+    } catch {
+      showErrorToast({ title: 'Not changed' })
     } finally {
       setBusy(false)
     }
@@ -111,6 +114,7 @@ export function MemberRow({
             </SelectContent>
           </Select>
           <Button
+            aria-label={`Remove ${label}`}
             disabled={busy}
             onClick={() => setConfirming(true)}
             type="button"

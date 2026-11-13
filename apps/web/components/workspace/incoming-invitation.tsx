@@ -27,6 +27,8 @@ export function IncomingInvitation({ invitation }: Props) {
       if (result.message) {
         showErrorToast({ description: result.message, title: 'Not joined' })
       }
+    } catch {
+      showErrorToast({ title: 'Not joined' })
     } finally {
       setPending(false)
     }

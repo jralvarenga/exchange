@@ -40,6 +40,10 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
     connection?.environment ?? 'paper'
   )
   const [showsSecret, setShowsSecret] = useState(false)
+  // Controlled so a refused save keeps the name and key ID; only the secret
+  // has to be typed again.
+  const [name, setName] = useState('')
+  const [keyId, setKeyId] = useState('')
   const id = useId()
   const handledState = useRef(state)
 
@@ -67,6 +71,8 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
                   id={`${id}-name`}
                   maxLength={40}
                   name="name"
+                  onChange={(event) => setName(event.target.value)}
+                  value={name}
                   placeholder={
                     environment === 'live' ? 'Live IRA' : 'Main paper'
                   }
@@ -96,6 +102,8 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
               disabled={pending}
               id={`${id}-key-id`}
               name="keyId"
+              onChange={(event) => setKeyId(event.target.value)}
+              value={keyId}
               placeholder={environment === 'live' ? 'AK…' : 'PK…'}
               required
               spellCheck={false}

@@ -31,6 +31,8 @@ export function AcceptInvitation({ role, token, workspaceName }: Props) {
     try {
       const result = await acceptInvitationAction(token)
       setMessage(result.message)
+    } catch {
+      setMessage('You could not join right now. Try again.')
     } finally {
       setPending(false)
     }

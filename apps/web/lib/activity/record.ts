@@ -2,11 +2,13 @@ import 'server-only'
 
 import {
   type ActivityActor,
+  type ConnectionActor,
   findOrderByAlpacaId,
   insertActivityLog,
   insertOrder,
   insertOrderEvent,
   type OrderEventType,
+  replaceOrderAlpacaId,
   updateOrderStatus,
 } from '@workspace/db/queries/activity'
 
@@ -21,7 +23,7 @@ interface RecordActivityInput {
 }
 
 interface RecordOrderPlacedInput {
-  actor: ActivityActor
+  actor: ConnectionActor
   order: AccountOrder
   request?: CreateOrderRequest
   source: 'close_position' | 'ticket'
@@ -31,6 +33,8 @@ interface RecordOrderEventInput {
   actor: ActivityActor
   alpacaOrderId: string
   details?: Record<string, unknown>
+  /** The id Alpaca gave a replaced order. The order follows it from now on. */
+  replacementAlpacaOrderId?: string
   status?: string
   type: Exclude<OrderEventType, 'placed'>
 }
@@ -124,7 +128,14 @@ export async function recordOrderEvent(
       type: input.type,
     })
 
-    if (order && input.status) {
+    if (order && input.replacementAlpacaOrderId) {
+      await replaceOrderAlpacaId({
+        fromAlpacaOrderId: input.alpacaOrderId,
+        status: input.status ?? order.status,
+        toAlpacaOrderId: input.replacementAlpacaOrderId,
+        workspaceId: input.actor.workspaceId,
+      })
+    } else if (order && input.status) {
       await updateOrderStatus({
         alpacaOrderId: input.alpacaOrderId,
         status: input.status,
@@ -136,10 +147,13 @@ export async function recordOrderEvent(
   }
 }
 
-/** Logs which record failed without echoing request data. */
+/**
+ * Logs which record failed. Only the error's name is kept: database errors
+ * carry the query's bound values, which can include emails and order details.
+ */
 function reportRecordFailure(action: string, error: unknown): void {
   console.error(
     `Activity "${action}" could not be recorded.`,
-    error instanceof Error ? error.message : undefined
+    error instanceof Error ? error.name : 'UnknownError'
   )
 }

@@ -28,13 +28,16 @@ process.env.RESEND_API_KEY ??= 're_test'
 
 const { afterAll, beforeAll, describe, expect, test } = await import('bun:test')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-const { and, eq } = await import('drizzle-orm')
+const { and, eq, inArray } = await import('drizzle-orm')
 const { Pool } = await import('pg')
 const { db, pool: databasePool } = await import('@workspace/db/client')
 const { users } = await import('@workspace/db/schema/auth')
-const { listRecentActivityLogs } = await import(
-  '@workspace/db/queries/activity'
-)
+const {
+  findOrderByAlpacaId,
+  insertOrder,
+  listRecentActivityLogs,
+  replaceOrderAlpacaId,
+} = await import('@workspace/db/queries/activity')
 const {
   AlpacaCredentialsError,
   addConnection,
@@ -47,7 +50,9 @@ const { AlpacaApiError } = await import('@/lib/alpaca/client')
 const { createApiResponse } = await import('@/lib/alpaca/http')
 const { NoWorkspaceError, resolveActiveWorkspace, WorkspacePermissionError } =
   await import('@/lib/workspaces/workspace')
-const { workspaceMembers } = await import('@workspace/db/schema/workspaces')
+const { workspaceMembers, workspaces } = await import(
+  '@workspace/db/schema/workspaces'
+)
 const {
   createWorkspace,
   createWorkspaceInvitation,
@@ -174,6 +179,11 @@ describe('alpaca connections', () => {
 
   afterAll(async () => {
     if (databaseReady) {
+      // Workspaces outlive their creator (the column is set null), so drop
+      // them first; their connections, invitations and activity cascade.
+      await db
+        .delete(workspaces)
+        .where(inArray(workspaces.createdByUserId, [userA, userB]))
       await db.delete(users).where(eq(users.id, userA))
       await db.delete(users).where(eq(users.id, userB))
     }
@@ -510,7 +520,13 @@ describe('alpaca connections', () => {
       workspace: doomed,
     })
 
-    await deleteWorkspace(workspaceId)
+    // Only an owner of that workspace can delete it.
+    expect(await deleteWorkspace({ ownerUserId: userB, workspaceId })).toBe(
+      false
+    )
+    expect(await deleteWorkspace({ ownerUserId: userA, workspaceId })).toBe(
+      true
+    )
 
     expect(
       await db
@@ -521,6 +537,65 @@ describe('alpaca connections', () => {
     const after = await resolveActiveWorkspace({ id: userA, name: 'User A' })
     expect(after.workspaceId).not.toBe(workspaceId)
   })
+
+  integrationTest('allows one pending invitation per address', async () => {
+    const owned = await resolveActiveWorkspace({ id: userB, name: 'User B' })
+    const email = `once-${crypto.randomUUID()}@example.com`
+    const invite = () =>
+      createWorkspaceInvitation({
+        email,
+        expiresAt: new Date(Date.now() + 60_000),
+        id: crypto.randomUUID(),
+        invitedByUserId: userB,
+        role: 'member',
+        tokenHash: crypto.randomUUID(),
+        workspaceId: owned.workspaceId,
+      })
+
+    const results = await Promise.all([invite(), invite()])
+
+    expect(results.filter(Boolean)).toHaveLength(1)
+  })
+
+  integrationTest(
+    'records an order once and follows its replacement',
+    async () => {
+      const owned = await resolveActiveWorkspace({ id: userB, name: 'User B' })
+      const actor = {
+        connectionId: null,
+        connectionName: 'Paper',
+        environment: 'paper' as const,
+        userId: userB,
+        workspaceId: owned.workspaceId,
+      }
+      const alpacaOrderId = `alpaca-${crypto.randomUUID()}`
+      const order = {
+        actor,
+        alpacaOrderId,
+        side: 'buy' as const,
+        source: 'ticket' as const,
+        status: 'new',
+        symbol: 'AAPL',
+        type: 'limit',
+      }
+
+      const first = await insertOrder(order)
+      const retried = await insertOrder(order)
+      await replaceOrderAlpacaId({
+        fromAlpacaOrderId: alpacaOrderId,
+        status: 'new',
+        toAlpacaOrderId: `${alpacaOrderId}-v2`,
+        workspaceId: owned.workspaceId,
+      })
+      const followed = await findOrderByAlpacaId({
+        alpacaOrderId: `${alpacaOrderId}-v2`,
+        workspaceId: owned.workspaceId,
+      })
+
+      expect(retried).toBe(first)
+      expect(followed?.id).toBe(first)
+    }
+  )
 })
 
 /** True when compose Postgres is up and the current database is exchange. */

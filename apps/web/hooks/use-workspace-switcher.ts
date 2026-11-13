@@ -12,10 +12,18 @@ interface SwitchTarget {
   name: string
 }
 
+interface SwitchWorkspaceOptions {
+  /** Opens this path afterwards instead of refreshing the current page. */
+  navigateTo?: string
+}
+
 interface UseWorkspaceSwitcherResult {
   pending: boolean
   switchConnection: (connection: SwitchTarget) => Promise<void>
-  switchWorkspace: (workspace: SwitchTarget) => Promise<void>
+  switchWorkspace: (
+    workspace: SwitchTarget,
+    options?: SwitchWorkspaceOptions
+  ) => Promise<void>
 }
 
 /** Switches the active workspace or connection and reloads server data. */
@@ -23,10 +31,11 @@ export function useWorkspaceSwitcher(): UseWorkspaceSwitcherResult {
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
-  /** Runs one switch, names the outcome in a toast, and refreshes on success. */
+  /** Runs one switch, names the outcome in a toast, then refreshes or navigates. */
   async function run(
     task: () => Promise<{ message?: string }>,
-    success: string
+    success: string,
+    navigateTo?: string
   ): Promise<void> {
     setPending(true)
 
@@ -39,7 +48,12 @@ export function useWorkspaceSwitcher(): UseWorkspaceSwitcherResult {
       }
 
       showSuccessToast({ title: success })
-      router.refresh()
+
+      if (navigateTo) {
+        router.push(navigateTo)
+      } else {
+        router.refresh()
+      }
     } catch {
       showErrorToast({ title: 'Not switched' })
     } finally {
@@ -54,10 +68,11 @@ export function useWorkspaceSwitcher(): UseWorkspaceSwitcherResult {
         () => switchConnectionAction(connection.id),
         `Using ${connection.name}`
       ),
-    switchWorkspace: (workspace) =>
+    switchWorkspace: (workspace, options) =>
       run(
         () => switchWorkspaceAction(workspace.id),
-        `Opened ${workspace.name}`
+        `Opened ${workspace.name}`,
+        options?.navigateTo
       ),
   }
 }

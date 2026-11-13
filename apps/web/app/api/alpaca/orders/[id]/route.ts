@@ -43,7 +43,8 @@ export async function PATCH(
         actor,
         alpacaOrderId: params.data.id,
         details: { changes: body.data, replacementOrderId: replacement.id },
-        status: 'replaced',
+        replacementAlpacaOrderId: replacement.id,
+        status: replacement.status,
         type: 'replaced',
       })
 

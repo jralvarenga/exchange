@@ -15,7 +15,7 @@ export function WorkspaceMark({ className, name }: Props) {
         className
       )}
     >
-      {name.trim().charAt(0).toUpperCase() || 'W'}
+      {Array.from(name.trim())[0]?.toUpperCase() || 'W'}
     </span>
   )
 }

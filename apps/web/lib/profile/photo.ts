@@ -41,6 +41,10 @@ export async function toProfilePhoto(file: File): Promise<string> {
   }
 
   const side = Math.min(bitmap.width, bitmap.height)
+  // JPEG has no transparency; fill first so see-through areas turn white, not
+  // black, and both encodings look the same.
+  context.fillStyle = 'white'
+  context.fillRect(0, 0, PHOTO_SIZE, PHOTO_SIZE)
   context.drawImage(
     bitmap,
     (bitmap.width - side) / 2,

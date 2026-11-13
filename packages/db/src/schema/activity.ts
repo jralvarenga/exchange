@@ -7,6 +7,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 
 import { alpacaConnections } from './alpaca-connections'
@@ -51,6 +52,8 @@ export const orders = pgTable(
     limitPrice: numeric(),
     stopPrice: numeric(),
     status: text().notNull(),
+    // Every order is placed through a connection, so it always has one.
+    environment: text().notNull(),
     source: text().notNull().default('ticket'),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -62,7 +65,11 @@ export const orders = pgTable(
     ),
     index('orders_user_idx').on(table.userId),
     index('orders_connection_idx').on(table.connectionId),
-    index('orders_alpaca_order_idx').on(table.alpacaOrderId),
+    // One row per Alpaca order per workspace, so a retried record is a no-op.
+    uniqueIndex('orders_workspace_alpaca_order_unique').on(
+      table.workspaceId,
+      table.alpacaOrderId
+    ),
     check('orders_side_check', sql`${table.side} in ('buy', 'sell')`),
     check(
       'orders_source_check',
@@ -96,6 +103,9 @@ export const orderEvents = pgTable(
       table.createdAt
     ),
     index('order_events_alpaca_order_idx').on(table.alpacaOrderId),
+    index('order_events_user_idx').on(table.userId),
+    index('order_events_connection_idx').on(table.connectionId),
+    index('order_events_order_idx').on(table.orderId),
     check(
       'order_events_type_check',
       sql`${table.type} in ('placed', 'replaced', 'canceled')`
@@ -124,5 +134,6 @@ export const activityLogs = pgTable(
       table.createdAt
     ),
     index('activity_logs_user_idx').on(table.userId),
+    index('activity_logs_connection_idx').on(table.connectionId),
   ]
 )
