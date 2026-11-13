@@ -6,15 +6,15 @@ import { z } from 'zod'
 
 import {
   AlpacaCredentialsError,
-  markCredentialInvalid,
-  resolveAlpacaClientOptions,
-} from '@/lib/alpaca/credentials'
-import type { AlpacaClientOptions } from '@/lib/alpaca/schemas'
+  type AlpacaRequestContext,
+  markConnectionInvalid,
+  resolveAlpacaRequestContext,
+} from '@/lib/alpaca/connections'
+import { canTrade } from '@/lib/workspaces/permissions'
+import { resolveActiveWorkspace } from '@/lib/workspaces/workspace'
 import { AlpacaApiError } from './client'
 
-interface ApiHandlerContext {
-  alpaca: AlpacaClientOptions
-}
+type ApiHandlerContext = Pick<AlpacaRequestContext, 'actor' | 'alpaca'>
 
 type ApiHandler = (context: ApiHandlerContext) => Promise<unknown>
 
@@ -29,13 +29,21 @@ interface ApiErrorBody {
 
 interface CreateApiResponseOptions {
   exposeAlpacaMessage?: boolean
+  /**
+   * The handler places, changes or closes orders or positions. Members can do
+   * that on paper connections only.
+   */
+  trading?: boolean
 }
 
 const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
 }
 
-/** Runs an API handler with the signed-in user's Alpaca credentials. */
+/**
+ * Runs an API handler with the Alpaca connection the signed-in member has
+ * active in their current workspace.
+ */
 export async function createApiResponse(
   handler: ApiHandler,
   options: CreateApiResponseOptions = {}
@@ -56,15 +64,34 @@ export async function createApiResponse(
     )
   }
 
-  let environment: 'live' | 'paper' | undefined
-  let credentialUpdatedAt: Date | undefined
+  let request: AlpacaRequestContext | undefined
 
   try {
-    const resolved = await resolveAlpacaClientOptions(session.user.id)
-    const { credentialUpdatedAt: resolvedUpdatedAt, ...alpaca } = resolved
-    environment = alpaca.environment
-    credentialUpdatedAt = resolvedUpdatedAt
-    const data = await handler({ alpaca })
+    const workspace = await resolveActiveWorkspace(session.user)
+    request = await resolveAlpacaRequestContext(workspace)
+
+    if (
+      options.trading &&
+      !canTrade({
+        environment: request.alpaca.environment,
+        role: workspace.role,
+      })
+    ) {
+      return createErrorResponse(
+        {
+          error: {
+            code: 'LIVE_TRADING_OWNER_ONLY',
+            message: 'Only workspace owners can trade on a live connection.',
+          },
+        },
+        403
+      )
+    }
+
+    const data = await handler({
+      actor: request.actor,
+      alpaca: request.alpaca,
+    })
 
     return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
   } catch (error) {
@@ -74,15 +101,11 @@ export async function createApiResponse(
 
     // Only 401 means the keys were rejected. Alpaca also returns 403 for
     // valid keys, e.g. insufficient buying power on an order.
-    if (
-      error instanceof AlpacaApiError &&
-      error.status === 401 &&
-      environment
-    ) {
-      await markCredentialInvalid({
-        environment,
-        updatedAt: credentialUpdatedAt,
-        userId: session.user.id,
+    if (error instanceof AlpacaApiError && error.status === 401 && request) {
+      await markConnectionInvalid({
+        connectionId: request.actor.connectionId,
+        updatedAt: request.connectionUpdatedAt,
+        workspaceId: request.actor.workspaceId,
       })
 
       return credentialErrorResponse('INVALID')
@@ -152,7 +175,7 @@ function credentialErrorResponse(code: 'INVALID' | 'MISSING'): Response {
       {
         error: {
           code: 'ALPACA_CREDENTIALS_REQUIRED',
-          message: 'Add Alpaca keys for the active environment to continue.',
+          message: 'Add an Alpaca connection to this workspace to continue.',
         },
       },
       428
@@ -163,7 +186,7 @@ function credentialErrorResponse(code: 'INVALID' | 'MISSING'): Response {
     {
       error: {
         code: 'ALPACA_CREDENTIALS_INVALID',
-        message: 'The Alpaca keys for the active environment were rejected.',
+        message: 'Alpaca rejected the keys of the active connection.',
       },
     },
     428

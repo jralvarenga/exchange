@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1792880285360,
-      "tag": "0000_fantastic_marvel_boy",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1792882967896,
-      "tag": "0001_dark_bug",
+      "when": 1794530183076,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

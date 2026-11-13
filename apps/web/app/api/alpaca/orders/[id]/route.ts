@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordOrderEvent } from '@/lib/activity/record'
 import {
   createApiResponse,
   createValidationErrorResponse,
@@ -32,14 +33,23 @@ export async function PATCH(
   }
 
   return createApiResponse(
-    async function submitReplacement({ alpaca }) {
-      return replaceOrder({
+    async function submitReplacement({ actor, alpaca }) {
+      const replacement = await replaceOrder({
         ...alpaca,
         changes: body.data,
         orderId: params.data.id,
       })
+      await recordOrderEvent({
+        actor,
+        alpacaOrderId: params.data.id,
+        details: { changes: body.data, replacementOrderId: replacement.id },
+        status: 'replaced',
+        type: 'replaced',
+      })
+
+      return replacement
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }
 
@@ -55,11 +65,17 @@ export async function DELETE(
   }
 
   return createApiResponse(
-    async function submitCancellation({ alpaca }) {
+    async function submitCancellation({ actor, alpaca }) {
       await cancelOrder({ ...alpaca, orderId: params.data.id })
+      await recordOrderEvent({
+        actor,
+        alpacaOrderId: params.data.id,
+        status: 'pending_cancel',
+        type: 'canceled',
+      })
 
       return { canceled: true }
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

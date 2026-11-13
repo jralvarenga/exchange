@@ -1,0 +1,114 @@
+'use client'
+
+import { Button } from '@workspace/ui/components/button'
+import { useState } from 'react'
+
+import { ConfirmDialog } from '@/components/confirm-dialog'
+import { UserAvatar } from '@/components/user-avatar'
+import type { WorkspaceMember } from '@/models/workspace/members'
+
+interface Props {
+  canManage: boolean
+  isSelf: boolean
+  member: WorkspaceMember
+  onChangeRole: (role: 'member' | 'owner') => Promise<void>
+  onRemove: () => Promise<boolean>
+}
+
+const actionClassName = 'h-11 rounded-full px-3 text-base'
+
+/** A workspace member with their role and, for owners, role and removal actions. */
+export function MemberRow({
+  canManage,
+  isSelf,
+  member,
+  onChangeRole,
+  onRemove,
+}: Props) {
+  const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const label = member.name || member.email
+
+  /** Runs one member action and keeps the buttons disabled while it is in flight. */
+  async function run(task: () => Promise<unknown>): Promise<void> {
+    setBusy(true)
+
+    try {
+      await task()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <UserAvatar
+          className="size-11"
+          email={member.email}
+          image={member.image}
+          name={member.name}
+          size={44}
+        />
+        <div className="flex min-w-0 flex-col">
+          <p className="flex items-center gap-2 font-bold text-lg">
+            <span className="truncate">{label}</span>
+            {isSelf ? (
+              <span className="rounded-full bg-muted px-2 font-medium text-base text-muted-foreground">
+                You
+              </span>
+            ) : null}
+          </p>
+          <p className="truncate text-muted-foreground">
+            {member.role === 'owner' ? 'Owner' : 'Member'}
+            {member.name ? ` · ${member.email}` : null}
+          </p>
+        </div>
+      </div>
+      {canManage && !isSelf ? (
+        <div className="-ml-3 flex shrink-0 items-center gap-1 sm:ml-0">
+          <Button
+            className={actionClassName}
+            disabled={busy}
+            onClick={() => {
+              void run(() =>
+                onChangeRole(member.role === 'owner' ? 'member' : 'owner')
+              )
+            }}
+            type="button"
+            variant="ghost"
+          >
+            {member.role === 'owner' ? 'Make member' : 'Make owner'}
+          </Button>
+          <Button
+            className={`${actionClassName} text-danger hover:text-danger`}
+            disabled={busy}
+            onClick={() => setConfirming(true)}
+            type="button"
+            variant="ghost"
+          >
+            Remove
+          </Button>
+        </div>
+      ) : null}
+      <ConfirmDialog
+        busy={busy}
+        busyLabel="Removing…"
+        confirmLabel="Remove member"
+        description="They lose access to this workspace. Connections they added stay here."
+        keepLabel="Keep member"
+        onConfirm={() => {
+          void run(async () => {
+            if (await onRemove()) {
+              setConfirming(false)
+            }
+          })
+        }}
+        onOpenChange={setConfirming}
+        open={confirming}
+        title={`Remove ${label}?`}
+        tone="destructive"
+      />
+    </li>
+  )
+}

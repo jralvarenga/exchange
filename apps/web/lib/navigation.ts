@@ -9,7 +9,28 @@ export type NavItem = {
 
 export type ShellUser = {
   email: string
+  image: string | null
   name: string
+}
+
+/** A connection as the shell shows it: no key material. */
+export type ShellConnection = {
+  environment: 'live' | 'paper'
+  id: string
+  name: string
+  status: 'invalid' | 'unverified' | 'valid'
+}
+
+/** The active workspace, its connections and the other workspaces to switch to. */
+export type ShellWorkspace = {
+  /** The connection this member trades with: their pick, else the default. */
+  activeConnectionId: string | null
+  connections: ShellConnection[]
+  defaultConnectionId: string | null
+  id: string
+  name: string
+  role: 'member' | 'owner'
+  workspaces: { id: string; name: string }[]
 }
 
 export const navItems: NavItem[] = [

@@ -1,8 +1,8 @@
-import { relations, sql } from 'drizzle-orm'
+import { relations } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
-  check,
   index,
   integer,
   pgTable,
@@ -10,34 +10,26 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core'
 
-export const users = pgTable(
-  'users',
-  {
-    id: text('id').primaryKey(),
-    name: text('name').notNull(),
-    email: text('email').notNull().unique(),
-    emailVerified: boolean('email_verified').default(false).notNull(),
-    image: text('image'),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    activeAlpacaEnvironment: text('active_alpaca_environment', {
-      enum: ['paper', 'live'],
-    })
-      .default('paper')
-      .notNull(),
-  },
-  (table) => [
-    check(
-      'users_active_alpaca_environment_check',
-      sql`${table.activeAlpacaEnvironment} in ('paper', 'live')`
-    ),
-  ]
-)
+import { workspaces } from './workspaces'
+
+export const users = pgTable('users', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+  emailVerified: boolean('email_verified').default(false).notNull(),
+  image: text('image'),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true })
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  activeWorkspaceId: text('active_workspace_id').references(
+    (): AnyPgColumn => workspaces.id,
+    { onDelete: 'set null' }
+  ),
+})
 
 export const sessions = pgTable(
   'sessions',

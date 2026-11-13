@@ -1,3 +1,4 @@
+import { recordActivity, recordOrderPlaced } from '@/lib/activity/record'
 import { createOrder, getOrdersAndPositions } from '@/lib/alpaca/client'
 import {
   createApiResponse,
@@ -42,19 +43,34 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   return createApiResponse(
-    async function submitAlpacaOrder({ alpaca }) {
-      return createOrder({ ...order.data, ...alpaca })
+    async function submitAlpacaOrder({ actor, alpaca }) {
+      const placed = await createOrder({ ...order.data, ...alpaca })
+      await recordOrderPlaced({
+        actor,
+        order: placed,
+        request: order.data,
+        source: 'ticket',
+      })
+
+      return placed
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }
 
 /** Cancels every open order on the active account. */
 export async function DELETE(): Promise<Response> {
   return createApiResponse(
-    async function cancelOpenOrders({ alpaca }) {
-      return cancelAllOrders(alpaca)
+    async function cancelOpenOrders({ actor, alpaca }) {
+      const result = await cancelAllOrders(alpaca)
+      await recordActivity({
+        action: 'orders.canceled_all',
+        actor,
+        metadata: result,
+      })
+
+      return result
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

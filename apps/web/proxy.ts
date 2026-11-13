@@ -41,7 +41,14 @@ export function proxy(request: NextRequest): NextResponse {
     )
   }
 
-  return NextResponse.redirect(new URL('/login', request.url))
+  const login = new URL('/login', request.url)
+
+  // Invitation links survive the sign-in step.
+  if (pathname.startsWith('/invite/')) {
+    login.searchParams.set('next', pathname)
+  }
+
+  return NextResponse.redirect(login)
 }
 
 export const config = {

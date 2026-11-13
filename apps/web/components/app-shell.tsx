@@ -5,16 +5,17 @@ import { Navbar } from '@/components/navbar'
 import { OrderWorkspace } from '@/components/order-ticket/order-workspace'
 import { Sidebar } from '@/components/sidebar'
 import { OrderTicketProvider } from '@/contexts/order-ticket-context'
-import type { ShellUser } from '@/lib/navigation'
+import type { ShellUser, ShellWorkspace } from '@/lib/navigation'
 
 interface Props {
   children: ReactNode
   environment: 'live' | 'paper'
   user: ShellUser
+  workspace: ShellWorkspace
 }
 
 /** Floats the navigation layers over a page that scrolls behind them. */
-export function AppShell({ children, environment, user }: Props) {
+export function AppShell({ children, environment, user, workspace }: Props) {
   return (
     <OrderTicketProvider environment={environment}>
       <div className="flex min-h-dvh flex-col overflow-x-clip bg-background text-foreground">
@@ -25,7 +26,7 @@ export function AppShell({ children, environment, user }: Props) {
           Skip to main content
         </a>
         <Sidebar />
-        <Navbar user={user} />
+        <Navbar user={user} workspace={workspace} />
         <main
           id="main"
           className="flex flex-1 flex-col px-4 pt-22 pb-28 sm:px-6 md:pb-5"

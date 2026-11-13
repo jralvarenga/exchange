@@ -5,41 +5,44 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 import { CredentialsPrompt } from '@/components/credentials/credentials-prompt'
-import type { MaskedAlpacaCredential } from '@/lib/alpaca/credentials'
 import { isAlpacaCredentialError } from '@/lib/api/error'
+import type { ShellConnection } from '@/lib/navigation'
 
 interface Props {
+  active: ShellConnection | undefined
+  canManage: boolean
   children: React.ReactNode
-  credentialVersion: string
-  credentials: Pick<MaskedAlpacaCredential, 'environment' | 'status'>[]
-  environment: 'live' | 'paper'
+  connectionVersion: string
+  connections: ShellConnection[]
   ready: boolean
 }
 
-/** Replaces portfolio pages when the active Alpaca keys are missing or rejected. */
+/** Replaces portfolio pages when the active connection is missing or rejected. */
 export function CredentialsGate({
+  active,
+  canManage,
   children,
-  credentialVersion,
-  credentials,
-  environment,
+  connectionVersion,
+  connections,
   ready,
 }: Props) {
   const pathname = usePathname()
   const queryClient = useQueryClient()
   const [failed, setFailed] = useState(false)
-  const [seenVersion, setSeenVersion] = useState(credentialVersion)
+  const [seenVersion, setSeenVersion] = useState(connectionVersion)
 
-  // Saving, testing, or switching keys changes the version. Drop cached
-  // account data before children render, then let the server status decide.
-  const versionChanged = seenVersion !== credentialVersion
+  // Saving, testing, or switching a connection or workspace changes the
+  // version. Drop cached account data before children render, then let the
+  // server status decide.
+  const versionChanged = seenVersion !== connectionVersion
 
   if (versionChanged) {
     queryClient.removeQueries()
-    setSeenVersion(credentialVersion)
+    setSeenVersion(connectionVersion)
     setFailed(false)
   }
 
-  // The account page holds the keys form, so it must stay usable without them.
+  // The account page holds the connection form, so it must stay usable without them.
   const showsPrompt =
     pathname !== '/account' &&
     !pathname.startsWith('/account/') &&
@@ -73,17 +76,13 @@ export function CredentialsGate({
     }
   }, [queryClient])
 
-  const active = credentials.find(
-    (credential) => credential.environment === environment
-  )
-  const rejected = failed || active?.status === 'invalid'
-
   if (showsPrompt) {
     return (
       <CredentialsPrompt
-        credentials={credentials}
-        environment={environment}
-        rejected={rejected}
+        active={active}
+        canManage={canManage}
+        connections={connections}
+        rejected={failed || active?.status === 'invalid'}
       />
     )
   }

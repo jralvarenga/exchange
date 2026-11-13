@@ -18,10 +18,13 @@ import { AuthDivider } from '@/components/login/auth-divider'
 import { GoogleSignInButton } from '@/components/login/google-sign-in-button'
 import { cn } from '@/lib/utils'
 
-interface Props extends React.ComponentProps<'div'> {}
+interface Props extends React.ComponentProps<'div'> {
+  /** Where to land after signing in, e.g. an invitation link. */
+  next: string
+}
 
 /** Email and password sign-in, with Google offered first. */
-export function LoginForm({ className, ...props }: Props) {
+export function LoginForm({ className, next, ...props }: Props) {
   const router = useRouter()
   const [message, setMessage] = useState<string>()
   const [pending, setPending] = useState(false)
@@ -35,7 +38,7 @@ export function LoginForm({ className, ...props }: Props) {
 
     try {
       const result = await authClient.signIn.email({
-        callbackURL: '/',
+        callbackURL: next,
         email,
         password,
       })
@@ -45,7 +48,7 @@ export function LoginForm({ className, ...props }: Props) {
         return
       }
 
-      router.push('/')
+      router.push(next)
       router.refresh()
     } catch {
       setMessage('That sign-in did not work.')
@@ -63,7 +66,11 @@ export function LoginForm({ className, ...props }: Props) {
           </div>
           <h1 className="font-bold text-xl">Welcome to Exchange.</h1>
         </div>
-        <GoogleSignInButton disabled={pending} onBusyChange={setPending} />
+        <GoogleSignInButton
+          callbackURL={next}
+          disabled={pending}
+          onBusyChange={setPending}
+        />
         <AuthDivider />
         <form action={(formData) => handleSubmit(formData)}>
           <FieldGroup>
@@ -142,7 +149,14 @@ export function LoginForm({ className, ...props }: Props) {
         </p>
         <p className="text-center">
           New here?{' '}
-          <Link href="/sign-up" className="underline underline-offset-4">
+          <Link
+            href={
+              next === '/'
+                ? '/sign-up'
+                : `/sign-up?next=${encodeURIComponent(next)}`
+            }
+            className="underline underline-offset-4"
+          >
             Create an account
           </Link>
         </p>

@@ -1,3 +1,4 @@
+import { recordActivity } from '@/lib/activity/record'
 import { getPortfolio } from '@/lib/alpaca/client'
 import { createApiResponse } from '@/lib/alpaca/http'
 import { closeAllPositions } from '@/lib/alpaca/trading'
@@ -12,9 +13,16 @@ export async function GET(): Promise<Response> {
 /** Liquidates every open position after canceling open orders. */
 export async function DELETE(): Promise<Response> {
   return createApiResponse(
-    async function liquidatePortfolio({ alpaca }) {
-      return closeAllPositions(alpaca)
+    async function liquidatePortfolio({ actor, alpaca }) {
+      const result = await closeAllPositions(alpaca)
+      await recordActivity({
+        action: 'positions.liquidated',
+        actor,
+        metadata: result,
+      })
+
+      return result
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

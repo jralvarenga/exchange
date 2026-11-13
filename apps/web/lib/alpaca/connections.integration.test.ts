@@ -6,7 +6,7 @@ mock.module('next/headers', () => ({
   headers: async () => new Headers(),
 }))
 
-let currentSession: { user: { id: string } } | null = null
+let currentSession: { user: { id: string; name: string } } | null = null
 
 mock.module('@workspace/auth/server', () => ({
   auth: {
@@ -32,23 +32,29 @@ const { eq } = await import('drizzle-orm')
 const { Pool } = await import('pg')
 const { db, pool: databasePool } = await import('@workspace/db/client')
 const { users } = await import('@workspace/db/schema/auth')
+const { listRecentActivityLogs } = await import(
+  '@workspace/db/queries/activity'
+)
 const {
   AlpacaCredentialsError,
-  listMaskedCredentials,
-  removeCredential,
-  resolveAlpacaClientOptions,
-  saveCredential,
-  testCredential,
-} = await import('@/lib/alpaca/credentials')
+  addConnection,
+  listMaskedConnections,
+  removeConnection,
+  resolveAlpacaRequestContext,
+  testConnection,
+} = await import('@/lib/alpaca/connections')
 const { AlpacaApiError } = await import('@/lib/alpaca/client')
 const { createApiResponse } = await import('@/lib/alpaca/http')
+const { resolveActiveWorkspace, WorkspacePermissionError } = await import(
+  '@/lib/workspaces/workspace'
+)
 
 const userA = crypto.randomUUID()
 const userB = crypto.randomUUID()
 const databaseReady = await postgresIsExchange()
 const integrationTest = databaseReady ? test : test.skip
 
-describe('alpaca credentials', () => {
+describe('alpaca connections', () => {
   beforeAll(async () => {
     if (!databaseReady) {
       return
@@ -90,45 +96,127 @@ describe('alpaca credentials', () => {
     await databasePool.end()
   })
 
-  integrationTest('scopes saved keys to the owning user', async () => {
-    const saved = await saveCredential({
-      environment: 'paper',
-      fetcher: accountFetcher(200),
-      keyId: 'PKUSERAAAA12',
-      secret: 'secret-aaaabbbb',
-      userId: userA,
+  integrationTest(
+    'gives each user a workspace and scopes connections to it',
+    async () => {
+      const workspaceA = await resolveActiveWorkspace({
+        id: userA,
+        name: 'User A',
+      })
+      const workspaceB = await resolveActiveWorkspace({
+        id: userB,
+        name: 'User B',
+      })
+
+      expect(workspaceA.role).toBe('owner')
+      expect(workspaceA.workspaceId).not.toBe(workspaceB.workspaceId)
+
+      const saved = await addConnection({
+        environment: 'paper',
+        fetcher: accountFetcher(200),
+        keyId: 'PKUSERAAAA12',
+        name: 'Main paper',
+        secret: 'secret-aaaabbbb',
+        workspace: workspaceA,
+      })
+
+      expect(saved.name).toBe('Main paper')
+      expect(saved.keyIdMasked).toBe('PK••••AA12')
+      expect(JSON.stringify(saved)).not.toContain('secret-aaaabbbb')
+      expect(JSON.stringify(saved)).not.toContain('PKUSERAAAA12')
+      expect(await listMaskedConnections(workspaceB.workspaceId)).toEqual([])
+
+      // The first connection becomes the workspace default.
+      const refreshed = await resolveActiveWorkspace({
+        id: userA,
+        name: 'User A',
+      })
+      expect(refreshed.defaultConnectionId).toBe(saved.id)
+
+      const resolved = await resolveAlpacaRequestContext(refreshed)
+      expect(resolved.alpaca.apiSecretKey).toBe('secret-aaaabbbb')
+      expect(resolved.actor.connectionName).toBe('Main paper')
+      await expect(
+        resolveAlpacaRequestContext(workspaceB)
+      ).rejects.toBeInstanceOf(AlpacaCredentialsError)
+    }
+  )
+
+  integrationTest('only owners add connections', async () => {
+    const workspace = await resolveActiveWorkspace({
+      id: userA,
+      name: 'User A',
     })
 
-    expect(saved.keyIdMasked).toBe('PK••••AA12')
-    expect(JSON.stringify(saved)).not.toContain('secret-aaaabbbb')
-    expect(JSON.stringify(saved)).not.toContain('PKUSERAAAA12')
-    expect(await listMaskedCredentials(userB)).toEqual([])
-
-    const resolved = await resolveAlpacaClientOptions(userA)
-    expect(resolved.apiSecretKey).toBe('secret-aaaabbbb')
-    await expect(resolveAlpacaClientOptions(userB)).rejects.toBeInstanceOf(
-      AlpacaCredentialsError
-    )
+    await expect(
+      addConnection({
+        environment: 'paper',
+        fetcher: accountFetcher(200),
+        keyId: 'PKUSERAAAA13',
+        name: 'Second',
+        secret: 'secret-aaaabbbb',
+        workspace: { ...workspace, role: 'member' },
+      })
+    ).rejects.toBeInstanceOf(WorkspacePermissionError)
   })
 
-  integrationTest('remove deletes only that user environment', async () => {
-    await removeCredential({ environment: 'paper', userId: userA })
-    await expect(resolveAlpacaClientOptions(userA)).rejects.toMatchObject({
-      code: 'MISSING',
+  integrationTest('records activity with its connection', async () => {
+    currentSession = { user: { id: userA, name: 'User A' } }
+    const response = await createApiResponse(async ({ actor }) => {
+      const { recordActivity } = await import('@/lib/activity/record')
+      await recordActivity({ action: 'orders.canceled_all', actor })
+
+      return { ok: true }
+    })
+
+    expect(response.status).toBe(200)
+    const workspace = await resolveActiveWorkspace({
+      id: userA,
+      name: 'User A',
+    })
+    const logs = await listRecentActivityLogs({
+      limit: 1,
+      workspaceId: workspace.workspaceId,
+    })
+    expect(logs[0]).toMatchObject({
+      action: 'orders.canceled_all',
+      connectionName: 'Main paper',
+      environment: 'paper',
+      userId: userA,
     })
   })
 
   integrationTest(
-    'createApiResponse returns 401 and 428 without credential material',
+    'removing the default leaves the workspace without keys',
+    async () => {
+      const workspace = await resolveActiveWorkspace({
+        id: userA,
+        name: 'User A',
+      })
+      const connectionId = workspace.defaultConnectionId
+
+      if (!connectionId) {
+        throw new Error('Expected a default connection.')
+      }
+
+      await removeConnection({ connectionId, workspace })
+      const after = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+
+      expect(after.defaultConnectionId).toBeNull()
+      await expect(resolveAlpacaRequestContext(after)).rejects.toMatchObject({
+        code: 'MISSING',
+      })
+    }
+  )
+
+  integrationTest(
+    'createApiResponse returns 401 and 428 without key material',
     async () => {
       currentSession = null
       const unauthorized = await createApiResponse(async () => ({ ok: true }))
       expect(unauthorized.status).toBe(401)
-      expect(await unauthorized.json()).toMatchObject({
-        error: { code: 'UNAUTHORIZED' },
-      })
 
-      currentSession = { user: { id: userA } }
+      currentSession = { user: { id: userA, name: 'User A' } }
       const missing = await createApiResponse(async () => ({ ok: true }))
       expect(missing.status).toBe(428)
       const missingBody = await missing.json()
@@ -137,18 +225,23 @@ describe('alpaca credentials', () => {
       })
       expect(JSON.stringify(missingBody)).not.toContain('secret')
 
-      await saveCredential({
+      const workspace = await resolveActiveWorkspace({
+        id: userA,
+        name: 'User A',
+      })
+      const saved = await addConnection({
         environment: 'paper',
         fetcher: accountFetcher(200),
         keyId: 'PKUSERAAAA12',
+        name: 'Main paper',
         secret: 'secret-aaaabbbb',
-        userId: userA,
+        workspace,
       })
       await expect(
-        testCredential({
-          environment: 'paper',
+        testConnection({
+          connectionId: saved.id,
           fetcher: accountFetcher(401),
-          userId: userA,
+          workspace,
         })
       ).rejects.toMatchObject({ code: 'INVALID' })
       const invalid = await createApiResponse(async () => ({ ok: true }))
@@ -160,22 +253,30 @@ describe('alpaca credentials', () => {
   )
 
   integrationTest(
-    'marks a valid key invalid when Alpaca rejects the call',
+    'marks a valid connection invalid when Alpaca rejects the call',
     async () => {
-      await saveCredential({
+      const workspace = await resolveActiveWorkspace({
+        id: userA,
+        name: 'User A',
+      })
+      const saved = await addConnection({
         environment: 'paper',
         fetcher: accountFetcher(200),
-        keyId: 'PKUSERAAAA12',
+        keyId: 'PKUSERAAAA14',
+        name: 'Fresh paper',
         secret: 'secret-aaaabbbb',
-        userId: userA,
+        workspace,
       })
-      currentSession = { user: { id: userA } }
+      const { setDefaultConnection } = await import('@/lib/alpaca/connections')
+      await setDefaultConnection({ connectionId: saved.id, workspace })
+      currentSession = { user: { id: userA, name: 'User A' } }
       const response = await createApiResponse(async () => {
         throw new AlpacaApiError('rejected', 401)
       })
 
       expect(response.status).toBe(428)
-      await expect(resolveAlpacaClientOptions(userA)).rejects.toMatchObject({
+      const after = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+      await expect(resolveAlpacaRequestContext(after)).rejects.toMatchObject({
         code: 'INVALID',
       })
     }

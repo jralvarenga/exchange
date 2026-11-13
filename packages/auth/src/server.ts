@@ -1,4 +1,5 @@
 import { db } from '@workspace/db/client'
+import { createWorkspace } from '@workspace/db/queries/workspaces'
 import {
   accounts,
   rateLimits,
@@ -16,6 +17,7 @@ import { canLinkTrustedProvider } from './account-linking'
 import { queueAuthEmail, sendAuthEmail } from './email'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
+import { isAllowedProfileImage, personalWorkspaceName } from './profile'
 import { isSignUpEmailAllowed, resolveSignUpPolicy } from './sign-up-policy'
 
 /**
@@ -83,6 +85,29 @@ function createAuth() {
               })
             }
 
+            if (!isAllowedProfileImage(user.image)) {
+              throw new APIError('BAD_REQUEST', {
+                message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
+              })
+            }
+
+            return { data: user }
+          },
+          after: async function createPersonalWorkspace(user) {
+            await createWorkspace({
+              name: personalWorkspaceName(user.name),
+              userId: user.id,
+            })
+          },
+        },
+        update: {
+          before: async function validateProfileImage(user) {
+            if ('image' in user && !isAllowedProfileImage(user.image)) {
+              throw new APIError('BAD_REQUEST', {
+                message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
+              })
+            }
+
             return { data: user }
           },
         },
@@ -140,16 +165,6 @@ function createAuth() {
       },
     },
     trustedOrigins: resolveAuthTrustedOrigins(process.env),
-    user: {
-      additionalFields: {
-        activeAlpacaEnvironment: {
-          defaultValue: 'paper',
-          input: false,
-          required: true,
-          type: ['paper', 'live'],
-        },
-      },
-    },
   })
 }
 

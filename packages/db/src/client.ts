@@ -1,9 +1,11 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
-import { alpacaCredentials } from './schema/alpaca-credentials'
+import * as activitySchema from './schema/activity'
+import { alpacaConnections } from './schema/alpaca-connections'
 import * as authSchema from './schema/auth'
 import { cryptoWallets } from './schema/crypto-wallets'
+import * as workspaceSchema from './schema/workspaces'
 
 /**
  * Shared Postgres pool for compose locally and Neon's pooled connection string.
@@ -14,8 +16,10 @@ const pool = new Pool({
 })
 
 const schema = {
+  ...activitySchema,
   ...authSchema,
-  alpacaCredentials,
+  ...workspaceSchema,
+  alpacaConnections,
   cryptoWallets,
 }
 

@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        destination: '/account?section=keys',
+        destination: '/account?section=connections',
         permanent: true,
         source: '/settings',
       },
