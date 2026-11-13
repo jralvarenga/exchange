@@ -15,6 +15,7 @@ import { searchAssets } from '@/hooks/use-asset-search'
 import { useCreateOrder } from '@/hooks/use-create-order'
 import type { CreateOrderRequest } from '@/lib/alpaca/schemas'
 import { showSuccessToast } from '@/lib/app-toast'
+import { isTradePath } from '@/lib/navigation'
 import {
   createTicketDraft,
   openTicketDraft,
@@ -64,7 +65,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
   // One idempotency key per draft, so a retried request can't place a second order.
   const orderKey = useRef<string | null>(null)
   const pathname = usePathname()
-  const inline = pathname === '/trade'
+  const inline = isTradePath(pathname)
   const draftRef = useRef(draft)
   const environmentRef = useRef(environment)
   // Ignore an in-flight order after the trader switches accounts.

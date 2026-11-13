@@ -35,25 +35,9 @@ interface IsNavItemActiveParams {
   pathname: string
 }
 
-/** Returns the active asset identifier from an asset detail pathname. */
-export function getActiveAssetIdentifier(pathname: string): string | undefined {
-  const prefix = '/assets/'
-
-  if (!pathname.startsWith(prefix)) {
-    return undefined
-  }
-
-  const encodedIdentifier = pathname.slice(prefix.length)
-
-  if (!encodedIdentifier) {
-    return undefined
-  }
-
-  try {
-    return decodeURIComponent(encodedIdentifier)
-  } catch {
-    return encodedIdentifier
-  }
+/** Returns whether a pathname is the Trade screen, which shows the ticket inline. */
+export function isTradePath(pathname: string): boolean {
+  return pathname === '/trade' || pathname.startsWith('/trade/')
 }
 
 /**

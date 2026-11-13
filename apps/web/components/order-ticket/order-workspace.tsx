@@ -23,6 +23,7 @@ import { OrderTicket } from '@/components/order-ticket/order-ticket'
 import { TicketDock } from '@/components/order-ticket/ticket-dock'
 import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { isTradePath } from '@/lib/navigation'
 
 interface Props {
   children: ReactNode
@@ -34,7 +35,7 @@ export function OrderWorkspace({ children }: Props) {
   const desktop = useMediaQuery('(min-width: 1280px)')
   const tablet = useMediaQuery('(min-width: 768px)')
   const pathname = usePathname()
-  const inline = pathname === '/trade'
+  const inline = isTradePath(pathname)
   return (
     <div className="flex min-w-0 flex-1 items-start gap-8">
       <div className="@container flex min-w-0 flex-1 flex-col self-stretch">
