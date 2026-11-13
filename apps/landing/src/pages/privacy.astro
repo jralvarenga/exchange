@@ -1,0 +1,140 @@
+---
+import LegalPage from '@/components/legal/legal-page.astro'
+import LegalSection from '@/components/legal/legal-section.astro'
+import { externalLinks, support } from '@/lib/links'
+---
+
+<LegalPage
+  description="What the hosted Exchange stores, what stays at Alpaca and what stays in your browser."
+  title="Privacy policy"
+  updated="2026-11-13"
+>
+  <LegalSection title="Scope">
+    <p>
+      This page covers the hosted Exchange on this site. Exchange is open source, so other people run
+      their own copies. If you sign in to someone else's copy, they hold your data, not us.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="What we store">
+    <ul>
+      <li>
+        <strong>Account:</strong> your name, email address, whether you verified it, and a scrypt hash
+        of your password. If you sign in with Google, we also store the Google account link and your
+        Google profile photo URL.
+      </li>
+      <li>
+        <strong>Profile photo:</strong> the PNG, JPEG or WebP photo you add at sign-up, up to 90 KB,
+        stored in the database.
+      </li>
+      <li>
+        <strong>Workspaces:</strong> each workspace's name, its members and their roles, and pending
+        invitations with the invited email address.
+      </li>
+      <li>
+        <strong>Alpaca connections:</strong> the API key ID and secret for each connection, encrypted
+        with AES-256-GCM, plus its name, paper or live, and the last 4 characters of the key ID so you
+        can tell connections apart.
+      </li>
+      <li>
+        <strong>Order history:</strong> every order placed through Exchange, with who placed it,
+        through which connection, the symbol, side, quantity or amount, prices and status, and when it
+        was replaced or canceled.
+      </li>
+      <li>
+        <strong>Activity log:</strong> bulk cancels, closed positions, connection changes, member and
+        role changes, deposit address changes and workspace switches, with who made each one.
+      </li>
+      <li>
+        <strong>Deposit addresses:</strong> the USDC and USDT addresses you save for Ethereum and
+        Solana.
+      </li>
+      <li>
+        <strong>Sessions:</strong> for each signed-in session, the IP address and browser user agent.
+        Sign-in attempts are also counted per IP address to block password guessing.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection title="What stays at Alpaca">
+    <p>
+      Your balance, positions, orders, watchlists and account details live in your Alpaca account.
+      Exchange fetches them from Alpaca with your keys when you open a page. We don't keep a copy,
+      except the order history described above. Alpaca's own <a href={externalLinks.alpaca}
+        >privacy policy</a
+      > covers what Alpaca does with your data.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="What stays in your browser">
+    <ul>
+      <li>A secure session cookie that keeps you signed in.</li>
+      <li>Your theme, your chart type and your chart zoom, saved in local storage.</li>
+    </ul>
+    <p>That's all. There are no analytics, no ads and no tracking scripts.</p>
+  </LegalSection>
+
+  <LegalSection title="Who else is involved">
+    <ul>
+      <li><strong>Alpaca</strong> receives every request Exchange makes with your keys.</li>
+      <li><strong>Google</strong>, only if you sign in with Google.</li>
+      <li>
+        <strong>Resend</strong> sends the verification, password reset and invitation emails, so it
+        sees your email address.
+      </li>
+      <li>
+        <strong>Our hosting and database providers</strong> run the app and store the data above.
+      </li>
+      <li>
+        <strong>Parqet</strong> serves the company and fund logos. Your browser loads them straight
+        from Parqet, so Parqet sees your IP address and the symbols you view.
+      </li>
+    </ul>
+    <p>We don't sell your data or share it with anyone else, unless the law makes us.</p>
+  </LegalSection>
+
+  <LegalSection title="Who in your workspace sees what">
+    <p>
+      Members of a workspace see its members, roles, connection names, order history and activity
+      log. They never see your password or the keys themselves. Connections belong to the workspace,
+      so keys you add stay there when you leave.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="Deleting your data">
+    <ul>
+      <li>Removing a connection deletes its encrypted keys.</li>
+      <li>
+        Deleting a workspace deletes its connections, order history, activity log and invitations.
+      </li>
+      <li>You can remove a saved deposit address at any time.</li>
+      <li>
+        There's no delete button for the account yet. Email <a href={support.href}>{support.email}</a>{' '}
+        from your account's address and we'll delete it, along with your photo, sessions and deposit
+        addresses.
+      </li>
+    </ul>
+    <p>
+      Orders and activity you made in a workspace you didn't own stay in that workspace's history,
+      but your name is removed from them.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="Security">
+    <p>
+      Keys are encrypted before they reach the database and are only decrypted on the server to call
+      Alpaca. They are never sent to your browser. The code is <a href={externalLinks.github}
+        >public on GitHub</a
+      >, so you can check this yourself. To report a security problem, email <a href={support.href}
+        >{support.email}</a
+      > instead of opening a public issue.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="Changes">
+    <p>
+      When this page changes, the date at the top changes too. We'll email you before any change to
+      what we store or who we share it with.
+    </p>
+  </LegalSection>
+</LegalPage>

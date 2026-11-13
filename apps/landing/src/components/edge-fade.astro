@@ -1,0 +1,48 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+interface Props {
+  edge: 'bottom' | 'top'
+}
+
+const { edge } = Astro.props
+
+const blurLayers = {
+  bottom: [
+    'backdrop-blur-[1px] mask-t-from-60% mask-t-to-100%',
+    'backdrop-blur-[3px] mask-t-from-40% mask-t-to-80%',
+    'backdrop-blur-[8px] mask-t-from-20% mask-t-to-60%',
+    'backdrop-blur-[16px] mask-t-from-0% mask-t-to-40%',
+  ],
+  top: [
+    'backdrop-blur-[1px] mask-b-from-60% mask-b-to-100%',
+    'backdrop-blur-[3px] mask-b-from-40% mask-b-to-80%',
+    'backdrop-blur-[8px] mask-b-from-20% mask-b-to-60%',
+    'backdrop-blur-[16px] mask-b-from-0% mask-b-to-40%',
+  ],
+}
+---
+
+<!--
+  Softens content scrolling under a screen edge with a progressive blur:
+  stacked backdrop blurs that each fade out a little further from the edge,
+  under a tint that melts into the page, like the app's navbar and tab bar.
+-->
+<div
+  aria-hidden="true"
+  class={cn(
+    'pointer-events-none fixed inset-x-0 z-30',
+    edge === 'top' ? 'top-0 h-28' : 'bottom-0 h-24'
+  )}
+>
+  <div class="absolute inset-0 [@media(prefers-reduced-transparency:reduce)]:hidden">
+    {blurLayers[edge].map((layer) => <div class={`absolute inset-0 ${layer}`} />)}
+  </div>
+  <div
+    class={cn(
+      'absolute inset-0 from-background/85 via-background/50 to-transparent [@media(prefers-reduced-transparency:reduce)]:from-background [@media(prefers-reduced-transparency:reduce)]:via-background/90',
+      edge === 'top' ? 'bg-linear-to-b' : 'bg-linear-to-t'
+    )}
+  >
+  </div>
+</div>

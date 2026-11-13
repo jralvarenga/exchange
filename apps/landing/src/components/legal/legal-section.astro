@@ -1,0 +1,21 @@
+---
+interface Props {
+  title: string
+}
+
+const { title } = Astro.props
+const id = title
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-|-$/g, '')
+---
+
+<!-- One heading and its text. Links, lists and paragraphs inside get readable defaults. -->
+<section aria-labelledby={`${id}-title`} class="flex scroll-mt-28 flex-col gap-4" id={id}>
+  <h2 class="font-bold text-2xl tracking-tight" id={`${id}-title`}>{title}</h2>
+  <div
+    class="flex flex-col gap-4 text-muted-foreground leading-7 [&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4 [&_li]:pl-1 [&_strong]:font-medium [&_strong]:text-foreground [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-2 [&_ul]:pl-5"
+  >
+    <slot />
+  </div>
+</section>

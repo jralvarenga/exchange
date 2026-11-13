@@ -1,0 +1,90 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+import AssetLogo from '@/components/asset-logo.astro'
+import type { FloatingToken } from '@/lib/market'
+
+interface Props {
+  class?: string
+  tokens: FloatingToken[]
+}
+
+const { class: className, tokens } = Astro.props
+
+/** Far, small logos sit back with a soft blur so the field has depth. */
+const depthClasses = {
+  lg: 'shadow-2xl',
+  md: 'shadow-xl',
+  sm: 'opacity-70 shadow-lg blur-[1px]',
+}
+---
+
+<!--
+  Scatters stock and ETF logos over an area. Each one fades in, bobs on its
+  own rhythm and drifts with the pointer by its depth. Reduced motion keeps
+  them still.
+-->
+<div aria-hidden="true" class={cn('pointer-events-none absolute inset-0', className)} data-token-field>
+  {
+    tokens.map((token, index) => (
+      <span
+        class={cn(
+          'absolute transition-transform duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] will-change-transform motion-reduce:transition-none',
+          token.desktopOnly && 'hidden sm:block'
+        )}
+        style={`left: ${token.left}%; top: ${token.top}%; translate: -${token.left}% -${token.top}%; transform: translate3d(calc(var(--pointer-x, 0) * ${token.depth}px), calc(var(--pointer-y, 0) * ${token.depth}px), 0)`}
+      >
+        <span
+          class="fade-in zoom-in-75 block animate-in fill-mode-both duration-1000 ease-[cubic-bezier(0.19,1,0.22,1)] motion-reduce:animate-none"
+          style={`animation-delay: ${200 + index * 90}ms`}
+        >
+          <span
+            class="animate-token-float block"
+            style={`--float-duration: ${7 + (index % 4) * 1.5}s; --float-delay: -${index * 1.3}s`}
+          >
+            <AssetLogo
+              class={cn('ring-1 ring-foreground/10', depthClasses[token.size])}
+              eager
+              size={token.size}
+              symbol={token.symbol}
+            />
+          </span>
+        </span>
+      </span>
+    ))
+  }
+</div>
+
+<script>
+  /** Feeds the pointer position, from -1 to 1, to every token field on the page. */
+  function trackPointer(): void {
+    const fields = document.querySelectorAll<HTMLElement>('[data-token-field]')
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const finePointer = window.matchMedia('(pointer: fine)')
+
+    if (fields.length === 0 || reduceMotion.matches || !finePointer.matches) {
+      return
+    }
+
+    let frame = 0
+
+    window.addEventListener(
+      'pointermove',
+      (event) => {
+        cancelAnimationFrame(frame)
+        frame = requestAnimationFrame(() => {
+          const x = (event.clientX / window.innerWidth) * 2 - 1
+          const y = (event.clientY / window.innerHeight) * 2 - 1
+
+          for (const field of fields) {
+            field.style.setProperty('--pointer-x', x.toFixed(3))
+            field.style.setProperty('--pointer-y', y.toFixed(3))
+          }
+        })
+      },
+      { passive: true }
+    )
+  }
+
+  trackPointer()
+</script>

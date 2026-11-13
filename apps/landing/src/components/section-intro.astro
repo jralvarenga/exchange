@@ -1,0 +1,25 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+interface Props {
+  align?: 'center' | 'start'
+  /** The id of the heading, for the section's `aria-labelledby`. */
+  id: string
+  /** Continues the title in `muted-foreground`, like the hero. */
+  muted?: string
+  title: string
+}
+
+const { align = 'start', id, muted, title } = Astro.props
+---
+
+<!-- Opens a landing section: a large two-tone title and a short lead. -->
+<div class={cn('flex max-w-2xl flex-col gap-4', align === 'center' && 'mx-auto items-center text-center')}>
+  <h2 class="text-balance font-bold text-4xl leading-none tracking-tighter md:text-5xl" id={id}>
+    {title}
+    {muted ? <span class="text-muted-foreground">{muted}</span> : null}
+  </h2>
+  <p class="max-w-xl text-lg text-muted-foreground">
+    <slot />
+  </p>
+</div>

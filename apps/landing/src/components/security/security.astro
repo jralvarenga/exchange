@@ -1,0 +1,92 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+import { LockKeyhole } from 'lucide-react'
+
+import SectionIntro from '@/components/section-intro.astro'
+
+const connections = [
+  {
+    environment: 'Live',
+    key: 'AK3F••••••••Q7MN',
+    name: 'Long-term',
+    verified: 'Checked 2 min ago',
+  },
+  {
+    environment: 'Paper',
+    key: 'PKZ7••••••••3F9Q',
+    name: 'Paper test',
+    verified: 'Checked today',
+  },
+]
+
+const facts = [
+  { label: 'Encryption for every saved key', value: 'AES-256-GCM' },
+  { label: 'Where your orders are signed', value: 'Server only' },
+  { label: 'Times a secret reaches your browser', value: 'Never' },
+]
+---
+
+<!-- How keys are kept: encrypted on the server and only ever shown masked. -->
+<section aria-labelledby="security-title" class="scroll-mt-24 py-24 md:py-40" id="security">
+  <div class="mx-auto flex max-w-6xl flex-col gap-12 px-4 sm:px-6 md:gap-16">
+    <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+      <SectionIntro id="security-title" muted=" They never come back out." title="Your keys go in.">
+        Alpaca keys are encrypted the moment you save them and stay on the server. The browser only
+        ever sees a masked key and whether it still works.
+      </SectionIntro>
+
+      <figure
+        aria-label="Two saved Alpaca connections, shown with masked keys"
+        class="relative rounded-[2rem] px-6 py-2 ring-1 ring-border"
+        role="img"
+      >
+        <span
+          aria-hidden="true"
+          class="surface-floating absolute -top-6 right-6 flex size-12 items-center justify-center rounded-full"
+        >
+          <LockKeyhole className="size-5" />
+        </span>
+        <ul aria-hidden="true" class="divide-y">
+          {
+            connections.map((connection) => (
+              <li class="flex items-start justify-between gap-4 py-5">
+                <div class="flex min-w-0 flex-col gap-1">
+                  <span class="flex flex-wrap items-center gap-2 font-bold text-lg">
+                    {connection.name}
+                    <span
+                      class={cn(
+                        'rounded-full px-2 font-medium text-base',
+                        connection.environment === 'Live'
+                          ? 'bg-foreground text-background'
+                          : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {connection.environment}
+                    </span>
+                  </span>
+                  <span class="text-muted-foreground">
+                    <span class="font-mono text-foreground">{connection.key}</span> · {connection.verified}
+                  </span>
+                </div>
+                <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-market-up/10 px-2.5 py-0.5 font-medium text-market-up">
+                  <span class="size-1.5 rounded-full bg-current"></span>Valid
+                </span>
+              </li>
+            ))
+          }
+        </ul>
+      </figure>
+    </div>
+
+    <dl class="grid divide-y border-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+      {
+        facts.map((fact) => (
+          <div class="flex flex-col gap-1 py-6 sm:px-6 sm:first:pl-0">
+            <dt class="text-muted-foreground">{fact.label}</dt>
+            <dd class="font-bold text-3xl tracking-tight">{fact.value}</dd>
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>

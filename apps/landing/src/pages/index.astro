@@ -1,11 +1,28 @@
 ---
-import Welcome from '../components/Welcome.astro'
-import Layout from '../layouts/Layout.astro'
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import CallToAction from '@/components/call-to-action.astro'
+import EdgeFade from '@/components/edge-fade.astro'
+import Features from '@/components/features/features.astro'
+import Footer from '@/components/footer.astro'
+import Hero from '@/components/hero/hero.astro'
+import Navbar from '@/components/navbar.astro'
+import OpenSource from '@/components/open-source/open-source.astro'
+import Preview from '@/components/preview/preview.astro'
+import Security from '@/components/security/security.astro'
+import Workspaces from '@/components/workspaces/workspaces.astro'
+import Layout from '@/layouts/layout.astro'
 ---
 
 <Layout>
-	<Welcome />
+  <Navbar />
+  <main>
+    <Hero />
+    <Preview />
+    <Workspaces />
+    <Features />
+    <Security />
+    <OpenSource />
+    <CallToAction />
+  </main>
+  <Footer />
+  <EdgeFade edge="bottom" />
 </Layout>

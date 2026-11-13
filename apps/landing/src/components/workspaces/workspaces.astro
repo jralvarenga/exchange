@@ -1,0 +1,134 @@
+---
+import { Check, User, Users } from 'lucide-react'
+
+import AssetLogo from '@/components/asset-logo.astro'
+import Avatar from '@/components/avatar.astro'
+import SectionIntro from '@/components/section-intro.astro'
+import {
+  activity,
+  getMemberImage,
+  members,
+  roles,
+  workspaces,
+} from '@/lib/team'
+
+const soloPoints = [
+  'Paper and live accounts side by side',
+  'Name every Alpaca key set you own',
+  'Nobody else sees your balance',
+]
+const tag = 'rounded-full bg-muted px-2 font-medium text-muted-foreground'
+---
+
+<!--
+  The two ways to use Exchange: a personal desk, or a shared workspace with
+  members, roles and a log of who did what.
+-->
+<section aria-labelledby="workspaces-title" class="scroll-mt-24 py-24 md:py-40" id="workspaces">
+  <div class="mx-auto flex max-w-6xl flex-col gap-12 px-4 sm:px-6 md:gap-16">
+    <SectionIntro id="workspaces-title" muted=" Or bring your whole desk." title="Trade on your own.">
+      Every account starts with a personal workspace. When you want company, invite people in, choose
+      what each one can do and see everything they did.
+    </SectionIntro>
+
+    <div class="grid border-t lg:grid-cols-2 lg:divide-x">
+      <article aria-labelledby="solo-title" class="flex flex-col gap-8 py-10 lg:pr-12">
+        <header class="flex flex-col gap-3">
+          <span class="flex size-12 items-center justify-center rounded-full bg-muted">
+            <User aria-hidden="true" className="size-5" />
+          </span>
+          <h3 class="font-bold text-2xl tracking-tight" id="solo-title">On your own</h3>
+          <p class="max-w-md text-muted-foreground">
+            Your keys, your positions, your rules. A private desk that only you can open, on your phone
+            or at your desk.
+          </p>
+        </header>
+
+        <ul aria-label="Your workspaces" class="flex flex-col">
+          {
+            workspaces.map((workspace) => (
+              <li class="-mx-3 flex items-center gap-3 rounded-2xl px-3 py-3 data-[active=true]:bg-muted" data-active={workspace.active}>
+                <span
+                  aria-hidden="true"
+                  class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-foreground font-bold text-background text-lg"
+                >
+                  {workspace.name[0]}
+                </span>
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="truncate font-bold text-lg">{workspace.name}</span>
+                  <span class="truncate text-muted-foreground">{workspace.detail}</span>
+                </span>
+                {workspace.active ? <Check aria-label="Current workspace" className="size-5" /> : null}
+              </li>
+            ))
+          }
+        </ul>
+
+        <ul class="flex flex-col gap-3">
+          {
+            soloPoints.map((point) => (
+              <li class="flex items-center gap-3">
+                <Check aria-hidden="true" className="size-4 shrink-0 text-market-up" />
+                {point}
+              </li>
+            ))
+          }
+        </ul>
+      </article>
+
+      <article aria-labelledby="team-title" class="flex flex-col gap-8 border-t py-10 lg:border-t-0 lg:pl-12">
+        <header class="flex flex-col gap-3">
+          <span class="flex size-12 items-center justify-center rounded-full bg-muted">
+            <Users aria-hidden="true" className="size-5" />
+          </span>
+          <h3 class="font-bold text-2xl tracking-tight" id="team-title">With your team</h3>
+          <p class="max-w-md text-muted-foreground">
+            Share a workspace with a partner, a club or a small fund. Give a new teammate paper-only
+            access while they learn.
+          </p>
+        </header>
+
+        <ul aria-label="Members of Ridge Capital" class="flex flex-col divide-y">
+          {
+            members.map((member) => (
+              <li class="flex items-center gap-3 py-3">
+                <Avatar image={member.image} initials={member.initials} />
+                <span class="flex min-w-0 flex-1 flex-col">
+                  <span class="truncate font-bold text-lg">{member.name}</span>
+                  <span class="truncate text-muted-foreground">
+                    {roles.find((role) => role.label === member.role)?.description}
+                  </span>
+                </span>
+                <span class={tag}>{member.role}</span>
+              </li>
+            ))
+          }
+        </ul>
+
+        <div class="flex flex-col gap-2">
+          <h4 class="font-bold text-lg">Activity</h4>
+          <ul class="flex flex-col">
+            {
+              activity.map((entry) => (
+                <li class="flex items-center gap-3 py-2">
+                  <span class="relative shrink-0">
+                    <Avatar image={getMemberImage(entry.initials)} initials={entry.initials} />
+                    {entry.symbol ? (
+                      <AssetLogo
+                        class="absolute -right-1.5 -bottom-1.5 m-0 size-5 rounded-md ring-2 ring-background"
+                        size="row"
+                        symbol={entry.symbol}
+                      />
+                    ) : null}
+                  </span>
+                  <span class="min-w-0 flex-1 truncate font-medium">{entry.title}</span>
+                  <span class="shrink-0 font-mono text-muted-foreground tabular-nums">{entry.time}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,89 @@
+---
+import {
+  ArrowLeftRight,
+  ArrowUpRight,
+  KeyRound,
+  MonitorSmartphone,
+  Users,
+  Zap,
+} from 'lucide-react'
+
+import Avatar from '@/components/avatar.astro'
+import Feature from '@/components/features/feature.astro'
+import SectionIntro from '@/components/section-intro.astro'
+import { members, roles } from '@/lib/team'
+
+const connections = ['Long-term', 'Swing', 'Paper test']
+const tag =
+  'rounded-full bg-muted px-2.5 py-0.5 font-medium text-muted-foreground'
+---
+
+<!-- What Exchange adds on top of Alpaca, each with a real detail from the app. -->
+<section aria-labelledby="features-title" class="scroll-mt-24 py-24 md:py-40" id="features">
+  <div class="mx-auto flex max-w-6xl flex-col gap-12 px-4 sm:px-6 md:gap-16">
+    <SectionIntro id="features-title" muted=" Nothing you don't." title="Everything a self-directed desk needs.">
+      Exchange sits on top of the Alpaca account you already have and keeps the parts you use every
+      day close at hand.
+    </SectionIntro>
+
+    <ul class="grid md:grid-cols-2 md:gap-x-16">
+      <Feature class="md:col-span-2" icon={Users} title="Trade together">
+        Invite a partner, a club or your whole fund into one workspace. Everyone watches the same
+        balance, and each person only does what their role allows.
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6" slot="detail">
+          <div class="flex items-center gap-3">
+            <ul aria-label="Members of Ridge Capital" class="flex -space-x-3">
+              {
+                members.map((member) => (
+                  <li>
+                    <Avatar class="size-12 ring-3 ring-background" image={member.image} initials={member.initials} />
+                    <span class="sr-only">{member.name}, {member.role}</span>
+                  </li>
+                ))
+              }
+              <li
+                class="flex size-12 items-center justify-center rounded-full bg-muted font-medium text-muted-foreground ring-3 ring-background"
+              >
+                +2<span class="sr-only"> more members</span>
+              </li>
+            </ul>
+            <span class="text-muted-foreground">6 members</span>
+          </div>
+          <ul class="flex flex-wrap gap-2">
+            {roles.map((role) => <li class={tag}>{role.label}</li>)}
+          </ul>
+        </div>
+      </Feature>
+
+      <Feature icon={ArrowLeftRight} title="Paper and live, side by side">
+        Practice on a paper account, then trade live from the same screen. Live orders always ask
+        before they go out.
+        <div class="flex flex-wrap gap-2" slot="detail">
+          <span class={tag}>Paper</span>
+          <span class="rounded-full bg-foreground px-2.5 py-0.5 font-medium text-background">Live</span>
+        </div>
+      </Feature>
+
+      <Feature icon={KeyRound} title="Name every key set">
+        Add as many Alpaca connections as you need, give each a name and switch between them in one
+        tap.
+        <ul class="flex flex-wrap gap-2" slot="detail">
+          {connections.map((connection) => <li class={tag}>{connection}</li>)}
+        </ul>
+      </Feature>
+
+      <Feature icon={Zap} title="Prices that move as they tick">
+        Live prices flash as they change and your balance rolls over digit by digit, so updates read
+        as motion instead of flicker.
+        <p class="inline-flex items-center gap-1 font-bold text-lg text-market-up tabular-nums" slot="detail">
+          NVDA $182.64 <ArrowUpRight aria-hidden="true" className="size-4" />
+        </p>
+      </Feature>
+
+      <Feature icon={MonitorSmartphone} title="On your phone and at your desk">
+        Check positions from a tab bar on your phone during the day, then trade from the full screen
+        on your desktop.
+      </Feature>
+    </ul>
+  </div>
+</section>

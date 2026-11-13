@@ -1,0 +1,69 @@
+---
+import Logo from '@/components/logo.astro'
+import {
+  appLinks,
+  externalLinks,
+  legalLinks,
+  sectionLinks,
+  support,
+} from '@/lib/links'
+
+const groups = [
+  { links: sectionLinks, title: 'Product' },
+  {
+    links: [
+      { href: externalLinks.issues, title: 'Report a bug' },
+      { href: externalLinks.alpaca, title: 'Alpaca' },
+    ],
+    title: 'Support',
+  },
+  {
+    links: [
+      { href: legalLinks.privacy, title: 'Privacy policy' },
+      { href: legalLinks.terms, title: 'Terms of service' },
+    ],
+    title: 'Legal',
+  },
+]
+const year = new Date().getFullYear()
+const linkClass =
+  '-mx-2 inline-flex min-h-11 items-center rounded-lg px-2 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring'
+---
+
+<!-- Site links, plus room at the bottom so the last line clears the edge fade. -->
+<footer class="border-t pb-28">
+  <div class="mx-auto flex max-w-6xl flex-col gap-12 px-4 pt-12 sm:px-6 md:flex-row md:justify-between">
+    <div class="flex max-w-xs flex-col gap-4">
+      <Logo />
+      <p class="text-muted-foreground">A quiet trading desk for your Alpaca account.</p>
+      <p class="text-muted-foreground">
+        Need a hand?{' '}
+        <a class="font-medium text-foreground underline-offset-4 hover:underline" href={support.href}>{support.email}</a>
+      </p>
+    </div>
+    <div class="grid grid-cols-2 gap-8 sm:grid-cols-4 md:gap-12 lg:gap-16">
+      {
+        groups.map((group) => (
+          <nav aria-label={group.title} class="flex flex-col gap-2">
+            <h2 class="font-medium">{group.title}</h2>
+            <ul class="flex flex-col">
+              {group.links.map((link) => (
+                <li>
+                  <a class={linkClass} href={link.href}>
+                    {link.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))
+      }
+    </div>
+  </div>
+  <div
+    class="mx-auto mt-12 flex max-w-6xl flex-col gap-2 px-4 text-muted-foreground sm:px-6 md:flex-row md:justify-between"
+  >
+    <p>© {year} Exchange</p>
+    <p>Exchange is an independent app for Alpaca accounts. Trading involves risk.</p>
+  </div>
+</footer>

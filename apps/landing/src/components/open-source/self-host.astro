@@ -1,0 +1,69 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+import { ArrowUpRight, Server } from 'lucide-react'
+
+import { externalLinks } from '@/lib/links'
+
+/** The README's setup, in the order it has to run. */
+const steps = [
+  {
+    commands: [
+      'git clone https://github.com/jralvarenga/exchange',
+      'cd exchange && bun install',
+    ],
+    note: 'Bun runs the whole monorepo.',
+    title: 'Clone and install',
+  },
+  {
+    commands: [
+      'cp apps/web/.env.sample apps/web/.env.local',
+      'bun run auth:secrets',
+    ],
+    note: 'Paste the auth secret and encryption keys it prints into .env.local.',
+    title: 'Make your own keys',
+  },
+  {
+    commands: ['docker compose up -d', 'bun run db:migrate'],
+    note: 'Or point DATABASE_URL at any Postgres you already run.',
+    title: 'Start the database',
+  },
+  {
+    commands: ['bun run build', 'bun run --filter web start'],
+    note: 'It listens on 127.0.0.1:3000. Put Caddy in front for HTTPS.',
+    title: 'Run it behind HTTPS',
+  },
+]
+---
+
+<!-- Self-hosting: the four real setup steps, each with the commands it runs. -->
+<div aria-labelledby="self-host-title" class="flex flex-col gap-8" role="region">
+  <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-10">
+    <div class="flex max-w-xl flex-col gap-3">
+      <span class="flex size-12 items-center justify-center rounded-full bg-muted">
+        <Server aria-hidden="true" className="size-5" />
+      </span>
+      <h3 class="font-bold text-2xl tracking-tight" id="self-host-title">Self-host it</h3>
+      <p class="text-muted-foreground">
+        Run Exchange on your own server, with your own database and your own encryption keys. Your
+        Alpaca keys never leave a machine you control.
+      </p>
+    </div>
+    <a class={buttonVariants({ size: 'xl', variant: 'ghost' })} href={externalLinks.selfHostGuide}>
+      Read the full setup guide
+      <ArrowUpRight aria-hidden="true" data-icon="inline-end" />
+    </a>
+  </div>
+
+  <ol class="grid gap-x-16 md:grid-cols-2">
+    {
+      steps.map((step, index) => (
+        <li class="flex min-w-0 flex-col gap-3 border-t py-6">
+          <span class="font-mono text-muted-foreground tabular-nums">{index + 1}</span>
+          <h4 class="font-bold text-lg">{step.title}</h4>
+          <pre class="rounded-xl bg-muted px-3 py-2 font-mono text-sm leading-6"><code>{step.commands.map((command) => <span class="block whitespace-pre-wrap break-all"><span aria-hidden="true" class="select-none text-muted-foreground">$ </span>{command}</span>)}</code></pre>
+          <p class="text-muted-foreground">{step.note}</p>
+        </li>
+      ))
+    }
+  </ol>
+</div>

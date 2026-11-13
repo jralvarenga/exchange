@@ -1,0 +1,47 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+import type { LogoSize } from '@/lib/market'
+import { getAssetLogoUrl } from '@/lib/utils'
+
+interface Props {
+  class?: string
+  /** Hero logos load right away; the rest wait until they scroll near. */
+  eager?: boolean
+  size: LogoSize
+  symbol: string
+}
+
+const { class: className, eager = false, size, symbol } = Astro.props
+
+const sizes = {
+  lg: { classes: 'size-16 rounded-2xl sm:size-24 sm:rounded-3xl', pixels: 192 },
+  md: { classes: 'size-14 rounded-2xl sm:size-18', pixels: 144 },
+  row: { classes: 'm-1 size-8 rounded-lg', pixels: 64 },
+  sm: { classes: 'size-10 rounded-xl sm:size-13', pixels: 104 },
+}
+---
+
+<!--
+  A stock or ETF logo as a rounded square, sized like the app's `AssetIcon`. The two-letter mark
+  underneath shows through if the image fails to load.
+-->
+<span
+  aria-hidden="true"
+  class={cn(
+    'relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-muted font-medium text-muted-foreground',
+    sizes[size].classes,
+    className
+  )}
+>
+  {symbol.slice(0, 2).toLowerCase()}
+  <img
+    alt=""
+    class="absolute inset-0 size-full object-cover"
+    decoding="async"
+    height={sizes[size].pixels / 2}
+    loading={eager ? 'eager' : 'lazy'}
+    src={getAssetLogoUrl({ size: sizes[size].pixels, symbol })}
+    width={sizes[size].pixels / 2}
+  />
+</span>

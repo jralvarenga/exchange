@@ -1,10 +1,25 @@
 // @ts-check
 import react from '@astrojs/react'
 import tailwindcss from '@tailwindcss/vite'
-import { defineConfig, fontProviders } from 'astro/config'
+import { defineConfig, envField, fontProviders } from 'astro/config'
 
 // https://astro.build/config
 export default defineConfig({
+  env: {
+    schema: {
+      PUBLIC_APP_URL: envField.string({
+        access: 'public',
+        context: 'client',
+        default: 'http://localhost:3000',
+        url: true,
+      }),
+      PUBLIC_SUPPORT_EMAIL: envField.string({
+        access: 'public',
+        context: 'client',
+        default: 'support@example.com',
+      }),
+    },
+  },
   fonts: [
     {
       cssVariable: '--font-sans',
