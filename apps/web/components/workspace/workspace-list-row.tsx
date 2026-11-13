@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { switchWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
+import { WorkspaceMark } from '@/components/workspace/workspace-mark'
 import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
 import { workspaceRoleLabel } from '@/lib/workspaces/roles'
 import type { WorkspaceSummary } from '@/models/workspace/members'
@@ -40,20 +41,23 @@ export function WorkspaceListRow({ workspace }: Props) {
 
   return (
     <li className="flex items-center justify-between gap-4 py-4">
-      <div className="flex min-w-0 flex-col">
-        <p className="flex items-center gap-2 font-bold text-lg">
-          <span className="truncate">{workspace.name}</span>
-          {workspace.isCurrent ? (
-            <span className="rounded-full bg-muted px-2 font-medium text-base text-muted-foreground">
-              Current
-            </span>
-          ) : null}
-        </p>
-        <p className="text-muted-foreground tabular-nums">
-          {workspaceRoleLabel(workspace.role)} ·{' '}
-          {countLabel(workspace.memberCount, 'member')} ·{' '}
-          {countLabel(workspace.connectionCount, 'connection')}
-        </p>
+      <div className="flex min-w-0 items-center gap-4">
+        <WorkspaceMark className="size-11" name={workspace.name} />
+        <div className="flex min-w-0 flex-col">
+          <p className="flex items-center gap-2 font-bold text-lg">
+            <span className="truncate">{workspace.name}</span>
+            {workspace.isCurrent ? (
+              <span className="rounded-full bg-muted px-2 font-medium text-base text-muted-foreground">
+                Current
+              </span>
+            ) : null}
+          </p>
+          <p className="text-muted-foreground tabular-nums">
+            {workspaceRoleLabel(workspace.role)} ·{' '}
+            {countLabel(workspace.memberCount, 'member')} ·{' '}
+            {countLabel(workspace.connectionCount, 'connection')}
+          </p>
+        </div>
       </div>
       {workspace.isCurrent ? (
         <Button
