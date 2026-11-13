@@ -1,0 +1,4 @@
+@import "@workspace/ui/globals.css";
+
+/* The shared stylesheet only scans .ts and .tsx files. */
+@source "../**/*.astro";
