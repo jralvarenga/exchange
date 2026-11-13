@@ -16,7 +16,7 @@ import { canLinkTrustedProvider } from './account-linking'
 import { queueAuthEmail, sendAuthEmail } from './email'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
-import { profileImageToStore } from './profile'
+import { isAllowedProfileImage, profileImageToStore } from './profile'
 import { isSignUpEmailAllowed, resolveSignUpPolicy } from './sign-up-policy'
 
 /**
@@ -97,19 +97,15 @@ function createAuth() {
         },
         update: {
           before: async function validateProfileImage(user) {
-            if (!('image' in user)) {
-              return { data: user }
-            }
-
-            const image = profileImageToStore(user.image)
-
-            if (image === undefined && user.image) {
+            // Only sign-up drops a disallowed provider photo. An update is
+            // refused instead, so the stored photo is kept.
+            if ('image' in user && !isAllowedProfileImage(user.image)) {
               throw new APIError('BAD_REQUEST', {
                 message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
               })
             }
 
-            return { data: { ...user, image } }
+            return { data: user }
           },
         },
       },

@@ -120,7 +120,8 @@ export async function recordOrderEvent(
       workspaceId: input.actor.workspaceId,
     })
 
-    if (order && input.replacementAlpacaOrderId) {
+    // Only a replace moves the order to a new Alpaca id.
+    if (order && input.type === 'replaced' && input.replacementAlpacaOrderId) {
       await recordOrderReplacement({
         actor: input.actor,
         details: input.details,
