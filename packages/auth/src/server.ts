@@ -6,6 +6,11 @@ import {
   users,
   verifications,
 } from '@workspace/db/schema/auth'
+import {
+  workspaceInvitations,
+  workspaceMembers,
+  workspaces,
+} from '@workspace/db/schema/workspaces'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { APIError } from 'better-auth/api'
@@ -14,6 +19,8 @@ import { eq } from 'drizzle-orm'
 
 import { canLinkTrustedProvider } from './account-linking'
 import { queueAuthEmail, sendAuthEmail } from './email'
+import { workspaceOrganization } from './organization'
+import { workspacePolicy } from './organization-policy'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
 import { isAllowedProfileImage, profileImageToStore } from './profile'
@@ -47,7 +54,11 @@ function createAuth() {
         sessions,
         users,
         verifications,
+        workspaces,
+        workspaceMembers,
+        workspaceInvitations,
       },
+      transaction: true,
       usePlural: true,
     }),
     databaseHooks: {
@@ -110,6 +121,7 @@ function createAuth() {
         },
       },
     },
+    hooks: workspacePolicy,
     emailAndPassword: {
       disableSignUp: signUpPolicy.disableSignUp,
       enabled: true,
@@ -142,7 +154,7 @@ function createAuth() {
         })
       },
     },
-    plugins: [nextCookies()],
+    plugins: [workspaceOrganization(), nextCookies()],
     rateLimit: {
       customRules: {
         '/sign-in/email': {

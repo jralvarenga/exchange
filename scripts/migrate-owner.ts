@@ -29,12 +29,12 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
     '../packages/db/src/queries/alpaca-connections'
   )
   const {
-    createWorkspace,
     listUserMemberships,
     findActiveWorkspaceId,
     setDefaultConnectionIfUnset,
     setMemberActiveConnection,
   } = await import('../packages/db/src/queries/workspaces')
+  const { auth } = await import('../packages/auth/src/server')
   const { personalWorkspaceName } = await import('../packages/auth/src/profile')
   const { upsertCryptoWallet } = await import(
     '../packages/db/src/queries/crypto-wallets'
@@ -141,10 +141,18 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       managed[0]
     const workspaceId =
       membership?.workspaceId ??
-      (await createWorkspace({
-        name: personalWorkspaceName(existing[0]?.name ?? 'Owner'),
-        userId,
-      }))
+      (
+        await auth.api.createOrganization({
+          body: {
+            name: personalWorkspaceName(existing[0]?.name ?? 'Owner'),
+            slug: crypto.randomUUID(),
+            userId,
+          },
+        })
+      )?.id
+
+    if (!workspaceId)
+      throw new Error('The owner workspace could not be created.')
 
     if (alpaca && keys) {
       const name = alpaca.environment === 'live' ? 'Main live' : 'Main paper'

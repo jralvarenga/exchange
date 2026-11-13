@@ -3,7 +3,9 @@ import { randomBytes } from 'node:crypto'
 
 mock.module('server-only', () => ({}))
 mock.module('next/headers', () => ({
-  headers: async () => new Headers(),
+  headers: async () =>
+    currentSession ? headersForUser(currentSession.user.id) : new Headers(),
+  cookies: async () => ({ set: () => undefined }),
 }))
 mock.module('next/cache', () => ({
   revalidatePath: () => undefined,
@@ -16,6 +18,7 @@ mock.module('next/navigation', () => ({
   },
 }))
 mock.module('@workspace/auth/email', () => ({
+  queueAuthEmail: async () => undefined,
   sendAuthEmail: async () => undefined,
 }))
 
@@ -28,14 +31,6 @@ let currentSession: {
   }
 } | null = null
 
-mock.module('@workspace/auth/server', () => ({
-  auth: {
-    api: {
-      getSession: async () => currentSession,
-    },
-  },
-}))
-
 process.env.DATABASE_URL =
   'postgresql://exchange:exchange@127.0.0.1:5432/exchange'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-at-least-32-chars'
@@ -45,6 +40,15 @@ process.env.EMAIL_FROM = 'Exchange <test@example.com>'
 process.env.GOOGLE_CLIENT_ID = 'google-client-id'
 process.env.GOOGLE_CLIENT_SECRET = 'google-client-secret'
 process.env.RESEND_API_KEY ??= 're_test'
+
+// Keep actual organization endpoints: only the app session loader is stubbed.
+const { auth: organizationAuth } = await import('@workspace/auth/server')
+mock.module('@workspace/auth/server', () => ({
+  auth: {
+    $context: organizationAuth.$context,
+    api: { ...organizationAuth.api, getSession: async () => currentSession },
+  },
+}))
 
 const { afterAll, beforeAll, describe, expect, test } = await import('bun:test')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
@@ -76,22 +80,24 @@ const { workspaceInvitations, workspaceMembers, workspaces } = await import(
 const {
   acceptWorkspaceInvitation,
   createWorkspace,
+  createInvitationToken,
   createWorkspaceInvitation,
   deleteWorkspace,
+  headersForUser,
+  removeWorkspaceMember,
+  updateMemberRole,
+} = await import('./__tests__/workspace-fixtures')
+const {
   findActiveWorkspaceId,
   listPendingInvitationsForEmail,
   listUserMemberships,
   listUserWorkspaceSummaries,
   listWorkspaceMembers,
-  removeWorkspaceMember,
-  updateMemberRole,
 } = await import('@workspace/db/queries/workspaces')
 const { acceptInvitationAction } = await import(
   '@/app/(dashboard)/account/workspace-actions'
 )
-const { createInvitationToken, hashInvitationToken } = await import(
-  '@/lib/workspaces/invitations'
-)
+const { hashInvitationToken } = await import('@/lib/workspaces/invitations')
 const { alpacaConnections } = await import(
   '@workspace/db/schema/alpaca-connections'
 )
@@ -484,6 +490,9 @@ describe('alpaca connections', () => {
       secret: 'secret-viewer01',
       workspace: owned,
     })
+    await organizationAuth.api.addMember({
+      body: { organizationId: owned.workspaceId, userId: userA, role: 'owner' },
+    })
     await db
       .update(workspaceMembers)
       .set({ role: 'viewer' })
@@ -519,6 +528,9 @@ describe('alpaca connections', () => {
       name: 'Paper member live check',
       secret: 'secret-papermb1',
       workspace: owned,
+    })
+    await organizationAuth.api.addMember({
+      body: { organizationId: owned.workspaceId, userId: userB, role: 'owner' },
     })
     await db
       .update(workspaceMembers)

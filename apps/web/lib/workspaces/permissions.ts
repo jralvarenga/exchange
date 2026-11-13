@@ -1,3 +1,4 @@
+import { hasWorkspacePermission } from '@workspace/auth/access'
 import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 
 /** Why the trading controls are off: a viewer, or a paper member on a live connection. */
@@ -30,12 +31,15 @@ interface CanLeaveInput {
  * workspace default, rename the workspace, invite people and manage members.
  */
 export function canManageWorkspace(role: WorkspaceRole): boolean {
-  return role === 'owner' || role === 'admin'
+  return hasWorkspacePermission(role, {
+    organization: ['update'],
+    connection: ['manage'],
+  })
 }
 
 /** Only owners delete a workspace. */
 export function canDeleteWorkspace(role: WorkspaceRole): boolean {
-  return role === 'owner'
+  return hasWorkspacePermission(role, { organization: ['delete'] })
 }
 
 /**
@@ -43,18 +47,20 @@ export function canDeleteWorkspace(role: WorkspaceRole): boolean {
  * they are, so an admin can never take a workspace over.
  */
 export function canAssignRole(input: CanAssignRoleInput): boolean {
-  if (input.actor === 'owner') {
-    return true
-  }
-
   return (
-    input.actor === 'admin' && input.to !== 'owner' && input.from !== 'owner'
+    hasWorkspacePermission(input.actor, { member: ['update'] }) &&
+    ((input.to !== 'owner' && input.from !== 'owner') ||
+      hasWorkspacePermission(input.actor, { organization: ['delete'] }))
   )
 }
 
 /** Owners remove anyone. Admins remove anyone but an owner. */
 export function canRemoveMember(input: CanRemoveMemberInput): boolean {
-  return canAssignRole({ actor: input.actor, from: input.target, to: 'viewer' })
+  return (
+    hasWorkspacePermission(input.actor, { member: ['delete'] }) &&
+    (input.target !== 'owner' ||
+      hasWorkspacePermission(input.actor, { organization: ['delete'] }))
+  )
 }
 
 /**
@@ -63,29 +69,18 @@ export function canRemoveMember(input: CanRemoveMemberInput): boolean {
  * watchlists. Roles are allowed explicitly: anything not listed is read-only.
  */
 export function tradeLock(input: TradeLockInput): TradeLock | null {
-  switch (input.role) {
-    case 'owner':
-    case 'admin':
-    case 'member':
-      return null
-    case 'paper_member':
-      return input.environment === 'paper' ? null : 'paper_only'
-    default:
-      return 'viewer'
+  if (hasWorkspacePermission(input.role, { trading: [input.environment] })) {
+    return null
   }
+
+  return hasWorkspacePermission(input.role, { trading: ['paper'] })
+    ? 'paper_only'
+    : 'viewer'
 }
 
 /** Roles that may test a connection's keys. Anything not listed may not. */
 export function canTestConnection(role: WorkspaceRole): boolean {
-  switch (role) {
-    case 'owner':
-    case 'admin':
-    case 'member':
-    case 'paper_member':
-      return true
-    default:
-      return false
-  }
+  return hasWorkspacePermission(role, { connection: ['test'] })
 }
 
 /** The last owner cannot leave, so a workspace always has someone in charge. */

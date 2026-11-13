@@ -29,6 +29,13 @@
       "when": 1794541659543,
       "tag": "0003_review_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794551342098,
+      "tag": "0004_better_auth_workspaces",
+      "breakpoints": true
     }
   ]
 }

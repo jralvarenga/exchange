@@ -43,6 +43,10 @@ export const sessions = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
+    activeOrganizationId: text('active_organization_id').references(
+      (): AnyPgColumn => workspaces.id,
+      { onDelete: 'set null' }
+    ),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
     userId: text('user_id')

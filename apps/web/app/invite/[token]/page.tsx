@@ -1,15 +1,12 @@
 import { auth } from '@workspace/auth/server'
-import {
-  findInvitationByTokenHash,
-  toWorkspaceRole,
-} from '@workspace/db/queries/workspaces'
+import { toWorkspaceRole } from '@workspace/db/queries/workspaces'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { AuthPage } from '@/components/login/auth-page'
 import { AcceptInvitation } from '@/components/workspace/accept-invitation'
 import { InvitationUnavailable } from '@/components/workspace/invitation-unavailable'
-import { hashInvitationToken } from '@/lib/workspaces/invitations'
+import { findInvitationByLink } from '@/lib/workspaces/invitations'
 
 interface PageProps {
   params: Promise<{ token: string }>
@@ -18,21 +15,20 @@ interface PageProps {
 /** Shows a workspace invitation to the signed-in user and lets them join. */
 export default async function InvitePage({ params }: PageProps) {
   const { token } = await params
-  const session = await auth.api.getSession({ headers: await headers() })
+  const [session, invitation] = await Promise.all([
+    auth.api.getSession({ headers: await headers() }),
+    token.length >= 20 && token.length <= 128
+      ? findInvitationByLink(token)
+      : undefined,
+  ])
 
   // A stale session would otherwise lose the link on the way through sign-in.
   if (!session) {
     redirect(`/login?next=${encodeURIComponent(`/invite/${token}`)}`)
   }
 
-  const invitation =
-    token.length >= 20 && token.length <= 128
-      ? await findInvitationByTokenHash(hashInvitationToken(token))
-      : undefined
-
   if (
-    !invitation ||
-    invitation.acceptedAt ||
+    invitation?.status !== 'pending' ||
     invitation.expiresAt.getTime() <= Date.now()
   ) {
     return (
@@ -42,7 +38,7 @@ export default async function InvitePage({ params }: PageProps) {
     )
   }
 
-  if (session.user.email.toLowerCase() !== invitation.email) {
+  if (session.user.email.toLowerCase() !== invitation.email.toLowerCase()) {
     return (
       <AuthPage>
         <InvitationUnavailable
