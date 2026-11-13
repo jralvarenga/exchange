@@ -6,26 +6,27 @@ import { OrderWorkspace } from '@/components/order-ticket/order-workspace'
 import { Sidebar } from '@/components/sidebar'
 import { OrderTicketProvider } from '@/contexts/order-ticket-context'
 import type { ShellUser, ShellWorkspace } from '@/lib/navigation'
+import type { TradeLock } from '@/lib/workspaces/permissions'
 
 interface Props {
-  /** False for viewers, who can look but not trade. */
-  canTrade: boolean
   children: ReactNode
   environment: 'live' | 'paper'
+  /** Why this person cannot trade on the active connection, if they cannot. */
+  tradeLock: TradeLock | null
   user: ShellUser
   workspace: ShellWorkspace
 }
 
 /** Floats the navigation layers over a page that scrolls behind them. */
 export function AppShell({
-  canTrade,
   children,
   environment,
+  tradeLock,
   user,
   workspace,
 }: Props) {
   return (
-    <OrderTicketProvider canTrade={canTrade} environment={environment}>
+    <OrderTicketProvider environment={environment} tradeLock={tradeLock}>
       <div className="flex min-h-dvh flex-col overflow-x-clip bg-background text-foreground">
         <a
           href="#main"

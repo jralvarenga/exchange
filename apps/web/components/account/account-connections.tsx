@@ -75,7 +75,7 @@ export function AccountConnections({
           {canManage
             ? 'Each connection is a named Alpaca key pair. Everyone here trades with the default until they pick another.'
             : canTest
-              ? 'Each connection is a named Alpaca key pair. You can trade on any of them; only owners add or change keys.'
+              ? 'Each connection is a named Alpaca key pair. Only owners and admins add or change keys.'
               : 'Each connection is a named Alpaca key pair. Pick the one to look at; viewers cannot trade.'}
         </p>
       </SectionHeader>

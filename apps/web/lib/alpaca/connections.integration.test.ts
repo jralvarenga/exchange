@@ -49,8 +49,14 @@ const { resolveActiveWorkspace, WorkspacePermissionError } = await import(
   '@/lib/workspaces/workspace'
 )
 const { workspaceMembers } = await import('@workspace/db/schema/workspaces')
-const { removeWorkspaceMember, updateMemberRole } = await import(
-  '@workspace/db/queries/workspaces'
+const {
+  createWorkspace,
+  deleteWorkspace,
+  removeWorkspaceMember,
+  updateMemberRole,
+} = await import('@workspace/db/queries/workspaces')
+const { alpacaConnections } = await import(
+  '@workspace/db/schema/alpaca-connections'
 )
 
 const userA = crypto.randomUUID()
@@ -375,6 +381,64 @@ describe('alpaca connections', () => {
     expect(read.status).toBe(200)
     expect(trade.status).toBe(403)
     expect(traded).toBe(false)
+  })
+
+  integrationTest('keeps paper traders off live connections', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const live = await addConnection({
+      environment: 'live',
+      fetcher: accountFetcher(200),
+      keyId: 'AKPAPERTRADER1',
+      name: 'Paper trader live check',
+      secret: 'secret-papertr1',
+      workspace: owned,
+    })
+    await db
+      .update(workspaceMembers)
+      .set({ activeConnectionId: live.id, role: 'paper_trader' })
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, owned.workspaceId),
+          eq(workspaceMembers.userId, userA)
+        )
+      )
+    currentSession = { user: { id: userA, name: 'User A' } }
+
+    const trade = await createApiResponse(async () => ({ ok: true }), {
+      trading: true,
+    })
+
+    expect(trade.status).toBe(403)
+    expect(await trade.json()).toMatchObject({
+      error: { code: 'LIVE_TRADING_NOT_ALLOWED' },
+    })
+  })
+
+  integrationTest('deletes a workspace with everything in it', async () => {
+    const workspaceId = await createWorkspace({
+      name: 'Doomed',
+      userId: userA,
+    })
+    const doomed = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    await addConnection({
+      environment: 'paper',
+      fetcher: accountFetcher(200),
+      keyId: 'PKDOOMED0001',
+      name: 'Doomed paper',
+      secret: 'secret-doomed01',
+      workspace: doomed,
+    })
+
+    await deleteWorkspace(workspaceId)
+
+    expect(
+      await db
+        .select()
+        .from(alpacaConnections)
+        .where(eq(alpacaConnections.workspaceId, workspaceId))
+    ).toHaveLength(0)
+    const after = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    expect(after.workspaceId).not.toBe(workspaceId)
   })
 })
 

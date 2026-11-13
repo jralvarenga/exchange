@@ -33,7 +33,7 @@ interface WorkspaceUser {
 
 /** Raised when a member tries something only an owner can do. */
 export class WorkspacePermissionError extends Error {
-  constructor(message = 'Only workspace owners can do that.') {
+  constructor(message = 'Only workspace owners and admins can do that.') {
     super(message)
     this.name = 'WorkspacePermissionError'
   }
@@ -95,7 +95,7 @@ const loadActiveWorkspace = cache(async function loadActiveWorkspace(
   }
 })
 
-/** Throws unless the user owns the workspace. */
+/** Throws unless the user is an owner or admin of the workspace. */
 export function assertWorkspaceOwner(workspace: ActiveWorkspace): void {
   if (!canManageWorkspace(workspace.role)) {
     throw new WorkspacePermissionError()

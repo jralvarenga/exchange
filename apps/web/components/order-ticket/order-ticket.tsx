@@ -81,6 +81,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     orderError,
     orderSuccess,
     submitOrder,
+    tradeLock,
     updateDraft,
   } = useOrderTicket()
   const optionMode = isTicketOptionMode(draft)
@@ -599,20 +600,22 @@ export function OrderTicket({ stickyFooter = true }: Props) {
           >
             {isSubmitting
               ? 'Submitting order…'
-              : !canTrade
+              : tradeLock === 'viewer'
                 ? 'View only'
-                : choosingContract
-                  ? 'Select a contract'
-                  : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
+                : tradeLock === 'paper_only'
+                  ? 'Paper only'
+                  : choosingContract
+                    ? 'Select a contract'
+                    : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
           </Button>
-          {canTrade ? (
+          {tradeLock === null ? (
             <p className="text-center text-muted-foreground">
               {environment === 'paper'
                 ? 'Simulated trading. No real money moves.'
                 : 'Live trading. This order uses real money.'}
             </p>
           ) : (
-            <TradingLocked />
+            <TradingLocked reason={tradeLock} />
           )}
         </div>
       </fieldset>

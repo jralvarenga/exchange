@@ -23,13 +23,14 @@ import {
   selectTicketAsset,
 } from '@/lib/order-ticket/draft'
 import { isSameTicketSubmission } from '@/lib/order-ticket/request'
+import type { TradeLock } from '@/lib/workspaces/permissions'
 import type {
   OpenTicketOptions,
   TicketDraft,
 } from '@/models/order-ticket/ticket'
 
 export interface TicketContextValue {
-  /** False for viewers, who can look but not trade. */
+  /** False when `tradeLock` is set. */
   canTrade: boolean
   clearOrderMessages: () => void
   closeTicket: () => void
@@ -43,22 +44,24 @@ export interface TicketContextValue {
   /** Resolves true once the broker accepts the order. */
   submitOrder: (request: CreateOrderRequest) => Promise<boolean>
   openTicket: (options?: OpenTicketOptions) => Promise<void>
+  /** Why this person cannot trade on the active connection, if they cannot. */
+  tradeLock: TradeLock | null
   updateDraft: (patch: Partial<TicketDraft>) => void
 }
 
 interface Props {
-  canTrade: boolean
   children: ReactNode
   environment: 'live' | 'paper'
+  tradeLock: TradeLock | null
 }
 
 export const OrderTicketContext = createContext<TicketContextValue | null>(null)
 
 /** Shares one persistent draft between every ticket placement and entry point. */
 export function OrderTicketProvider({
-  canTrade,
   children,
   environment,
+  tradeLock,
 }: Props) {
   const [draft, setDraft] = useState(createTicketDraft)
   const [isOpen, setIsOpen] = useState(false)
@@ -220,7 +223,7 @@ export function OrderTicketProvider({
   return (
     <OrderTicketContext
       value={{
-        canTrade,
+        canTrade: tradeLock === null,
         clearOrderMessages,
         closeTicket,
         draft,
@@ -232,6 +235,7 @@ export function OrderTicketProvider({
         orderSuccess,
         submitOrder,
         openTicket,
+        tradeLock,
         updateDraft,
       }}
     >

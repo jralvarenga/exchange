@@ -10,7 +10,7 @@ import {
   markConnectionInvalid,
   resolveAlpacaRequestContext,
 } from '@/lib/alpaca/connections'
-import { canTrade } from '@/lib/workspaces/permissions'
+import { tradeLock } from '@/lib/workspaces/permissions'
 import { resolveActiveWorkspace } from '@/lib/workspaces/workspace'
 import { AlpacaApiError } from './client'
 
@@ -31,7 +31,7 @@ interface CreateApiResponseOptions {
   exposeAlpacaMessage?: boolean
   /**
    * The handler changes the Alpaca account: orders, positions, trading
-   * settings or watchlists. Viewers cannot.
+   * settings or watchlists. Viewers cannot, paper traders only on paper.
    */
   trading?: boolean
 }
@@ -70,14 +70,29 @@ export async function createApiResponse(
     const workspace = await resolveActiveWorkspace(session.user)
     request = await resolveAlpacaRequestContext(workspace)
 
-    if (options.trading && !canTrade(workspace.role)) {
+    const lock = options.trading
+      ? tradeLock({
+          environment: request.alpaca.environment,
+          role: workspace.role,
+        })
+      : null
+
+    if (lock) {
       return createErrorResponse(
-        {
-          error: {
-            code: 'VIEWER_READ_ONLY',
-            message: 'Viewers can see this workspace but cannot trade in it.',
-          },
-        },
+        lock === 'viewer'
+          ? {
+              error: {
+                code: 'VIEWER_READ_ONLY',
+                message:
+                  'Viewers can see this workspace but cannot trade in it.',
+              },
+            }
+          : {
+              error: {
+                code: 'LIVE_TRADING_NOT_ALLOWED',
+                message: 'Paper traders cannot trade on a live connection.',
+              },
+            },
         403
       )
     }

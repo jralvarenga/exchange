@@ -1,5 +1,6 @@
 'use client'
 
+import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 import { Button } from '@workspace/ui/components/button'
 import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -7,6 +8,7 @@ import { useCallback, useState } from 'react'
 
 import {
   createWorkspaceAction,
+  deleteWorkspaceAction,
   leaveWorkspaceAction,
   removeMemberAction,
   renameWorkspaceAction,
@@ -27,12 +29,15 @@ import type {
 } from '@/models/workspace/members'
 
 interface Props {
+  canDelete: boolean
   canLeave: boolean
   canManage: boolean
   currentUserId: string
   invitations: PendingInvitation[]
   members: WorkspaceMember[]
   name: string
+  /** The signed-in person's role, which limits the roles they can give. */
+  role: WorkspaceRole
   workspaceId: string
 }
 
@@ -42,18 +47,22 @@ const actionClassName = 'h-11 rounded-full px-3 text-base'
 
 /** The active workspace: its name, members, invitations, and creating or leaving workspaces. */
 export function WorkspaceSettings({
+  canDelete,
   canLeave,
   canManage,
   currentUserId,
   invitations,
   members,
   name,
+  role: actorRole,
   workspaceId,
 }: Props) {
   const router = useRouter()
   const [panel, setPanel] = useState<Panel>('none')
   const [confirmingLeave, setConfirmingLeave] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   /** Toasts a server result and refreshes server props on success. */
   const settle = useCallback(
@@ -115,6 +124,19 @@ export function WorkspaceSettings({
     }
   }
 
+  /** Deletes the workspace; the dashboard reloads in another one. */
+  async function handleDelete(): Promise<void> {
+    setDeleting(true)
+
+    try {
+      if (settle(await deleteWorkspaceAction(workspaceId), `Deleted ${name}`)) {
+        setConfirmingDelete(false)
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <section
       aria-labelledby="workspace-title"
@@ -144,6 +166,7 @@ export function WorkspaceSettings({
       <ul className="flex flex-col divide-y divide-border border-border border-y">
         {members.map((member) => (
           <MemberRow
+            actorRole={actorRole}
             canManage={canManage}
             isSelf={member.userId === currentUserId}
             key={member.userId}
@@ -185,7 +208,11 @@ export function WorkspaceSettings({
       ) : null}
 
       {panel === 'invite' ? (
-        <InviteMemberForm onInvited={handleInvited} workspaceId={workspaceId} />
+        <InviteMemberForm
+          actorRole={actorRole}
+          onInvited={handleInvited}
+          workspaceId={workspaceId}
+        />
       ) : null}
 
       {panel === 'create' ? (
@@ -241,13 +268,23 @@ export function WorkspaceSettings({
             Leave
           </Button>
         ) : null}
+        {canDelete ? (
+          <Button
+            className={`${actionClassName} text-danger hover:text-danger`}
+            onClick={() => setConfirmingDelete(true)}
+            type="button"
+            variant="ghost"
+          >
+            Delete workspace
+          </Button>
+        ) : null}
       </div>
 
       <ConfirmDialog
         busy={leaving}
         busyLabel="Leaving…"
         confirmLabel="Leave workspace"
-        description="You lose access to its connections and history. An owner can invite you again."
+        description="You lose access to its connections and history. An owner or admin can invite you again."
         keepLabel="Stay"
         onConfirm={() => {
           void handleLeave()
@@ -255,6 +292,20 @@ export function WorkspaceSettings({
         onOpenChange={setConfirmingLeave}
         open={confirmingLeave}
         title={`Leave ${name}?`}
+        tone="destructive"
+      />
+      <ConfirmDialog
+        busy={deleting}
+        busyLabel="Deleting…"
+        confirmLabel="Delete workspace"
+        description="Its connections, members, invitations and history are deleted for everyone. This cannot be undone."
+        keepLabel="Keep workspace"
+        onConfirm={() => {
+          void handleDelete()
+        }}
+        onOpenChange={setConfirmingDelete}
+        open={confirmingDelete}
+        title={`Delete ${name}?`}
         tone="destructive"
       />
     </section>

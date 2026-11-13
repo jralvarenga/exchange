@@ -9,10 +9,17 @@ import {
   workspaces,
 } from '../schema/workspaces'
 
-export const workspaceRoles = ['owner', 'member', 'viewer'] as const
+export const workspaceRoles = [
+  'owner',
+  'admin',
+  'member',
+  'paper_trader',
+  'viewer',
+] as const
 
 /**
- * Owners run the workspace, members trade, viewers only look.
+ * Highest first. Owners can also delete the workspace, admins run it, members
+ * trade, paper traders trade on paper only, viewers only look.
  */
 export type WorkspaceRole = (typeof workspaceRoles)[number]
 
@@ -278,6 +285,14 @@ export async function removeWorkspaceMember(
 
     return true
   })
+}
+
+/**
+ * Deletes a workspace with everything in it: members, invitations,
+ * connections and activity. Users who had it open fall back to another one.
+ */
+export async function deleteWorkspace(workspaceId: string): Promise<void> {
+  await db.delete(workspaces).where(eq(workspaces.id, workspaceId))
 }
 
 /** Stores a new invitation. Only the token hash is kept. */

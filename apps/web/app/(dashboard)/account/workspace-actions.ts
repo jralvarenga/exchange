@@ -5,6 +5,7 @@ import {
   acceptWorkspaceInvitation,
   createWorkspace,
   createWorkspaceInvitation,
+  deleteWorkspace,
   deleteWorkspaceInvitation,
   findInvitationByTokenHash,
   listPendingInvitations,
@@ -29,7 +30,12 @@ import {
   INVITATION_TTL_MS,
   invitationEmail,
 } from '@/lib/workspaces/invitations'
-import { canManageWorkspace } from '@/lib/workspaces/permissions'
+import {
+  canAssignRole,
+  canDeleteWorkspace,
+  canManageWorkspace,
+  canRemoveMember,
+} from '@/lib/workspaces/permissions'
 import {
   type ActiveWorkspace,
   resolveActiveWorkspace,
@@ -45,7 +51,9 @@ const workspaceNameSchema = z.string().trim().min(1).max(40)
 const idSchema = z.string().trim().min(1).max(64)
 const roleSchema = z.enum(workspaceRoles)
 
-const OWNER_ONLY_MESSAGE = 'Only workspace owners can do that.'
+const OWNER_ONLY_MESSAGE = 'Only workspace owners and admins can do that.'
+const OWNER_ROLE_MESSAGE =
+  'Only an owner can give, change or remove the owner role.'
 const LAST_OWNER_MESSAGE = 'Make another member an owner first.'
 const STALE_MESSAGE =
   'You switched workspaces in another tab. Refresh and try again.'
@@ -116,7 +124,7 @@ export async function createWorkspaceAction(
   }
 }
 
-/** Renames the active workspace. Owners only. */
+/** Renames the active workspace. Owners and admins. */
 export async function renameWorkspaceAction(
   _state: WorkspaceActionState,
   formData: FormData
@@ -155,7 +163,7 @@ export async function renameWorkspaceAction(
   return { saved: true }
 }
 
-/** Emails a one-week invitation link to join the active workspace. Owners only. */
+/** Emails a one-week invitation link to join the active workspace. Owners and admins. */
 export async function inviteMemberAction(
   _state: WorkspaceActionState,
   formData: FormData
@@ -183,6 +191,10 @@ export async function inviteMemberAction(
 
   if (!canManageWorkspace(workspace.role)) {
     return { message: OWNER_ONLY_MESSAGE }
+  }
+
+  if (!canAssignRole({ actor: workspace.role, to: parsed.data.role })) {
+    return { message: OWNER_ROLE_MESSAGE }
   }
 
   const [members, pending] = await Promise.all([
@@ -236,7 +248,7 @@ export async function inviteMemberAction(
   }
 }
 
-/** Cancels a pending invitation. Owners only. */
+/** Cancels a pending invitation. Owners and admins. */
 export async function revokeInvitationAction(
   workspaceId: string,
   invitationId: string
@@ -273,7 +285,7 @@ export async function revokeInvitationAction(
   return {}
 }
 
-/** Changes a member's role. Owners only, and the last owner stays an owner. */
+/** Changes a member's role. Owners and admins; only owners touch the owner role, and the last owner stays one. */
 export async function updateMemberRoleAction(
   workspaceId: string,
   userId: string,
@@ -305,6 +317,16 @@ export async function updateMemberRoleAction(
     return { message: 'That person is not a member.' }
   }
 
+  if (
+    !canAssignRole({
+      actor: workspace.role,
+      from: target.role,
+      to: parsed.data.role,
+    })
+  ) {
+    return { message: OWNER_ROLE_MESSAGE }
+  }
+
   const changed = await updateMemberRole({
     role: parsed.data.role,
     userId: target.userId,
@@ -327,7 +349,7 @@ export async function updateMemberRoleAction(
   return {}
 }
 
-/** Removes another member. Their connections stay with the workspace. Owners only. */
+/** Removes another member. Their connections stay with the workspace. Owners and admins; only owners remove owners. */
 export async function removeMemberAction(
   workspaceId: string,
   userId: string
@@ -347,6 +369,18 @@ export async function removeMemberAction(
 
   if (!canManageWorkspace(workspace.role)) {
     return { message: OWNER_ONLY_MESSAGE }
+  }
+
+  const target = (await listWorkspaceMembers(workspace.workspaceId)).find(
+    (member) => member.userId === parsedId.data
+  )
+
+  if (!target) {
+    return { message: 'That person is not a member.' }
+  }
+
+  if (!canRemoveMember({ actor: workspace.role, target: target.role })) {
+    return { message: OWNER_ROLE_MESSAGE }
   }
 
   const removed = await removeWorkspaceMember({
@@ -399,6 +433,35 @@ export async function leaveWorkspaceAction(
     action: 'member.left',
     actor: workspaceActor(workspace),
   })
+  revalidatePath('/', 'layout')
+
+  return {}
+}
+
+/**
+ * Deletes the active workspace with its connections, members and history.
+ * Owners only, and not the user's only workspace.
+ */
+export async function deleteWorkspaceAction(
+  workspaceId: string
+): Promise<WorkspaceActionState> {
+  const session = await requireSession()
+  const workspace = await resolveExpectedWorkspace(session.user, workspaceId)
+
+  if (!workspace) {
+    return { message: STALE_MESSAGE }
+  }
+
+  if (!canDeleteWorkspace(workspace.role)) {
+    return { message: 'Only workspace owners can delete it.' }
+  }
+
+  if (workspace.memberships.length < 2) {
+    return { message: 'This is your only workspace, so you cannot delete it.' }
+  }
+
+  // Nothing is logged: the activity log goes with the workspace.
+  await deleteWorkspace(workspace.workspaceId)
   revalidatePath('/', 'layout')
 
   return {}

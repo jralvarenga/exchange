@@ -32,7 +32,7 @@ import {
   parseEncryptionKeys,
 } from '@/lib/crypto/secret-box'
 import { env } from '@/lib/env'
-import { canTrade } from '@/lib/workspaces/permissions'
+import { canTestConnection } from '@/lib/workspaces/permissions'
 import {
   type ActiveWorkspace,
   assertWorkspaceOwner,
@@ -228,7 +228,7 @@ export async function replaceConnectionKeys(
 export async function testConnection(
   input: TestConnectionInput
 ): Promise<MaskedConnection> {
-  if (!canTrade(input.workspace.role)) {
+  if (!canTestConnection(input.workspace.role)) {
     throw new WorkspacePermissionError('Viewers cannot test connections.')
   }
 

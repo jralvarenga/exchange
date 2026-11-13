@@ -48,7 +48,7 @@ export function ClosePositionDialog({ position }: Props) {
     }
   }
 
-  // Viewers cannot close positions.
+  // Viewers, and paper traders on live, cannot close positions.
   if (!canTrade) {
     return null
   }

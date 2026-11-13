@@ -21,9 +21,10 @@ import { listWorkspaceHistory } from '@/lib/activity/feed'
 import { requireSession } from '@/lib/auth/require-session'
 import { listDepositMethods } from '@/lib/wallet/crypto-wallets'
 import {
+  canDeleteWorkspace,
   canLeaveWorkspace,
   canManageWorkspace,
-  canTrade,
+  canTestConnection,
 } from '@/lib/workspaces/permissions'
 import { loadWorkspace } from '@/lib/workspaces/shell'
 import type {
@@ -71,7 +72,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
     <AccountConnections
       activeConnectionId={active?.id ?? null}
       canManage={canManage}
-      canTest={canTrade(workspace.role)}
+      canTest={canTestConnection(workspace.role)}
       connections={connections}
       defaultConnectionId={workspace.defaultConnectionId}
     />
@@ -106,6 +107,10 @@ export default async function AccountPage({ searchParams }: PageProps) {
         </div>
         {ready ? connectionsSection : null}
         <WorkspaceSettings
+          canDelete={
+            workspace.memberships.length > 1 &&
+            canDeleteWorkspace(workspace.role)
+          }
           canLeave={
             workspace.memberships.length > 1 &&
             canLeaveWorkspace({ ownerCount, role: workspace.role })
@@ -115,6 +120,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
           invitations={invitations}
           members={members}
           name={workspace.workspaceName}
+          role={workspace.role}
           workspaceId={workspace.workspaceId}
         />
         <AccountHistory

@@ -51,8 +51,8 @@ export function TradingSettings({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
   const update = useUpdateAccountConfigurations()
   const approvedLevel = overview.data?.optionsApprovedLevel
-  // Viewers cannot change the account's trading rules.
-  const { canTrade } = useOrderTicket()
+  // Viewers, and paper traders on live, cannot change the trading rules.
+  const { canTrade, tradeLock } = useOrderTicket()
 
   /** Saves one change and names it in a toast, whatever the outcome. */
   async function save(options: SaveOptions): Promise<void> {
@@ -86,7 +86,7 @@ export function TradingSettings({ ready }: Props) {
         />
       ) : (
         <>
-          {canTrade ? null : <TradingLocked />}
+          {tradeLock ? <TradingLocked reason={tradeLock} /> : null}
           <ul className="flex flex-col divide-y divide-border border-border border-y">
             <TradingSettingSwitch
               disabled={!canTrade}

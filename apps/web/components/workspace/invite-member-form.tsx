@@ -12,18 +12,20 @@ import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { inviteMemberAction } from '@/app/(dashboard)/account/workspace-actions'
 import { PillGroup } from '@/components/pill-group'
 import {
+  assignableRoleOptions,
   workspaceRoleDescription,
-  workspaceRoleOptions,
 } from '@/lib/workspaces/roles'
 
 interface Props {
+  /** The signed-in person's role. Admins cannot invite owners. */
+  actorRole: WorkspaceRole
   onInvited: () => void
   /** The workspace this page shows, so a switch in another tab is caught. */
   workspaceId: string
 }
 
-/** Emails a one-week invitation to join the workspace as an owner, member or viewer. */
-export function InviteMemberForm({ onInvited, workspaceId }: Props) {
+/** Emails a one-week invitation to join the workspace with a role the inviter may give. */
+export function InviteMemberForm({ actorRole, onInvited, workspaceId }: Props) {
   const [state, action, pending] = useActionState(inviteMemberAction, {})
   const [role, setRole] = useState<WorkspaceRole>('member')
   const formRef = useRef<HTMLFormElement>(null)
@@ -67,7 +69,7 @@ export function InviteMemberForm({ onInvited, workspaceId }: Props) {
           <PillGroup
             label="Role"
             onChange={setRole}
-            options={workspaceRoleOptions}
+            options={assignableRoleOptions({ actor: actorRole })}
             value={role}
           />
         </div>

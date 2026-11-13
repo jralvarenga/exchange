@@ -1,24 +1,81 @@
 import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 
+/** Why the trading controls are off: a viewer, or a paper trader on a live connection. */
+export type TradeLock = 'paper_only' | 'viewer'
+
+interface TradeLockInput {
+  environment: 'live' | 'paper'
+  role: WorkspaceRole
+}
+
+interface CanAssignRoleInput {
+  actor: WorkspaceRole
+  /** The target's role today. Omitted for an invitation. */
+  from?: WorkspaceRole
+  to: WorkspaceRole
+}
+
+interface CanRemoveMemberInput {
+  actor: WorkspaceRole
+  target: WorkspaceRole
+}
+
 interface CanLeaveInput {
   ownerCount: number
   role: WorkspaceRole
 }
 
 /**
- * Owners add, replace, rename and remove connections, pick the workspace
- * default, rename the workspace, and manage members and invitations.
+ * Owners and admins add, replace, rename and remove connections, pick the
+ * workspace default, rename the workspace, invite people and manage members.
  */
 export function canManageWorkspace(role: WorkspaceRole): boolean {
+  return role === 'owner' || role === 'admin'
+}
+
+/** Only owners delete a workspace. */
+export function canDeleteWorkspace(role: WorkspaceRole): boolean {
   return role === 'owner'
 }
 
 /**
- * Owners and members place, change and close orders and positions on paper
- * and live connections, change trading settings and watchlists, and test
- * connections. Viewers only look.
+ * Owners give any role. Admins give any role but owner, and leave owners as
+ * they are, so an admin can never take a workspace over.
  */
-export function canTrade(role: WorkspaceRole): boolean {
+export function canAssignRole(input: CanAssignRoleInput): boolean {
+  if (input.actor === 'owner') {
+    return true
+  }
+
+  return (
+    input.actor === 'admin' && input.to !== 'owner' && input.from !== 'owner'
+  )
+}
+
+/** Owners remove anyone. Admins remove anyone but an owner. */
+export function canRemoveMember(input: CanRemoveMemberInput): boolean {
+  return canAssignRole({ actor: input.actor, from: input.target, to: 'viewer' })
+}
+
+/**
+ * Returns why this role cannot change the Alpaca account on this connection,
+ * or null when it can. Changing covers orders, positions, trading settings and
+ * watchlists. Paper traders change paper accounts only; viewers nothing.
+ */
+export function tradeLock(input: TradeLockInput): TradeLock | null {
+  if (input.role === 'viewer') {
+    return 'viewer'
+  }
+
+  if (input.role === 'paper_trader' && input.environment === 'live') {
+    return 'paper_only'
+  }
+
+  return null
+}
+
+/** Everyone but viewers can test a connection's keys. */
+export function canTestConnection(role: WorkspaceRole): boolean {
   return role !== 'viewer'
 }
 
