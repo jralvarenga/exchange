@@ -99,7 +99,6 @@ function orderEventTitle(event: OrderEventWithOrder): string {
   return order ? `${verb} ${order.symbol} order` : `${verb} an order`
 }
 
-/** Summarizes the size and prices of an order. */
 /** Names what an order's quantity counts: shares, option contracts, or crypto units. */
 function quantityUnit(assetClass: string | null): string {
   if (assetClass === 'crypto') {

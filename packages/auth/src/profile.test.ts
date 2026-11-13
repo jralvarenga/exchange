@@ -4,6 +4,7 @@ import {
   isAllowedProfileImage,
   MAX_PROFILE_IMAGE_LENGTH,
   personalWorkspaceName,
+  profileImageToStore,
 } from './profile'
 
 describe('isAllowedProfileImage', () => {
@@ -18,6 +19,15 @@ describe('isAllowedProfileImage', () => {
       true
     )
     expect(isAllowedProfileImage('data:image/webp;base64,UklGRg==')).toBe(true)
+  })
+
+  test('drops a provider photo from another host but refuses a bad upload', () => {
+    expect(profileImageToStore('https://example.com/me.png')).toBeNull()
+    expect(profileImageToStore('https://lh3.googleusercontent.com/a')).toBe(
+      'https://lh3.googleusercontent.com/a'
+    )
+    expect(profileImageToStore('data:image/gif;base64,AAAA')).toBeUndefined()
+    expect(profileImageToStore(undefined)).toBeUndefined()
   })
 
   test('rejects photo hosts other than Google and oversized URLs', () => {

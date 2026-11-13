@@ -130,12 +130,15 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       console.log('Password login already exists and was left unchanged.')
     }
 
-    // The owner's active workspace, else their oldest one, else a new one.
-    const memberships = await listUserMemberships(userId)
+    // A workspace the owner manages: the active one, else the oldest, else a
+    // new one. Keys never land where they're only a member or viewer.
+    const managed = (await listUserMemberships(userId)).filter(
+      (item) => item.role === 'owner' || item.role === 'admin'
+    )
     const activeWorkspaceId = await findActiveWorkspaceId(userId)
     const membership =
-      memberships.find((item) => item.workspaceId === activeWorkspaceId) ??
-      memberships[0]
+      managed.find((item) => item.workspaceId === activeWorkspaceId) ??
+      managed[0]
     const workspaceId =
       membership?.workspaceId ??
       (await createWorkspace({

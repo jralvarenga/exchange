@@ -8,7 +8,7 @@ import {
   insertOrder,
   insertOrderEvent,
   type OrderEventType,
-  replaceOrderAlpacaId,
+  recordOrderReplacement,
   updateOrderStatus,
 } from '@workspace/db/queries/activity'
 
@@ -120,6 +120,19 @@ export async function recordOrderEvent(
       workspaceId: input.actor.workspaceId,
     })
 
+    if (order && input.replacementAlpacaOrderId) {
+      await recordOrderReplacement({
+        actor: input.actor,
+        details: input.details,
+        fromAlpacaOrderId: input.alpacaOrderId,
+        orderId: order.id,
+        status: input.status ?? order.status,
+        toAlpacaOrderId: input.replacementAlpacaOrderId,
+      })
+
+      return
+    }
+
     await insertOrderEvent({
       actor: input.actor,
       alpacaOrderId: input.alpacaOrderId,
@@ -128,14 +141,7 @@ export async function recordOrderEvent(
       type: input.type,
     })
 
-    if (order && input.replacementAlpacaOrderId) {
-      await replaceOrderAlpacaId({
-        fromAlpacaOrderId: input.alpacaOrderId,
-        status: input.status ?? order.status,
-        toAlpacaOrderId: input.replacementAlpacaOrderId,
-        workspaceId: input.actor.workspaceId,
-      })
-    } else if (order && input.status) {
+    if (order && input.status) {
       await updateOrderStatus({
         alpacaOrderId: input.alpacaOrderId,
         status: input.status,
@@ -148,12 +154,23 @@ export async function recordOrderEvent(
 }
 
 /**
- * Logs which record failed. Only the error's name is kept: database errors
- * carry the query's bound values, which can include emails and order details.
+ * Logs which record failed with the error's name and Postgres SQLSTATE code.
+ * The message is left out: database errors carry the query's bound values,
+ * which can include emails and order details.
  */
 function reportRecordFailure(action: string, error: unknown): void {
+  const name = error instanceof Error ? error.name : 'UnknownError'
+  const cause = error instanceof Error ? error.cause : undefined
+  const code =
+    typeof cause === 'object' &&
+    cause !== null &&
+    'code' in cause &&
+    typeof cause.code === 'string'
+      ? cause.code
+      : undefined
+
   console.error(
     `Activity "${action}" could not be recorded.`,
-    error instanceof Error ? error.name : 'UnknownError'
+    code ? `${name} (${code})` : name
   )
 }

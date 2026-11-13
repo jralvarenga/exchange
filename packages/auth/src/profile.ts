@@ -37,6 +37,21 @@ export function isAllowedProfileImage(
   }
 }
 
+/**
+ * Returns the photo to store. A provider photo from a host we don't allow is
+ * dropped (the account is still created); an uploaded data URL that breaks
+ * the rules returns undefined so the caller can refuse it.
+ */
+export function profileImageToStore(
+  image: string | null | undefined
+): string | null | undefined {
+  if (isAllowedProfileImage(image)) {
+    return image
+  }
+
+  return image?.startsWith('data:') ? undefined : null
+}
+
 /** Names the workspace every new user starts in: "Ana's workspace". */
 export function personalWorkspaceName(name: string): string {
   const firstName = name.trim().split(/\s+/u)[0]

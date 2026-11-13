@@ -45,6 +45,14 @@ export function WorkspaceNameForm({
   const id = useId()
   // Controlled so a failed save keeps what was typed instead of resetting it.
   const [value, setValue] = useState(defaultName ?? '')
+  // A new default (say, after switching workspace) replaces what was typed,
+  // so a rename can't carry one workspace's name onto another.
+  const [seededName, setSeededName] = useState(defaultName)
+
+  if (defaultName !== seededName) {
+    setSeededName(defaultName)
+    setValue(defaultName ?? '')
+  }
 
   // Each save result is reported once, even when the parent re-renders.
   useEffect(() => {

@@ -333,7 +333,7 @@ export async function setActiveConnection(
   return row
 }
 
-/** Makes a valid connection the workspace default. Owners only. */
+/** Makes a valid connection the workspace default. Owners and admins. */
 export async function setDefaultConnection(
   input: ConnectionActionInput
 ): Promise<AlpacaConnectionRow> {

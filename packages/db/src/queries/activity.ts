@@ -114,7 +114,12 @@ export async function insertOrder(input: InsertOrderInput): Promise<string> {
         )
         .limit(1)
 
-      return existing?.id ?? id
+      // The conflict means the row exists; not finding it is a real error.
+      if (!existing) {
+        throw new Error('The recorded order could not be found.')
+      }
+
+      return existing.id
     }
 
     await tx.insert(orderEvents).values({
@@ -131,28 +136,42 @@ export async function insertOrder(input: InsertOrderInput): Promise<string> {
 }
 
 /**
- * Points an order at the id Alpaca gave its replacement, so later events on
- * the replacement (a cancel, say) still find the order Exchange placed.
+ * Records a replace: the `replaced` event and pointing the order at the id
+ * Alpaca gave its replacement, together in one transaction, so later events
+ * on the replacement (a cancel, say) still find the order Exchange placed.
  */
-export async function replaceOrderAlpacaId(input: {
+export async function recordOrderReplacement(input: {
+  actor: ActivityActor
+  details?: Record<string, unknown>
   fromAlpacaOrderId: string
+  orderId: string
   status: string
   toAlpacaOrderId: string
-  workspaceId: string
 }): Promise<void> {
-  await db
-    .update(orders)
-    .set({
-      alpacaOrderId: input.toAlpacaOrderId,
-      status: input.status,
-      updatedAt: new Date(),
+  await db.transaction(async (tx) => {
+    await tx.insert(orderEvents).values({
+      ...input.actor,
+      alpacaOrderId: input.fromAlpacaOrderId,
+      createdAt: new Date(),
+      details: input.details,
+      id: crypto.randomUUID(),
+      orderId: input.orderId,
+      type: 'replaced',
     })
-    .where(
-      and(
-        eq(orders.workspaceId, input.workspaceId),
-        eq(orders.alpacaOrderId, input.fromAlpacaOrderId)
+    await tx
+      .update(orders)
+      .set({
+        alpacaOrderId: input.toAlpacaOrderId,
+        status: input.status,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(orders.workspaceId, input.actor.workspaceId),
+          eq(orders.alpacaOrderId, input.fromAlpacaOrderId)
+        )
       )
-    )
+  })
 }
 
 /** Finds the Exchange record of an Alpaca order in a workspace. */

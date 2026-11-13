@@ -16,7 +16,7 @@ import { canLinkTrustedProvider } from './account-linking'
 import { queueAuthEmail, sendAuthEmail } from './email'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
-import { isAllowedProfileImage } from './profile'
+import { profileImageToStore } from './profile'
 import { isSignUpEmailAllowed, resolveSignUpPolicy } from './sign-up-policy'
 
 /**
@@ -84,24 +84,32 @@ function createAuth() {
               })
             }
 
-            if (!isAllowedProfileImage(user.image)) {
+            const image = profileImageToStore(user.image)
+
+            if (image === undefined && user.image) {
               throw new APIError('BAD_REQUEST', {
                 message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
               })
             }
 
-            return { data: user }
+            return { data: { ...user, image } }
           },
         },
         update: {
           before: async function validateProfileImage(user) {
-            if ('image' in user && !isAllowedProfileImage(user.image)) {
+            if (!('image' in user)) {
+              return { data: user }
+            }
+
+            const image = profileImageToStore(user.image)
+
+            if (image === undefined && user.image) {
               throw new APIError('BAD_REQUEST', {
                 message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
               })
             }
 
-            return { data: user }
+            return { data: { ...user, image } }
           },
         },
       },

@@ -36,7 +36,7 @@ const {
   findOrderByAlpacaId,
   insertOrder,
   listRecentActivityLogs,
-  replaceOrderAlpacaId,
+  recordOrderReplacement,
 } = await import('@workspace/db/queries/activity')
 const {
   AlpacaCredentialsError,
@@ -581,11 +581,12 @@ describe('alpaca connections', () => {
 
       const first = await insertOrder(order)
       const retried = await insertOrder(order)
-      await replaceOrderAlpacaId({
+      await recordOrderReplacement({
+        actor,
         fromAlpacaOrderId: alpacaOrderId,
+        orderId: first,
         status: 'new',
         toAlpacaOrderId: `${alpacaOrderId}-v2`,
-        workspaceId: owned.workspaceId,
       })
       const followed = await findOrderByAlpacaId({
         alpacaOrderId: `${alpacaOrderId}-v2`,

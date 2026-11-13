@@ -221,8 +221,8 @@ function pickShownWorkspaces(
 }
 
 /**
- * Live connections are off-limits to paper members, so the menu does not
- * offer them, matching what the server allows.
+ * Paper members cannot trade on live connections, so the menu does not offer
+ * them. This is a UI choice: the server blocks live trading, not viewing.
  */
 function isPaperOnlyLive(
   role: ShellWorkspace['role'],
