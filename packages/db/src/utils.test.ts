@@ -45,6 +45,18 @@ describe('normalizeDatabaseUrl', () => {
     expect(normalizeDatabaseUrl(url)).toBe(url)
   })
 
+  test('rewrites a repeated SSL mode', () => {
+    expect(normalizeDatabaseUrl(`${host}?sslmode=require&sslmode=prefer`)).toBe(
+      `${host}?sslmode=verify-full&sslmode=verify-full`
+    )
+  })
+
+  test('rewrites URLs that turn libpq compatibility off', () => {
+    expect(
+      normalizeDatabaseUrl(`${host}?uselibpqcompat=false&sslmode=require`)
+    ).toBe(`${host}?uselibpqcompat=false&sslmode=verify-full`)
+  })
+
   test('does not touch other parameters that end in sslmode', () => {
     const url = `${host}?channel_binding=require&xsslmode=require`
 
