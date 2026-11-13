@@ -39,9 +39,9 @@ export const workspaceRoleOptions: WorkspaceRoleOption[] = [
   },
   {
     description: 'Trades on paper connections only. Cannot invite.',
-    label: 'Paper trader',
-    noun: 'a paper trader',
-    value: 'paper_trader',
+    label: 'Paper member',
+    noun: 'a paper member',
+    value: 'paper_member',
   },
   {
     description: 'Sees balances, orders and history. Cannot trade.',
@@ -60,7 +60,7 @@ export function assignableRoleOptions(
   )
 }
 
-/** Returns the display name of a role: "Owner", "Admin", "Paper trader". */
+/** Returns the display name of a role: "Owner", "Admin", "Paper member". */
 export function workspaceRoleLabel(role: WorkspaceRole): string {
   return findOption(role).label
 }

@@ -51,7 +51,7 @@ export function TradingSettings({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
   const update = useUpdateAccountConfigurations()
   const approvedLevel = overview.data?.optionsApprovedLevel
-  // Viewers, and paper traders on live, cannot change the trading rules.
+  // Viewers, and paper members on live, cannot change the trading rules.
   const { canTrade, tradeLock } = useOrderTicket()
 
   /** Saves one change and names it in a toast, whatever the outcome. */

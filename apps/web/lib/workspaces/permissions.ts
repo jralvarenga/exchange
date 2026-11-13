@@ -1,6 +1,6 @@
 import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 
-/** Why the trading controls are off: a viewer, or a paper trader on a live connection. */
+/** Why the trading controls are off: a viewer, or a paper member on a live connection. */
 export type TradeLock = 'paper_only' | 'viewer'
 
 interface TradeLockInput {
@@ -60,14 +60,14 @@ export function canRemoveMember(input: CanRemoveMemberInput): boolean {
 /**
  * Returns why this role cannot change the Alpaca account on this connection,
  * or null when it can. Changing covers orders, positions, trading settings and
- * watchlists. Paper traders change paper accounts only; viewers nothing.
+ * watchlists. Paper members change paper accounts only; viewers nothing.
  */
 export function tradeLock(input: TradeLockInput): TradeLock | null {
   if (input.role === 'viewer') {
     return 'viewer'
   }
 
-  if (input.role === 'paper_trader' && input.environment === 'live') {
+  if (input.role === 'paper_member' && input.environment === 'live') {
     return 'paper_only'
   }
 

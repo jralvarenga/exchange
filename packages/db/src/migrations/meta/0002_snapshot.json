@@ -1,5 +1,5 @@
 {
-  "id": "eb568a8b-8a66-40da-98f9-0c63f4232d60",
+  "id": "602df110-e59d-435f-b4cc-915a913d771f",
   "prevId": "c0856053-f716-4210-b2ea-6055b2f38a16",
   "version": "7",
   "dialect": "postgresql",
@@ -1356,7 +1356,7 @@
       "checkConstraints": {
         "workspace_invitations_role_check": {
           "name": "workspace_invitations_role_check",
-          "value": "\"workspace_invitations\".\"role\" in ('owner', 'admin', 'member', 'paper_trader', 'viewer')"
+          "value": "\"workspace_invitations\".\"role\" in ('owner', 'admin', 'member', 'paper_member', 'viewer')"
         }
       },
       "isRLSEnabled": false
@@ -1484,7 +1484,7 @@
       "checkConstraints": {
         "workspace_members_role_check": {
           "name": "workspace_members_role_check",
-          "value": "\"workspace_members\".\"role\" in ('owner', 'admin', 'member', 'paper_trader', 'viewer')"
+          "value": "\"workspace_members\".\"role\" in ('owner', 'admin', 'member', 'paper_member', 'viewer')"
         }
       },
       "isRLSEnabled": false

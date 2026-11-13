@@ -15,7 +15,7 @@ describe('workspace permissions', () => {
     expect(canManageWorkspace('owner')).toBe(true)
     expect(canManageWorkspace('admin')).toBe(true)
     expect(canManageWorkspace('member')).toBe(false)
-    expect(canManageWorkspace('paper_trader')).toBe(false)
+    expect(canManageWorkspace('paper_member')).toBe(false)
     expect(canManageWorkspace('viewer')).toBe(false)
   })
 
@@ -41,19 +41,19 @@ describe('workspace permissions', () => {
     expect(canRemoveMember({ actor: 'owner', target: 'owner' })).toBe(true)
   })
 
-  test('paper traders trade on paper only, viewers never', () => {
+  test('paper members trade on paper only, viewers never', () => {
     expect(tradeLock({ environment: 'live', role: 'owner' })).toBeNull()
     expect(tradeLock({ environment: 'live', role: 'admin' })).toBeNull()
     expect(tradeLock({ environment: 'live', role: 'member' })).toBeNull()
-    expect(tradeLock({ environment: 'paper', role: 'paper_trader' })).toBeNull()
-    expect(tradeLock({ environment: 'live', role: 'paper_trader' })).toBe(
+    expect(tradeLock({ environment: 'paper', role: 'paper_member' })).toBeNull()
+    expect(tradeLock({ environment: 'live', role: 'paper_member' })).toBe(
       'paper_only'
     )
     expect(tradeLock({ environment: 'paper', role: 'viewer' })).toBe('viewer')
   })
 
   test('everyone but viewers tests connections', () => {
-    expect(canTestConnection('paper_trader')).toBe(true)
+    expect(canTestConnection('paper_member')).toBe(true)
     expect(canTestConnection('viewer')).toBe(false)
   })
 

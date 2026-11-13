@@ -10,7 +10,7 @@ interface Props {
 
 const messages: Record<TradeLock, string> = {
   paper_only:
-    'Paper traders cannot trade on a live connection. Switch to a paper connection to trade.',
+    'Paper members cannot trade on a live connection. Switch to a paper connection to trade.',
   viewer:
     'You are a viewer in this workspace, so you can look but not trade. Ask an owner or admin for a trading role.',
 }

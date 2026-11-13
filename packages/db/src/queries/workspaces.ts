@@ -13,13 +13,13 @@ export const workspaceRoles = [
   'owner',
   'admin',
   'member',
-  'paper_trader',
+  'paper_member',
   'viewer',
 ] as const
 
 /**
  * Highest first. Owners can also delete the workspace, admins run it, members
- * trade, paper traders trade on paper only, viewers only look.
+ * trade, paper members trade on paper only, viewers only look.
  */
 export type WorkspaceRole = (typeof workspaceRoles)[number]
 

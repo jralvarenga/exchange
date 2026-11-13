@@ -31,7 +31,7 @@ interface CreateApiResponseOptions {
   exposeAlpacaMessage?: boolean
   /**
    * The handler changes the Alpaca account: orders, positions, trading
-   * settings or watchlists. Viewers cannot, paper traders only on paper.
+   * settings or watchlists. Viewers cannot, paper members only on paper.
    */
   trading?: boolean
 }
@@ -90,7 +90,7 @@ export async function createApiResponse(
           : {
               error: {
                 code: 'LIVE_TRADING_NOT_ALLOWED',
-                message: 'Paper traders cannot trade on a live connection.',
+                message: 'Paper members cannot trade on a live connection.',
               },
             },
         403

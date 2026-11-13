@@ -383,19 +383,19 @@ describe('alpaca connections', () => {
     expect(traded).toBe(false)
   })
 
-  integrationTest('keeps paper traders off live connections', async () => {
+  integrationTest('keeps paper members off live connections', async () => {
     const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
     const live = await addConnection({
       environment: 'live',
       fetcher: accountFetcher(200),
-      keyId: 'AKPAPERTRADER1',
-      name: 'Paper trader live check',
-      secret: 'secret-papertr1',
+      keyId: 'AKPAPERMEMBR1',
+      name: 'Paper member live check',
+      secret: 'secret-papermb1',
       workspace: owned,
     })
     await db
       .update(workspaceMembers)
-      .set({ activeConnectionId: live.id, role: 'paper_trader' })
+      .set({ activeConnectionId: live.id, role: 'paper_member' })
       .where(
         and(
           eq(workspaceMembers.workspaceId, owned.workspaceId),

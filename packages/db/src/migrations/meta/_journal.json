@@ -19,8 +19,8 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1794538903753,
-      "tag": "0002_admin_paper_trader_roles",
+      "when": 1794539117677,
+      "tag": "0002_admin_paper_member_roles",
       "breakpoints": true
     }
   ]
