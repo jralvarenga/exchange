@@ -18,6 +18,7 @@ interface Props {
 /** Lists the latest prints for a symbol, newest first. */
 export function TradeTrades({ symbol }: Props) {
   const trades = useRecentTrades(symbol)
+  const now = trades.dataUpdatedAt || Date.now()
 
   if (trades.isPending) {
     return <TradeRowsFallback label="Loading recent trades" />
@@ -49,13 +50,13 @@ export function TradeTrades({ symbol }: Props) {
       </caption>
       <thead>
         <tr className="text-muted-foreground">
-          <th className="py-3 text-left font-normal" scope="col">
+          <th className="py-2 text-left font-normal" scope="col">
             Time
           </th>
-          <th className="py-3 text-right font-normal" scope="col">
+          <th className="py-2 text-right font-normal" scope="col">
             Price
           </th>
-          <th className="py-3 text-right font-normal" scope="col">
+          <th className="py-2 text-right font-normal" scope="col">
             Size
           </th>
         </tr>
@@ -63,10 +64,10 @@ export function TradeTrades({ symbol }: Props) {
       <tbody className="divide-y">
         {trades.data.map((trade, index) => (
           <tr key={`${trade.timestamp}:${String(index)}`}>
-            <td className="py-3 font-mono text-muted-foreground">
-              {formatTradeTime(trade.timestamp)}
+            <td className="py-2.5 font-mono text-muted-foreground">
+              {formatTradeTime({ now, timestamp: trade.timestamp })}
             </td>
-            <td className="py-3 text-right">
+            <td className="py-2.5 text-right">
               <span className="inline-flex items-center gap-2">
                 {trade.side ? (
                   <span
@@ -85,7 +86,7 @@ export function TradeTrades({ symbol }: Props) {
                 </span>
               </span>
             </td>
-            <td className="py-3 text-right">
+            <td className="py-2.5 text-right">
               {formatQuantity({ value: trade.size })}
             </td>
           </tr>

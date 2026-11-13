@@ -6,11 +6,37 @@ import {
   TabsList,
   TabsTrigger,
 } from '@workspace/ui/components/tabs'
+import dynamic from 'next/dynamic'
 
-import { TradeCorporateActions } from '@/components/trade/trade-corporate-actions'
-import { TradeNews } from '@/components/trade/trade-news'
-import { TradeOrderbook } from '@/components/trade/trade-orderbook'
-import { TradeTrades } from '@/components/trade/trade-trades'
+import { TradeRowsFallback } from '@/components/trade/trade-rows-fallback'
+
+// Each panel's code loads only when its tab is first opened.
+const TradeCorporateActions = dynamic(
+  () =>
+    import('@/components/trade/trade-corporate-actions').then(
+      (module) => module.TradeCorporateActions
+    ),
+  { loading: () => <TradeRowsFallback label="Loading corporate actions" /> }
+)
+const TradeNews = dynamic(
+  () =>
+    import('@/components/trade/trade-news').then((module) => module.TradeNews),
+  { loading: () => <TradeRowsFallback label="Loading news" /> }
+)
+const TradeOrderbook = dynamic(
+  () =>
+    import('@/components/trade/trade-orderbook').then(
+      (module) => module.TradeOrderbook
+    ),
+  { loading: () => <TradeRowsFallback label="Loading order book" /> }
+)
+const TradeTrades = dynamic(
+  () =>
+    import('@/components/trade/trade-trades').then(
+      (module) => module.TradeTrades
+    ),
+  { loading: () => <TradeRowsFallback label="Loading recent trades" /> }
+)
 
 interface Props {
   isCrypto: boolean
@@ -44,16 +70,16 @@ export function TradeTabs({ isCrypto, symbol }: Props) {
   const tabs = getTabs(isCrypto)
 
   return (
-    <section aria-labelledby="trade-tabs-title" className="flex flex-col gap-4">
-      <h2 className="font-bold text-2xl tracking-tight" id="trade-tabs-title">
+    <section aria-labelledby="trade-tabs-title" className="flex flex-col gap-3">
+      <h2 className="font-bold text-xl tracking-tight" id="trade-tabs-title">
         Market activity
       </h2>
       <Tabs defaultValue="news" key={symbol}>
         <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <TabsList className="rounded-full group-data-horizontal/tabs:h-11">
+          <TabsList className="rounded-full group-data-horizontal/tabs:h-10">
             {tabs.map((tab) => (
               <TabsTrigger
-                className="rounded-full px-4 text-base"
+                className="rounded-full px-3.5 text-base"
                 key={tab.value}
                 value={tab.value}
               >

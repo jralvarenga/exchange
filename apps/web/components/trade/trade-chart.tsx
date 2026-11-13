@@ -7,6 +7,7 @@ import { AssetChart } from '@/components/asset-detail/asset-chart'
 import { AssetChartControls } from '@/components/asset-detail/asset-chart-controls'
 import { AssetChartError } from '@/components/asset-detail/asset-chart-error'
 import { AssetChartFallback } from '@/components/asset-detail/asset-chart-fallback'
+import { SectionUnavailable } from '@/components/section-unavailable'
 import { useAssetHistory } from '@/hooks/use-asset-history'
 import type { AssetInterval } from '@/lib/alpaca/schemas'
 import { type AssetChartType, assetChartTypeSchema } from '@/lib/asset-chart'
@@ -66,8 +67,19 @@ export function TradeChart({ price, symbol }: Props) {
         onIntervalChange={setInterval}
       />
       <p aria-live="polite" className="sr-only">
-        {history.isFetching ? 'Updating chart' : `${interval} range loaded`}
+        {history.isError
+          ? 'Price history could not refresh'
+          : history.isFetching
+            ? 'Updating chart'
+            : `${interval} range loaded`}
       </p>
+      {history.isError && data ? (
+        <SectionUnavailable
+          className="py-0"
+          label="Couldn't refresh this range. Showing the last prices loaded."
+          onRetry={() => void history.refetch()}
+        />
+      ) : null}
       {history.isError && !data ? (
         <AssetChartError onRetry={() => void history.refetch()} />
       ) : data ? (

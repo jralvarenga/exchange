@@ -32,6 +32,9 @@ export function useAssetTint(options: UseAssetTintOptions): string | null {
     let cancelled = false
     const image = new window.Image()
 
+    // Another asset's color never lingers while this logo loads.
+    setTint(null)
+
     image.decoding = 'async'
     image.onload = () => {
       if (cancelled) {

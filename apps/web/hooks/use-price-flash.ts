@@ -28,6 +28,8 @@ export function usePriceFlash(value: number | undefined): PriceFlash {
       last === undefined ||
       value === last
     ) {
+      // A suppressed change also ends any flash still showing.
+      setFlash(null)
       return
     }
 

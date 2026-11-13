@@ -22,11 +22,11 @@ export function TradePosition({ position, symbol }: Props) {
   return (
     <section
       aria-labelledby="trade-position-title"
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-3"
     >
       <div className="flex items-center justify-between gap-3">
         <h2
-          className="font-bold text-2xl tracking-tight"
+          className="font-bold text-xl tracking-tight"
           id="trade-position-title"
         >
           Your position
@@ -34,17 +34,17 @@ export function TradePosition({ position, symbol }: Props) {
         {position ? <ClosePositionDialog position={position} /> : null}
       </div>
       {position ? (
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-6 border-y py-6 tabular-nums sm:grid-cols-4">
-          <div className="flex flex-col gap-1">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-y py-4 tabular-nums sm:grid-cols-4">
+          <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">Market value</dt>
-            <dd className="font-bold text-3xl tracking-tight">
+            <dd className="font-bold text-2xl tracking-tight">
               {formatAssetPrice({ value: position.marketValue })}
             </dd>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">Quantity</dt>
             <dd className="flex flex-wrap items-baseline gap-2">
-              <span className="font-bold text-lg">
+              <span className="font-bold">
                 {formatAssetQuantity(position.quantity)}
               </span>
               {position.side === 'short' ? (
@@ -54,17 +54,17 @@ export function TradePosition({ position, symbol }: Props) {
               ) : null}
             </dd>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">Average entry</dt>
-            <dd className="font-bold text-lg">
+            <dd className="font-bold">
               {formatAssetPrice({ value: position.averageEntryPrice })}
             </dd>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">Total return</dt>
             <dd
               className={cn(
-                'flex flex-wrap items-center gap-x-2 font-bold text-lg',
+                'flex flex-wrap items-center gap-x-2 font-bold',
                 profit > 0 && 'text-market-up',
                 profit < 0 && 'text-market-down'
               )}
@@ -84,7 +84,7 @@ export function TradePosition({ position, symbol }: Props) {
           </div>
         </dl>
       ) : (
-        <div className="flex items-start gap-4 border-y py-6">
+        <div className="flex items-start gap-4 border-y py-4">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Wallet aria-hidden="true" className="size-5" />
           </span>

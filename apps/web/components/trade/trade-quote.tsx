@@ -72,15 +72,15 @@ export function TradeQuote({ quote }: Props) {
   return (
     <dl
       className={cn(
-        'grid grid-cols-2 gap-x-6 gap-y-6 border-y py-6 tabular-nums sm:grid-cols-4',
+        'grid grid-cols-2 gap-x-4 gap-y-4 border-y py-4 tabular-nums sm:grid-cols-4',
         revealClassName
       )}
     >
       {facts.map((fact) => (
-        <div className="flex min-w-0 flex-col gap-1" key={fact.label}>
+        <div className="flex min-w-0 flex-col gap-0.5" key={fact.label}>
           <dt className="text-muted-foreground">{fact.label}</dt>
-          <dd className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-bold text-lg">{fact.value}</span>
+          <dd className="flex flex-wrap items-baseline gap-x-1.5">
+            <span className="font-bold">{fact.value}</span>
             {fact.detail ? (
               <span className="text-muted-foreground">{fact.detail}</span>
             ) : null}

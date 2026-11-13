@@ -77,15 +77,17 @@ export function TradeCorporateActions({ symbol }: Props) {
             `Payable ${formatCalendarDate(action.payableDate)}`,
         ].filter(Boolean)
 
+        if (dates.length === 0 && action.declarationDate) {
+          dates.push(`Declared ${formatCalendarDate(action.declarationDate)}`)
+        }
+
         return (
           <li
-            className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-4"
+            className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 py-3"
             key={action.id}
           >
             <div className="flex min-w-0 flex-col gap-1">
-              <span className="font-bold text-lg">
-                {getActionTitle(action)}
-              </span>
+              <span className="font-bold">{getActionTitle(action)}</span>
               <span className="text-muted-foreground tabular-nums">
                 {dates.length > 0 ? dates.join(' · ') : 'Dates not announced'}
               </span>

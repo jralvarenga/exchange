@@ -14,12 +14,13 @@ describe('asset tint', () => {
       pickTint(
         pixels([
           [0, 100, 255, 255],
+          [0, 200, 255, 255],
           [255, 255, 255, 255],
           [128, 128, 128, 255],
           [255, 0, 0, 0],
         ])
       )
-    ).toBe('rgb(0 100 255)')
+    ).toBe('rgb(0 150 255)')
   })
 
   test('returns null for a logo without color', () => {
@@ -37,6 +38,12 @@ describe('asset tint', () => {
     expect(
       getAssetLogoSymbol({ assetClass: 'crypto', symbol: 'BTC/USD' })
     ).toBe('BTC')
+    expect(
+      getAssetLogoSymbol({ assetClass: 'crypto', symbol: 'USDC/USD' })
+    ).toBe('USDC')
+    expect(getAssetLogoSymbol({ assetClass: 'crypto', symbol: 'ETHUSD' })).toBe(
+      'ETH'
+    )
     expect(
       getAssetLogoSymbol({ assetClass: 'us_equity', symbol: 'META' })
     ).toBe('META')

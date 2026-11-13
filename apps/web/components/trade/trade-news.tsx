@@ -62,9 +62,7 @@ export function TradeNews({ symbol }: Props) {
         const content = (
           <>
             <span className="flex items-start justify-between gap-3">
-              <span className="font-bold text-lg leading-snug">
-                {article.headline}
-              </span>
+              <span className="font-bold leading-snug">{article.headline}</span>
               {article.url ? (
                 <ArrowUpRight
                   aria-hidden="true"
@@ -85,7 +83,7 @@ export function TradeNews({ symbol }: Props) {
           <li key={article.id}>
             {article.url ? (
               <a
-                className="group -mx-3 flex flex-col gap-1 rounded-2xl px-3 py-4 outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
+                className="group -mx-3 flex flex-col gap-1 rounded-2xl px-3 py-3 outline-none transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
                 href={article.url}
                 rel="noopener noreferrer"
                 target="_blank"
@@ -94,7 +92,7 @@ export function TradeNews({ symbol }: Props) {
                 <span className="sr-only">(opens in a new tab)</span>
               </a>
             ) : (
-              <div className="flex flex-col gap-1 py-4">{content}</div>
+              <div className="flex flex-col gap-1 py-3">{content}</div>
             )}
           </li>
         )

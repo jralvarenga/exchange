@@ -15,12 +15,12 @@ const labels = [
 export function TradeQuoteFallback() {
   return (
     <div role="status">
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-6 border-y py-6 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-y py-4 sm:grid-cols-4">
         {labels.map((label) => (
-          <div className="flex flex-col gap-1" key={label}>
+          <div className="flex flex-col gap-0.5" key={label}>
             <dt className="text-muted-foreground/50">{label}</dt>
             <dd>
-              <Skeleton className="h-7 w-24 rounded-md" />
+              <Skeleton className="h-6 w-20 rounded-md" />
             </dd>
           </div>
         ))}

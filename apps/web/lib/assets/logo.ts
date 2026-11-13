@@ -7,10 +7,11 @@ interface AssetLogoOptions {
 
 /** Returns the symbol a logo is filed under, dropping the quote currency from crypto pairs. */
 export function getAssetLogoSymbol(options: AssetLogoOptions): string {
-  const primarySymbol = options.symbol.split('/')[0] ?? options.symbol
+  const [primarySymbol = options.symbol, quote] = options.symbol.split('/')
 
-  return options.assetClass === 'crypto'
-    ? primarySymbol.replace(/(?:USDC|USDT|USD)$/u, '')
+  // Only a compact pair like `BTCUSD` carries its quote currency as a suffix.
+  return options.assetClass === 'crypto' && quote === undefined
+    ? primarySymbol.replace(/(?:USDC|USDT|USD)$/u, '') || primarySymbol
     : primarySymbol
 }
 

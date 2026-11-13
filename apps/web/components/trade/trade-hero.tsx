@@ -44,7 +44,7 @@ export function TradeHero({
   return (
     <section
       aria-labelledby="trade-title"
-      className="relative isolate flex flex-col gap-6 pt-6 md:pt-12"
+      className="relative isolate flex flex-col gap-4 pt-4 md:pt-8"
     >
       <div
         aria-hidden="true"
@@ -54,7 +54,7 @@ export function TradeHero({
       <div className={cn('flex items-center gap-3', revealClassName)}>
         <AssetIcon assetClass={asset.assetClass} symbol={asset.symbol} />
         <div className="flex min-w-0 flex-col">
-          <h1 className="truncate font-bold text-lg" id="trade-title">
+          <h1 className="truncate font-bold" id="trade-title">
             {asset.name}
           </h1>
           <p className="truncate text-muted-foreground">
@@ -66,19 +66,19 @@ export function TradeHero({
         aria-atomic="true"
         aria-live="polite"
         className={cn(
-          'flex flex-wrap items-baseline gap-x-5 gap-y-2',
+          'flex flex-wrap items-baseline gap-x-4 gap-y-1',
           revealClassName,
           'fill-mode-both delay-75'
         )}
       >
         <p className="flex items-baseline gap-2 tabular-nums">
-          <span className="font-medium text-3xl text-muted-foreground md:text-5xl">
+          <span className="font-medium text-2xl text-muted-foreground md:text-4xl">
             $
           </span>
           <TextMorph
             as="span"
             className={cn(
-              'font-bold text-6xl tracking-tighter md:text-8xl',
+              'font-bold text-5xl tracking-tighter md:text-7xl',
               flash === 'up' && 'text-market-up',
               flash === 'down' && 'text-market-down',
               flash === null &&
@@ -94,7 +94,7 @@ export function TradeHero({
         </p>
         <p
           className={cn(
-            'inline-flex items-center gap-1 font-medium text-2xl tabular-nums tracking-tight md:text-4xl',
+            'inline-flex items-center gap-1 font-medium text-xl tabular-nums tracking-tight md:text-2xl',
             direction === 'Up' && 'text-market-up',
             direction === 'Down' && 'text-market-down',
             direction === 'Unchanged' && 'text-muted-foreground'
@@ -102,7 +102,7 @@ export function TradeHero({
           title={formatAssetPrice({ signed: true, value: change })}
         >
           {direction === 'Unchanged' ? null : (
-            <ChangeIcon aria-hidden="true" className="size-6 md:size-8" />
+            <ChangeIcon aria-hidden="true" className="size-5 md:size-6" />
           )}
           <TextMorph
             as="span"
@@ -120,20 +120,20 @@ export function TradeHero({
       </div>
       <dl
         className={cn(
-          'flex flex-wrap gap-x-8 gap-y-2 tabular-nums',
+          'flex flex-wrap gap-x-6 gap-y-1 tabular-nums',
           revealClassName,
           'fill-mode-both delay-150'
         )}
       >
         <div className="flex items-baseline gap-2">
           <dt className="text-muted-foreground">Bid</dt>
-          <dd className="font-bold text-lg">
+          <dd className="font-bold">
             {bid ? formatAssetPrice({ value: bid }) : '—'}
           </dd>
         </div>
         <div className="flex items-baseline gap-2">
           <dt className="text-muted-foreground">Ask</dt>
-          <dd className="font-bold text-lg">
+          <dd className="font-bold">
             {ask ? formatAssetPrice({ value: ask }) : '—'}
           </dd>
         </div>

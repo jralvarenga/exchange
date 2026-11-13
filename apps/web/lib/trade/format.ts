@@ -18,6 +18,14 @@ const tradeTimeFormatter = new Intl.DateTimeFormat('en-US', {
   second: '2-digit',
 })
 
+const tradeDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  month: 'short',
+  second: '2-digit',
+})
+
 const calendarDateFormatter = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeZone: 'UTC',
@@ -28,13 +36,20 @@ export function formatCompactNumber(value: number): string {
   return compactFormatter.format(value)
 }
 
-/** Formats a trade timestamp as a local clock time with seconds. */
-export function formatTradeTime(timestamp: string): string {
-  const date = new Date(timestamp)
+/**
+ * Formats a trade timestamp as a local clock time with seconds, adding the
+ * date for trades from an earlier day so sessions can't be confused.
+ */
+export function formatTradeTime(options: FormatRelativeTimeOptions): string {
+  const date = new Date(options.timestamp)
 
-  return Number.isFinite(date.getTime())
+  if (!Number.isFinite(date.getTime())) {
+    return 'Time unavailable'
+  }
+
+  return date.toDateString() === new Date(options.now).toDateString()
     ? tradeTimeFormatter.format(date)
-    : 'Time unavailable'
+    : tradeDateTimeFormatter.format(date)
 }
 
 /** Formats a `YYYY-MM-DD` calendar date without shifting it to the local zone. */
