@@ -1,17 +1,13 @@
+import { getTradeHref } from '@/lib/trade/symbol'
+
 interface GetAssetHrefOptions {
   assetId?: string
   symbol?: string
 }
 
-/** Returns the asset detail route for an id or symbol when one is available. */
+/** Returns the Trade screen for a symbol, or an asset id when no symbol is known. */
 export function getAssetHref(options: GetAssetHrefOptions): string | undefined {
-  if (options.assetId) {
-    return `/assets/${encodeURIComponent(options.assetId)}`
-  }
+  const identifier = options.symbol || options.assetId
 
-  if (options.symbol) {
-    return `/assets/${encodeURIComponent(options.symbol)}`
-  }
-
-  return undefined
+  return identifier ? getTradeHref(identifier) : undefined
 }

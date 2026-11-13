@@ -37,6 +37,7 @@ Tokens live in [globals.css](packages/ui/src/styles/globals.css) and are used th
 - Gains and losses always carry a sign and an arrow (`ArrowUpRight` / `ArrowDownRight`), never color alone.
 - Status pills tint with the tone at 10% (`bg-market-up/10 text-market-up`) and always include the status word.
 - Gradients are allowed only to fade something into `background` (the chart fill, its edges, the navbar backdrop and the mobile tab bar) and as the sheen inside the `elevation-*` utilities.
+- The one color not taken from a token is the Trade hero glow: [use-asset-tint.ts](apps/web/hooks/use-asset-tint.ts) samples the asset logo's dominant color at runtime into `--asset-tint`, shown at 12% behind a blur. Logos with no color fall back to `primary`.
 
 ## Typography
 
@@ -128,6 +129,7 @@ Row patterns:
 
 - Ease for everything that settles: `cubic-bezier(0.19, 1, 0.22, 1)`.
 - Number changes: Torph morph, 700ms (500ms for timestamps).
+- Live prices on the Trade screen also flash `market-up` or `market-down` for 600ms when they tick ([use-price-flash.ts](apps/web/hooks/use-price-flash.ts)); reduced motion turns the flash off.
 - Chart: fades in from a blur over 1s while Recharts draws the line; allocation bars slide in from the left.
 - Hover: color and background transitions only; arrows nudge 2px.
 - `prefers-reduced-motion` disables reveals, pulses and slides; Torph respects it itself.

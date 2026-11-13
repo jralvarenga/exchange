@@ -10,7 +10,7 @@ import {
 } from '@workspace/ui/components/combobox'
 import { cn } from '@workspace/ui/lib/utils'
 import { LoaderCircle } from 'lucide-react'
-import { useEffect, useId, useState } from 'react'
+import { type ReactNode, useEffect, useId, useState } from 'react'
 
 import { AssetIcon } from '@/components/assets/asset-icon'
 import { useAssetSearch } from '@/hooks/use-asset-search'
@@ -20,6 +20,8 @@ import type { AssetSearchResult } from '@/lib/alpaca/schemas'
 interface Props {
   className?: string
   initialSymbol?: string
+  /** Rendered inside the input group, such as a leading search icon addon. */
+  leading?: ReactNode
   onValueChange?: (asset: AssetSearchResult | null) => void
   placeholder?: string
   value?: AssetSearchResult | null
@@ -38,6 +40,7 @@ const emptyAssets: AssetSearchResult[] = []
 export function AssetCombobox({
   className,
   initialSymbol,
+  leading,
   onValueChange,
   placeholder = 'Search by symbol…',
   value,
@@ -105,7 +108,9 @@ export function AssetCombobox({
         placeholder={placeholder}
         showClear
         showTrigger={false}
-      />
+      >
+        {leading}
+      </ComboboxInput>
       <ComboboxContent
         aria-busy={isSearching}
         className="w-full min-w-(--anchor-width) max-w-(--anchor-width)"

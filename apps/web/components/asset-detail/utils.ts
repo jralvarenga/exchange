@@ -11,11 +11,6 @@ interface FormatChartTimestampOptions {
   timestamp: string
 }
 
-interface FormatRelativeUpdateOptions {
-  now: number
-  timestamp: string
-}
-
 const quantityFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 8,
 })
@@ -64,39 +59,4 @@ export function formatChartTimestamp(
     month: 'short',
     year: '2-digit',
   }).format(date)
-}
-
-/** Describes how recently the latest market event was received. */
-export function formatRelativeUpdate(
-  options: FormatRelativeUpdateOptions
-): string {
-  const timestamp = new Date(options.timestamp).getTime()
-
-  if (!Number.isFinite(timestamp)) {
-    return 'Update time unavailable'
-  }
-
-  const elapsedSeconds = Math.max(
-    0,
-    Math.floor((options.now - timestamp) / 1_000)
-  )
-
-  if (elapsedSeconds < 15) {
-    return 'Updated just now'
-  }
-
-  if (elapsedSeconds < 60) {
-    return `Updated ${elapsedSeconds} seconds ago`
-  }
-
-  const elapsedMinutes = Math.floor(elapsedSeconds / 60)
-
-  if (elapsedMinutes < 60) {
-    return `Updated ${elapsedMinutes} ${elapsedMinutes === 1 ? 'minute' : 'minutes'} ago`
-  }
-
-  return `Updated ${new Intl.DateTimeFormat('en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(timestamp))}`
 }

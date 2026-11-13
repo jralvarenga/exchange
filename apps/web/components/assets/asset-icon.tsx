@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useState } from 'react'
 
 import type { AssetSearchResult } from '@/lib/alpaca/schemas'
+import { getAssetLogoSymbol, getAssetLogoUrl } from '@/lib/assets/logo'
 
 interface Props {
   assetClass: AssetSearchResult['assetClass']
@@ -13,13 +14,8 @@ interface Props {
 /** Displays an asset logo with a compact text fallback. */
 export function AssetIcon({ assetClass, symbol }: Props) {
   const [hasError, setHasError] = useState(false)
-  const primarySymbol = symbol.split('/')[0] ?? symbol
-  const logoSymbol =
-    assetClass === 'crypto'
-      ? primarySymbol.replace(/(?:USDC|USDT|USD)$/u, '')
-      : primarySymbol
-  const logoType = assetClass === 'crypto' ? 'crypto' : 'symbol'
-  const logoUrl = `https://assets.parqet.com/logos/${logoType}/${encodeURIComponent(logoSymbol)}?format=png&size=64`
+  const logoSymbol = getAssetLogoSymbol({ assetClass, symbol })
+  const logoUrl = getAssetLogoUrl({ assetClass, symbol })
   const symbolMark = logoSymbol.slice(0, 2).toLocaleLowerCase('en-US') || '—'
 
   return (
