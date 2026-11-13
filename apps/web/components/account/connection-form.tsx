@@ -23,6 +23,8 @@ interface Props {
   connection?: Pick<MaskedConnection, 'environment' | 'id' | 'name'>
   onCancel?: () => void
   onSaved: (connection: MaskedConnection) => void
+  /** The workspace this form was rendered for, so a switch in another tab is caught. */
+  workspaceId: string
 }
 
 const environmentOptions = [
@@ -31,7 +33,12 @@ const environmentOptions = [
 ] as const
 
 /** Adds a named connection, or replaces the key pair of an existing one. */
-export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
+export function ConnectionForm({
+  connection,
+  onCancel,
+  onSaved,
+  workspaceId,
+}: Props) {
   const [state, action, pending] = useActionState(
     connection ? replaceConnectionKeysAction : addConnectionAction,
     {}
@@ -57,6 +64,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
 
   return (
     <form action={action} autoComplete="off" className="flex flex-col gap-4">
+      <input name="workspaceId" type="hidden" value={workspaceId} />
       {connection ? (
         <input name="connectionId" type="hidden" value={connection.id} />
       ) : (

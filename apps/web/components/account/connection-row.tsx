@@ -26,6 +26,7 @@ interface Props {
   onSaved: (connection: MaskedConnection) => void
   onTest: () => Promise<void>
   onUse: () => Promise<void>
+  workspaceId: string
 }
 
 type Mode = 'idle' | 'rename' | 'replace'
@@ -44,6 +45,7 @@ export function ConnectionRow({
   onSaved,
   onTest,
   onUse,
+  workspaceId,
 }: Props) {
   const [mode, setMode] = useState<Mode>('idle')
   const [busy, setBusy] = useState(false)
@@ -206,6 +208,7 @@ export function ConnectionRow({
             setMode('idle')
             onSaved(saved)
           }}
+          workspaceId={workspaceId}
         />
       ) : null}
 

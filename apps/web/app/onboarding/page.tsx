@@ -60,7 +60,10 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
     if (canManageWorkspace(workspace.role) && connections.length === 0) {
       return (
         <AuthPage size="wide">
-          <OnboardingConnect workspaceName={workspace.workspaceName} />
+          <OnboardingConnect
+            workspaceId={workspace.workspaceId}
+            workspaceName={workspace.workspaceName}
+          />
         </AuthPage>
       )
     }

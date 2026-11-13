@@ -35,6 +35,8 @@ import {
 import {
   NoWorkspaceError,
   resolveActiveWorkspace,
+  resolveExpectedWorkspace,
+  STALE_WORKSPACE_MESSAGE,
   WorkspacePermissionError,
   workspaceActor,
 } from '@/lib/workspaces/workspace'
@@ -65,6 +67,11 @@ const replaceInputSchema = keyMaterialSchema.extend({
   connectionId: connectionIdSchema,
 })
 
+const connectionWorkspaceSchema = z.object({
+  connectionId: connectionIdSchema,
+  workspaceId: connectionIdSchema,
+})
+
 /** Checks a key pair with Alpaca and saves it as a new named connection. */
 export async function addConnectionAction(
   _state: ConnectionActionState,
@@ -83,6 +90,15 @@ export async function addConnectionAction(
   }
 
   try {
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      formData.get('workspaceId')
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
     const blocked = await enforceAlpacaCredentialGuard({
       action: 'save',
       environment: parsed.data.environment,
@@ -93,7 +109,6 @@ export async function addConnectionAction(
       return { message: blocked }
     }
 
-    const workspace = await resolveActiveWorkspace(session.user)
     const connection = await addConnection({ ...parsed.data, workspace })
     await recordActivity({
       action: 'connection.added',
@@ -126,7 +141,15 @@ export async function replaceConnectionKeysAction(
   }
 
   try {
-    const workspace = await resolveActiveWorkspace(session.user)
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      formData.get('workspaceId')
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
     const current = await findAlpacaConnection({
       id: parsed.data.connectionId,
       workspaceId: workspace.workspaceId,
@@ -166,20 +189,41 @@ export async function replaceConnectionKeysAction(
 
 /** Calls Alpaca with a stored connection and returns the masked result. */
 export async function testConnectionAction(
-  connectionId: string
+  connectionId: string,
+  workspaceId: string
 ): Promise<ConnectionActionState> {
   const session = await requireSession()
-  const parsedId = connectionIdSchema.safeParse(connectionId)
+  const parsed = connectionWorkspaceSchema.safeParse({
+    connectionId,
+    workspaceId,
+  })
 
-  if (!parsedId.success) {
+  if (!parsed.success) {
     return { message: 'The connection could not be tested.' }
   }
 
   try {
-    const workspace = await resolveActiveWorkspace(session.user)
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      parsed.data.workspaceId
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
+    const current = await findAlpacaConnection({
+      id: parsed.data.connectionId,
+      workspaceId: workspace.workspaceId,
+    })
+
+    if (!current) {
+      return { message: 'That connection no longer exists.' }
+    }
+
     const blocked = await enforceAlpacaCredentialGuard({
       action: 'test',
-      environment: 'paper',
+      environment: alpacaEnvironmentSchema.parse(current.environment),
       session,
     })
 
@@ -188,7 +232,7 @@ export async function testConnectionAction(
     }
 
     const connection = await testConnection({
-      connectionId: parsedId.data,
+      connectionId: parsed.data.connectionId,
       workspace,
     })
     await recordActivity({
@@ -208,22 +252,35 @@ export async function testConnectionAction(
   }
 }
 
-/** Renames a connection. Owners only. */
+/** Renames a connection. Owners and admins. */
 export async function renameConnectionAction(
   connectionId: string,
-  name: string
+  name: string,
+  workspaceId: string
 ): Promise<ConnectionActionState> {
   const session = await requireSession()
   const parsed = z
-    .object({ connectionId: connectionIdSchema, name: connectionNameSchema })
-    .safeParse({ connectionId, name })
+    .object({
+      connectionId: connectionIdSchema,
+      name: connectionNameSchema,
+      workspaceId: connectionIdSchema,
+    })
+    .safeParse({ connectionId, name, workspaceId })
 
   if (!parsed.success) {
     return { message: 'Use a name between 1 and 40 characters.' }
   }
 
   try {
-    const workspace = await resolveActiveWorkspace(session.user)
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      parsed.data.workspaceId
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
     await renameConnection({ ...parsed.data, workspace })
     const renamed = await findAlpacaConnection({
       id: parsed.data.connectionId,
@@ -247,21 +304,33 @@ export async function renameConnectionAction(
   }
 }
 
-/** Deletes a connection from the workspace. Owners only. */
+/** Deletes a connection from the workspace. Owners and admins. */
 export async function removeConnectionAction(
-  connectionId: string
+  connectionId: string,
+  workspaceId: string
 ): Promise<ConnectionActionState> {
   const session = await requireSession()
-  const parsedId = connectionIdSchema.safeParse(connectionId)
+  const parsed = connectionWorkspaceSchema.safeParse({
+    connectionId,
+    workspaceId,
+  })
 
-  if (!parsedId.success) {
+  if (!parsed.success) {
     return { message: 'That connection could not be removed.' }
   }
 
   try {
-    const workspace = await resolveActiveWorkspace(session.user)
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      parsed.data.workspaceId
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
     const removed = await removeConnection({
-      connectionId: parsedId.data,
+      connectionId: parsed.data.connectionId,
       workspace,
     })
     // The row is gone, so the log keeps only the copied name and environment.
@@ -281,19 +350,31 @@ export async function removeConnectionAction(
 
 /** Switches the connection this member trades with. */
 export async function switchConnectionAction(
-  connectionId: string
+  connectionId: string,
+  workspaceId: string
 ): Promise<ConnectionActionState> {
   const session = await requireSession()
-  const parsedId = connectionIdSchema.safeParse(connectionId)
+  const parsed = connectionWorkspaceSchema.safeParse({
+    connectionId,
+    workspaceId,
+  })
 
-  if (!parsedId.success) {
+  if (!parsed.success) {
     return { message: 'The active connection could not be changed.' }
   }
 
   try {
-    const workspace = await resolveActiveWorkspace(session.user)
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      parsed.data.workspaceId
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
     const connection = await setActiveConnection({
-      connectionId: parsedId.data,
+      connectionId: parsed.data.connectionId,
       workspace,
     })
     await recordActivity({
@@ -310,21 +391,33 @@ export async function switchConnectionAction(
   }
 }
 
-/** Makes a connection the workspace default. Owners only. */
+/** Makes a connection the workspace default. Owners and admins. */
 export async function setDefaultConnectionAction(
-  connectionId: string
+  connectionId: string,
+  workspaceId: string
 ): Promise<ConnectionActionState> {
   const session = await requireSession()
-  const parsedId = connectionIdSchema.safeParse(connectionId)
+  const parsed = connectionWorkspaceSchema.safeParse({
+    connectionId,
+    workspaceId,
+  })
 
-  if (!parsedId.success) {
+  if (!parsed.success) {
     return { message: 'The default connection could not be changed.' }
   }
 
   try {
-    const workspace = await resolveActiveWorkspace(session.user)
+    const workspace = await resolveExpectedWorkspace(
+      session.user,
+      parsed.data.workspaceId
+    )
+
+    if (!workspace) {
+      return { message: STALE_WORKSPACE_MESSAGE }
+    }
+
     const connection = await setDefaultConnection({
-      connectionId: parsedId.data,
+      connectionId: parsed.data.connectionId,
       workspace,
     })
     await recordActivity({

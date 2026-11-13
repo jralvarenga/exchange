@@ -11,11 +11,12 @@ import type { MaskedConnection } from '@/lib/alpaca/connections'
 import { showSuccessToast } from '@/lib/app-toast'
 
 interface Props {
+  workspaceId: string
   workspaceName: string
 }
 
 /** Second onboarding step: add the workspace's first Alpaca key pair, or skip it. */
-export function OnboardingConnect({ workspaceName }: Props) {
+export function OnboardingConnect({ workspaceId, workspaceName }: Props) {
   const router = useRouter()
 
   const handleSaved = useCallback(
@@ -34,7 +35,7 @@ export function OnboardingConnect({ workspaceName }: Props) {
         title="Connect Alpaca"
         total={2}
       />
-      <ConnectionForm onSaved={handleSaved} />
+      <ConnectionForm onSaved={handleSaved} workspaceId={workspaceId} />
       <Button
         className="self-start"
         nativeButton={false}

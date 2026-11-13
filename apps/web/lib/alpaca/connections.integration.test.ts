@@ -5,8 +5,28 @@ mock.module('server-only', () => ({}))
 mock.module('next/headers', () => ({
   headers: async () => new Headers(),
 }))
+mock.module('next/cache', () => ({
+  revalidatePath: () => undefined,
+}))
+mock.module('next/navigation', () => ({
+  redirect: (path: string): never => {
+    const error = new Error(`NEXT_REDIRECT:${path}`)
+    error.name = 'NEXT_REDIRECT'
+    throw error
+  },
+}))
+mock.module('@workspace/auth/email', () => ({
+  sendAuthEmail: async () => undefined,
+}))
 
-let currentSession: { user: { id: string; name: string } } | null = null
+let currentSession: {
+  user: {
+    email?: string
+    emailVerified?: boolean
+    id: string
+    name: string
+  }
+} | null = null
 
 mock.module('@workspace/auth/server', () => ({
   auth: {
@@ -50,18 +70,28 @@ const { AlpacaApiError } = await import('@/lib/alpaca/client')
 const { createApiResponse } = await import('@/lib/alpaca/http')
 const { NoWorkspaceError, resolveActiveWorkspace, WorkspacePermissionError } =
   await import('@/lib/workspaces/workspace')
-const { workspaceMembers, workspaces } = await import(
+const { workspaceInvitations, workspaceMembers, workspaces } = await import(
   '@workspace/db/schema/workspaces'
 )
 const {
+  acceptWorkspaceInvitation,
   createWorkspace,
   createWorkspaceInvitation,
   deleteWorkspace,
+  findActiveWorkspaceId,
   listPendingInvitationsForEmail,
+  listUserMemberships,
   listUserWorkspaceSummaries,
+  listWorkspaceMembers,
   removeWorkspaceMember,
   updateMemberRole,
 } = await import('@workspace/db/queries/workspaces')
+const { acceptInvitationAction } = await import(
+  '@/app/(dashboard)/account/workspace-actions'
+)
+const { createInvitationToken, hashInvitationToken } = await import(
+  '@/lib/workspaces/invitations'
+)
 const { alpacaConnections } = await import(
   '@workspace/db/schema/alpaca-connections'
 )
@@ -219,6 +249,12 @@ describe('alpaca connections', () => {
       expect(saved.keyIdMasked).toBe('PK••••AA12')
       expect(JSON.stringify(saved)).not.toContain('secret-aaaabbbb')
       expect(JSON.stringify(saved)).not.toContain('PKUSERAAAA12')
+      const listed = await listMaskedConnections(workspaceA.workspaceId)
+      expect(listed.find((row) => row.id === saved.id)?.keyIdMasked).toBe(
+        '••••AA12'
+      )
+      expect(JSON.stringify(listed)).not.toContain('secret-aaaabbbb')
+      expect(JSON.stringify(listed)).not.toContain('PKUSERAAAA12')
       expect(await listMaskedConnections(workspaceB.workspaceId)).toEqual([])
 
       // The first connection becomes the workspace default.
@@ -538,6 +574,230 @@ describe('alpaca connections', () => {
     expect(after.workspaceId).not.toBe(workspaceId)
   })
 
+  integrationTest('accepts a matching verified email', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const invitee = await insertInvitee({
+      email: `join-${crypto.randomUUID()}@example.com`,
+      name: 'Join Me',
+    })
+    const invitation = await insertInvitation({
+      email: invitee.email,
+      invitedByUserId: userA,
+      workspaceId: owned.workspaceId,
+    })
+    currentSession = {
+      user: {
+        email: invitee.email,
+        emailVerified: true,
+        id: invitee.id,
+        name: invitee.name,
+      },
+    }
+
+    try {
+      await expect(
+        acceptInvitationAction(invitation.token)
+      ).rejects.toMatchObject({ message: 'NEXT_REDIRECT:/' })
+      expect(await listUserMemberships(invitee.id)).toMatchObject([
+        { role: 'member', workspaceId: owned.workspaceId },
+      ])
+      expect(await findActiveWorkspaceId(invitee.id)).toBe(owned.workspaceId)
+    } finally {
+      await db.delete(users).where(eq(users.id, invitee.id))
+    }
+  })
+
+  integrationTest('rejects a mismatched email', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const invitee = await insertInvitee({
+      email: `mismatch-${crypto.randomUUID()}@example.com`,
+      name: 'Wrong Address',
+    })
+    const invitation = await insertInvitation({
+      email: `other-${crypto.randomUUID()}@example.com`,
+      invitedByUserId: userA,
+      workspaceId: owned.workspaceId,
+    })
+    currentSession = {
+      user: {
+        email: invitee.email,
+        emailVerified: true,
+        id: invitee.id,
+        name: invitee.name,
+      },
+    }
+
+    try {
+      expect(await acceptInvitationAction(invitation.token)).toEqual({
+        message: `This invitation is for ${invitation.email}. Sign in with that address to join.`,
+      })
+      expect(await listUserMemberships(invitee.id)).toEqual([])
+    } finally {
+      await db.delete(users).where(eq(users.id, invitee.id))
+    }
+  })
+
+  integrationTest('rejects an unverified matching email', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const invitee = await insertInvitee({
+      email: `unverified-${crypto.randomUUID()}@example.com`,
+      emailVerified: false,
+      name: 'Unverified',
+    })
+    const invitation = await insertInvitation({
+      email: invitee.email,
+      invitedByUserId: userA,
+      workspaceId: owned.workspaceId,
+    })
+    currentSession = {
+      user: {
+        email: invitee.email,
+        emailVerified: false,
+        id: invitee.id,
+        name: invitee.name,
+      },
+    }
+
+    try {
+      expect(await acceptInvitationAction(invitation.token)).toEqual({
+        message: `This invitation is for ${invitation.email}. Sign in with that address to join.`,
+      })
+      expect(await listUserMemberships(invitee.id)).toEqual([])
+    } finally {
+      await db.delete(users).where(eq(users.id, invitee.id))
+    }
+  })
+
+  integrationTest('rejects an expired invitation', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const invitee = await insertInvitee({
+      email: `expired-${crypto.randomUUID()}@example.com`,
+      name: 'Expired',
+    })
+    const invitation = await insertInvitation({
+      email: invitee.email,
+      expiresAt: new Date(Date.now() - 60_000),
+      invitedByUserId: userA,
+      workspaceId: owned.workspaceId,
+    })
+    currentSession = {
+      user: {
+        email: invitee.email,
+        emailVerified: true,
+        id: invitee.id,
+        name: invitee.name,
+      },
+    }
+
+    try {
+      expect(await acceptInvitationAction(invitation.token)).toEqual({
+        message: 'This invitation has expired or was already used.',
+      })
+      expect(
+        await acceptWorkspaceInvitation({
+          invitationId: invitation.id,
+          userId: invitee.id,
+        })
+      ).toBeUndefined()
+      expect(await listUserMemberships(invitee.id)).toEqual([])
+    } finally {
+      await db.delete(users).where(eq(users.id, invitee.id))
+    }
+  })
+
+  integrationTest('rejects a reused invitation', async () => {
+    const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+    const invitee = await insertInvitee({
+      email: `reused-${crypto.randomUUID()}@example.com`,
+      name: 'Reused',
+    })
+    const invitation = await insertInvitation({
+      email: invitee.email,
+      invitedByUserId: userA,
+      workspaceId: owned.workspaceId,
+    })
+    currentSession = {
+      user: {
+        email: invitee.email,
+        emailVerified: true,
+        id: invitee.id,
+        name: invitee.name,
+      },
+    }
+
+    try {
+      expect(
+        await acceptWorkspaceInvitation({
+          invitationId: invitation.id,
+          userId: invitee.id,
+        })
+      ).toBe(owned.workspaceId)
+      expect(await acceptInvitationAction(invitation.token)).toEqual({
+        message: 'This invitation has expired or was already used.',
+      })
+      expect(
+        await acceptWorkspaceInvitation({
+          invitationId: invitation.id,
+          userId: invitee.id,
+        })
+      ).toBeUndefined()
+    } finally {
+      await db.delete(users).where(eq(users.id, invitee.id))
+    }
+  })
+
+  integrationTest(
+    'keeps an existing member when they accept an invite',
+    async () => {
+      const owned = await resolveActiveWorkspace({ id: userA, name: 'User A' })
+      const invitee = await insertInvitee({
+        email: `already-${crypto.randomUUID()}@example.com`,
+        name: 'Already In',
+      })
+      const now = new Date()
+      await db.insert(workspaceMembers).values({
+        createdAt: now,
+        id: crypto.randomUUID(),
+        role: 'viewer',
+        updatedAt: now,
+        userId: invitee.id,
+        workspaceId: owned.workspaceId,
+      })
+      const invitation = await insertInvitation({
+        email: invitee.email,
+        invitedByUserId: userA,
+        role: 'member',
+        workspaceId: owned.workspaceId,
+      })
+      currentSession = {
+        user: {
+          email: invitee.email,
+          emailVerified: true,
+          id: invitee.id,
+          name: invitee.name,
+        },
+      }
+
+      try {
+        await expect(
+          acceptInvitationAction(invitation.token)
+        ).rejects.toMatchObject({ message: 'NEXT_REDIRECT:/' })
+        const members = await listWorkspaceMembers(owned.workspaceId)
+        expect(
+          members.filter((member) => member.userId === invitee.id)
+        ).toMatchObject([{ role: 'viewer', userId: invitee.id }])
+        const [row] = await db
+          .select({ acceptedAt: workspaceInvitations.acceptedAt })
+          .from(workspaceInvitations)
+          .where(eq(workspaceInvitations.id, invitation.id))
+        expect(row?.acceptedAt).toBeInstanceOf(Date)
+        expect(await findActiveWorkspaceId(invitee.id)).toBe(owned.workspaceId)
+      } finally {
+        await db.delete(users).where(eq(users.id, invitee.id))
+      }
+    }
+  )
+
   integrationTest('allows one pending invitation per address', async () => {
     const owned = await resolveActiveWorkspace({ id: userB, name: 'User B' })
     const email = `once-${crypto.randomUUID()}@example.com`
@@ -598,6 +858,65 @@ describe('alpaca connections', () => {
     }
   )
 })
+
+interface Invitee {
+  email: string
+  id: string
+  name: string
+}
+
+interface InsertInviteeInput {
+  email: string
+  emailVerified?: boolean
+  name: string
+}
+
+/** Inserts a user who can be invited, with no workspace of their own. */
+async function insertInvitee(input: InsertInviteeInput): Promise<Invitee> {
+  const id = crypto.randomUUID()
+  const now = new Date()
+  await db.insert(users).values({
+    createdAt: now,
+    email: input.email,
+    emailVerified: input.emailVerified ?? true,
+    id,
+    name: input.name,
+    updatedAt: now,
+  })
+
+  return { email: input.email, id, name: input.name }
+}
+
+interface InsertInvitationInput {
+  email: string
+  expiresAt?: Date
+  invitedByUserId: string
+  role?: 'admin' | 'member' | 'owner' | 'paper_member' | 'viewer'
+  workspaceId: string
+}
+
+/** Stores a pending invitation and returns the raw token the invitee would use. */
+async function insertInvitation(
+  input: InsertInvitationInput
+): Promise<{ email: string; id: string; token: string }> {
+  const token = createInvitationToken()
+  const id = crypto.randomUUID()
+  const inserted = await createWorkspaceInvitation({
+    email: input.email.toLowerCase(),
+    expiresAt: input.expiresAt ?? new Date(Date.now() + 60_000),
+    id,
+    invitedByUserId: input.invitedByUserId,
+    role: input.role ?? 'member',
+    tokenHash: hashInvitationToken(token),
+    workspaceId: input.workspaceId,
+  })
+
+  if (!inserted) {
+    throw new Error('Invitation could not be stored.')
+  }
+
+  return { email: input.email.toLowerCase(), id, token }
+}
 
 /** True when compose Postgres is up and the current database is exchange. */
 async function postgresIsExchange(): Promise<boolean> {

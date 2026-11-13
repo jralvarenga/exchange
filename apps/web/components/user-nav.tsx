@@ -57,7 +57,7 @@ export function UserNav({ user, workspace }: Props) {
       return
     }
 
-    void switcher.switchConnection(connection)
+    void switcher.switchConnection(connection, workspace.id)
   }
 
   /** Opens another workspace the user belongs to. */
@@ -188,7 +188,7 @@ export function UserNav({ user, workspace }: Props) {
         keepLabel="Stay here"
         onConfirm={() => {
           if (confirmingLive) {
-            void switcher.switchConnection(confirmingLive)
+            void switcher.switchConnection(confirmingLive, workspace.id)
           }
 
           setConfirmingLive(undefined)

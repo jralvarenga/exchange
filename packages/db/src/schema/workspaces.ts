@@ -13,8 +13,9 @@ import { alpacaConnections } from './alpaca-connections'
 import { users } from './auth'
 
 /**
- * A shared trading setup. Every user gets one on sign-up and can join others.
- * The default connection is what members trade with until they pick another.
+ * A shared trading setup someone creates or is invited into. Sign-up does not
+ * create one; onboarding does. The default connection is what members trade
+ * with until they pick another.
  */
 export const workspaces = pgTable('workspaces', {
   id: text().primaryKey(),

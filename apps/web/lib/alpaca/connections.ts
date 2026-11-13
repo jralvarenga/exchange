@@ -5,10 +5,11 @@ import type {
   ConnectionActor,
 } from '@workspace/db/queries/activity'
 import {
+  type AlpacaConnectionPublicRow,
   type AlpacaConnectionRow,
   findAlpacaConnection,
   insertAlpacaConnection,
-  listAlpacaConnections,
+  listAlpacaConnectionPublicRows,
   markAlpacaConnectionInvalid,
   renameAlpacaConnection,
   replaceAlpacaConnectionKeys,
@@ -364,11 +365,15 @@ export async function markConnectionInvalid(
   })
 }
 
-/** Lists masked connection metadata for a workspace. Secrets stay on the server. */
+/**
+ * Lists masked connection metadata for a workspace. Ciphertext is never
+ * selected. The shell only uses id, name, environment and status; the Account
+ * page shows `keyIdMasked` built from the stored last four characters.
+ */
 export async function listMaskedConnections(
   workspaceId: string
 ): Promise<MaskedConnection[]> {
-  const rows = await listAlpacaConnections(workspaceId)
+  const rows = await listAlpacaConnectionPublicRows(workspaceId)
 
   return rows.flatMap((row) => {
     const environment = alpacaEnvironmentSchema.safeParse(row.environment)
@@ -378,15 +383,7 @@ export async function listMaskedConnections(
       return []
     }
 
-    let keyId: string | undefined
-
-    try {
-      keyId = decryptConnection(row).apiKeyId
-    } catch {
-      keyId = undefined
-    }
-
-    return [toMaskedConnection(row, keyId)]
+    return [toMaskedConnection(row)]
   })
 }
 
@@ -559,8 +556,8 @@ function decryptField(input: DecryptFieldInput): string {
 
 /** Builds the only connection shape allowed to leave the server. */
 function toMaskedConnection(
-  row: AlpacaConnectionRow,
-  keyId: string | undefined
+  row: AlpacaConnectionPublicRow | AlpacaConnectionRow,
+  keyId?: string
 ): MaskedConnection {
   return maskedConnectionSchema.parse({
     environment: row.environment,

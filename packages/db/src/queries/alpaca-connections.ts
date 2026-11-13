@@ -105,12 +105,43 @@ export async function findAlpacaConnection(
   return row
 }
 
-/** Lists a workspace's connections, oldest first. */
+/** Lists a workspace's connections, oldest first. Includes ciphertext. */
 export async function listAlpacaConnections(
   workspaceId: string
 ): Promise<AlpacaConnectionRow[]> {
   return db
     .select()
+    .from(alpacaConnections)
+    .where(eq(alpacaConnections.workspaceId, workspaceId))
+    .orderBy(asc(alpacaConnections.createdAt))
+}
+
+/** Connection fields that can leave the database without exposing keys. */
+export type AlpacaConnectionPublicRow = {
+  environment: string
+  id: string
+  keyIdLast4: string
+  lastVerifiedAt: Date | null
+  name: string
+  status: string
+}
+
+/**
+ * Lists a workspace's connections without ciphertext. Use this for any path
+ * that only needs names, status and a key mask.
+ */
+export async function listAlpacaConnectionPublicRows(
+  workspaceId: string
+): Promise<AlpacaConnectionPublicRow[]> {
+  return db
+    .select({
+      environment: alpacaConnections.environment,
+      id: alpacaConnections.id,
+      keyIdLast4: alpacaConnections.keyIdLast4,
+      lastVerifiedAt: alpacaConnections.lastVerifiedAt,
+      name: alpacaConnections.name,
+      status: alpacaConnections.status,
+    })
     .from(alpacaConnections)
     .where(eq(alpacaConnections.workspaceId, workspaceId))
     .orderBy(asc(alpacaConnections.createdAt))

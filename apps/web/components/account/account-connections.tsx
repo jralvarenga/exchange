@@ -25,6 +25,7 @@ interface Props {
   canTest: boolean
   connections: MaskedConnection[]
   defaultConnectionId: string | null
+  workspaceId: string
 }
 
 /** The workspace's named Alpaca connections and which one this member trades with. */
@@ -34,6 +35,7 @@ export function AccountConnections({
   canTest,
   connections,
   defaultConnectionId,
+  workspaceId,
 }: Props) {
   const router = useRouter()
   const [adding, setAdding] = useState(connections.length === 0 && canManage)
@@ -89,18 +91,22 @@ export function AccountConnections({
               key={connection.id}
               onMakeDefault={async () => {
                 settle(
-                  await setDefaultConnectionAction(connection.id),
+                  await setDefaultConnectionAction(connection.id, workspaceId),
                   `${connection.name} is the default`
                 )
               }}
               onRemove={async () =>
                 settle(
-                  await removeConnectionAction(connection.id),
+                  await removeConnectionAction(connection.id, workspaceId),
                   `${connection.name} removed`
                 )
               }
               onRename={async (name) => {
-                const result = await renameConnectionAction(connection.id, name)
+                const result = await renameConnectionAction(
+                  connection.id,
+                  name,
+                  workspaceId
+                )
 
                 if (!result.message) {
                   showSuccessToast({ title: 'Connection renamed' })
@@ -112,16 +118,17 @@ export function AccountConnections({
               onSaved={handleSaved}
               onTest={async () => {
                 settle(
-                  await testConnectionAction(connection.id),
+                  await testConnectionAction(connection.id, workspaceId),
                   `${connection.name} connected`
                 )
               }}
               onUse={async () => {
                 settle(
-                  await switchConnectionAction(connection.id),
+                  await switchConnectionAction(connection.id, workspaceId),
                   `Using ${connection.name}`
                 )
               }}
+              workspaceId={workspaceId}
             />
           ))}
         </ul>
@@ -136,6 +143,7 @@ export function AccountConnections({
         <ConnectionForm
           onCancel={connections.length > 0 ? () => setAdding(false) : undefined}
           onSaved={handleSaved}
+          workspaceId={workspaceId}
         />
       ) : null}
       {canManage && !adding ? (

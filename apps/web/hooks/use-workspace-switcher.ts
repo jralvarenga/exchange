@@ -19,7 +19,10 @@ interface SwitchWorkspaceOptions {
 
 interface UseWorkspaceSwitcherResult {
   pending: boolean
-  switchConnection: (connection: SwitchTarget) => Promise<void>
+  switchConnection: (
+    connection: SwitchTarget,
+    workspaceId: string
+  ) => Promise<void>
   switchWorkspace: (
     workspace: SwitchTarget,
     options?: SwitchWorkspaceOptions
@@ -63,9 +66,9 @@ export function useWorkspaceSwitcher(): UseWorkspaceSwitcherResult {
 
   return {
     pending,
-    switchConnection: (connection) =>
+    switchConnection: (connection, workspaceId) =>
       run(
-        () => switchConnectionAction(connection.id),
+        () => switchConnectionAction(connection.id, workspaceId),
         `Using ${connection.name}`
       ),
     switchWorkspace: (workspace, options) =>

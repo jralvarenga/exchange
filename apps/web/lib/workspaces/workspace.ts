@@ -45,6 +45,10 @@ export class NoWorkspaceError extends Error {
   }
 }
 
+/** Shown when a form was rendered for a workspace that is no longer active. */
+export const STALE_WORKSPACE_MESSAGE =
+  'You switched workspaces in another tab. Refresh and try again.'
+
 /**
  * Loads the user's active workspace. A stale active workspace falls back to
  * the oldest membership. Throws `NoWorkspaceError` when there is none: a new
@@ -96,6 +100,20 @@ const loadActiveWorkspace = cache(async function loadActiveWorkspace(
     workspaceName: active.workspaceName,
   }
 })
+
+/**
+ * Loads the active workspace only when it is the one the page was rendered
+ * for. Another tab may have switched workspaces since, and acting anyway would
+ * change a workspace the user is not looking at.
+ */
+export async function resolveExpectedWorkspace(
+  user: WorkspaceUser,
+  expectedWorkspaceId: unknown
+): Promise<ActiveWorkspace | undefined> {
+  const workspace = await resolveActiveWorkspace(user)
+
+  return workspace.workspaceId === expectedWorkspaceId ? workspace : undefined
+}
 
 /** Throws unless the user can manage the workspace: an owner or an admin. */
 export function assertWorkspaceManager(workspace: ActiveWorkspace): void {

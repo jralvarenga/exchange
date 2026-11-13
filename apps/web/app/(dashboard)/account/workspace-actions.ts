@@ -38,8 +38,9 @@ import {
   canRemoveMember,
 } from '@/lib/workspaces/permissions'
 import {
-  type ActiveWorkspace,
   resolveActiveWorkspace,
+  resolveExpectedWorkspace,
+  STALE_WORKSPACE_MESSAGE,
   workspaceActor,
 } from '@/lib/workspaces/workspace'
 
@@ -56,8 +57,7 @@ const OWNER_ONLY_MESSAGE = 'Only workspace owners and admins can do that.'
 const OWNER_ROLE_MESSAGE =
   'Only an owner can give, change or remove the owner role.'
 const LAST_OWNER_MESSAGE = 'Make another member an owner first.'
-const STALE_MESSAGE =
-  'You switched workspaces in another tab. Refresh and try again.'
+const STALE_MESSAGE = STALE_WORKSPACE_MESSAGE
 
 /** Switches the workspace the dashboard reads from. */
 export async function switchWorkspaceAction(
@@ -619,18 +619,4 @@ async function joinInvitation(
   })
   revalidatePath('/', 'layout')
   redirect('/')
-}
-
-/**
- * Loads the active workspace only when it is the one the page was rendered
- * for. Another tab may have switched workspaces since, and acting anyway would
- * change a workspace the user is not looking at.
- */
-async function resolveExpectedWorkspace(
-  user: { id: string; name: string },
-  expectedWorkspaceId: unknown
-): Promise<ActiveWorkspace | undefined> {
-  const workspace = await resolveActiveWorkspace(user)
-
-  return workspace.workspaceId === expectedWorkspaceId ? workspace : undefined
 }
