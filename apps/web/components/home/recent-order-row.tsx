@@ -1,9 +1,12 @@
+'use client'
+
 import { cn } from '@workspace/ui/lib/utils'
 import Link from 'next/link'
 
 import { AssetIcon } from '@/components/assets/asset-icon'
 import { CancelOrderDialog } from '@/components/home/cancel-order-dialog'
 import { OrderStatusBadge } from '@/components/home/order-status-badge'
+import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { getActivityAssetClass } from '@/lib/activity/format-activity'
 import type { AccountOrder } from '@/lib/alpaca/schemas'
 import { formatOrderAmount, formatOrderTime } from '@/lib/orders/format'
@@ -20,13 +23,15 @@ export function RecentOrderRow({ order }: Props) {
   const status = getOrderStatus(order.status)
   const type = order.type.replaceAll('_', ' ')
   const isBuy = order.side === 'buy'
+  const { canTrade } = useOrderTicket()
+  const cancelable = status.isCancelable && canTrade
 
   return (
     <li
       className={cn(
         'group relative -mx-3 grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-2xl px-3 py-3 transition-colors',
         'hover:bg-muted has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring',
-        status.isCancelable && 'grid-cols-[auto_1fr_auto_auto]'
+        cancelable && 'grid-cols-[auto_1fr_auto_auto]'
       )}
     >
       <AssetIcon
@@ -59,7 +64,7 @@ export function RecentOrderRow({ order }: Props) {
         <span className="font-bold text-lg">{formatOrderAmount(order)}</span>
         <OrderStatusBadge status={status} />
       </div>
-      {status.isCancelable ? <CancelOrderDialog order={order} /> : null}
+      {cancelable ? <CancelOrderDialog order={order} /> : null}
     </li>
   )
 }

@@ -1,11 +1,13 @@
 'use client'
 
 import { Switch } from '@workspace/ui/components/switch'
+import { cn } from '@workspace/ui/lib/utils'
 import { useId, useState } from 'react'
 
 interface Props {
   checked: boolean
   description: string
+  disabled?: boolean
   label: string
   onCheckedChange: (checked: boolean) => Promise<void>
 }
@@ -14,6 +16,7 @@ interface Props {
 export function TradingSettingSwitch({
   checked,
   description,
+  disabled = false,
   label,
   onCheckedChange,
 }: Props) {
@@ -34,7 +37,10 @@ export function TradingSettingSwitch({
   return (
     <li>
       <label
-        className="-mx-3 flex min-h-20 cursor-pointer items-center justify-between gap-6 rounded-2xl px-3 py-4 transition-colors hover:bg-muted/50"
+        className={cn(
+          '-mx-3 flex min-h-20 items-center justify-between gap-6 rounded-2xl px-3 py-4 transition-colors',
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-muted/50'
+        )}
         htmlFor={`${id}-switch`}
       >
         <span className="flex min-w-0 flex-col">
@@ -53,6 +59,7 @@ export function TradingSettingSwitch({
             aria-busy={pending !== undefined}
             aria-describedby={`${id}-description`}
             checked={pending ?? checked}
+            disabled={disabled}
             id={`${id}-switch`}
             onCheckedChange={(next) => {
               if (pending === undefined) {

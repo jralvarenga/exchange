@@ -6,6 +6,7 @@ import { PillGroup, type PillOption } from '@/components/pill-group'
 
 interface Props<T extends string> {
   description: string
+  disabled?: boolean
   label: string
   onChange: (value: T) => Promise<void>
   options: PillOption<T>[]
@@ -15,6 +16,7 @@ interface Props<T extends string> {
 /** A trading setting with a few exclusive values that saves on selection. */
 export function TradingSettingChoice<T extends string>({
   description,
+  disabled = false,
   label,
   onChange,
   options,
@@ -51,6 +53,7 @@ export function TradingSettingChoice<T extends string>({
         className="-ml-3 flex flex-wrap items-center gap-3"
       >
         <PillGroup
+          disabled={disabled}
           label={label}
           onChange={(next) => void handleChange(next)}
           options={options}

@@ -17,6 +17,7 @@ import { useMemo, useRef, useState } from 'react'
 import { TextMorph } from 'torph/react'
 
 import { AssetCombobox } from '@/components/assets/asset-combobox'
+import { LiveTradingLocked } from '@/components/live-trading-locked'
 import { TicketAdvanced } from '@/components/order-ticket/ticket-advanced'
 import { TicketContract } from '@/components/order-ticket/ticket-contract'
 import { TicketField } from '@/components/order-ticket/ticket-field'
@@ -71,6 +72,7 @@ interface Props {
 /** Renders the same asset-aware order form in the dock, sheet, drawer, and Trade page. */
 export function OrderTicket({ stickyFooter = true }: Props) {
   const {
+    canTrade,
     clearOrderMessages,
     draft,
     environment,
@@ -204,6 +206,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
+        if (!canTrade) return
         clearOrderMessages()
         setAttempted(true)
         if (choosingContract || !draft.asset || !result.success) {
@@ -589,21 +592,28 @@ export function OrderTicket({ stickyFooter = true }: Props) {
               choosingContract ||
               !draft.asset ||
               isSubmitting ||
-              blocked
+              blocked ||
+              !canTrade
             }
             type="submit"
           >
             {isSubmitting
               ? 'Submitting order…'
-              : choosingContract
-                ? 'Select a contract'
-                : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
+              : !canTrade
+                ? 'Owners only on live'
+                : choosingContract
+                  ? 'Select a contract'
+                  : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
           </Button>
-          <p className="text-center text-muted-foreground">
-            {environment === 'paper'
-              ? 'Simulated trading. No real money moves.'
-              : 'Live trading. This order uses real money.'}
-          </p>
+          {canTrade ? (
+            <p className="text-center text-muted-foreground">
+              {environment === 'paper'
+                ? 'Simulated trading. No real money moves.'
+                : 'Live trading. This order uses real money.'}
+            </p>
+          ) : (
+            <LiveTradingLocked className="justify-center text-center" />
+          )}
         </div>
       </fieldset>
     </form>

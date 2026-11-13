@@ -4,9 +4,11 @@ import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
 import { TradingSettingChoice } from '@/components/account/trading-setting-choice'
 import { TradingSettingSwitch } from '@/components/account/trading-setting-switch'
 import { TradingSettingsFallback } from '@/components/account/trading-settings-fallback'
+import { LiveTradingLocked } from '@/components/live-trading-locked'
 import type { PillOption } from '@/components/pill-group'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
+import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useAccountConfigurations } from '@/hooks/use-account-configurations'
 import { useAccountOverview } from '@/hooks/use-account-overview'
 import { useUpdateAccountConfigurations } from '@/hooks/use-update-account-configurations'
@@ -49,6 +51,8 @@ export function TradingSettings({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
   const update = useUpdateAccountConfigurations()
   const approvedLevel = overview.data?.optionsApprovedLevel
+  // Members cannot change a live account's trading rules.
+  const { canTrade } = useOrderTicket()
 
   /** Saves one change and names it in a toast, whatever the outcome. */
   async function save(options: SaveOptions): Promise<void> {
@@ -81,127 +85,140 @@ export function TradingSettings({ ready }: Props) {
           onRetry={() => void configurations.refetch()}
         />
       ) : (
-        <ul className="flex flex-col divide-y divide-border border-border border-y">
-          <TradingSettingSwitch
-            checked={configurations.data.suspendTrade}
-            description="Blocks new orders until you turn it back off."
-            label="Pause trading"
-            onCheckedChange={(checked) =>
-              save({
-                changes: { suspendTrade: checked },
-                name: 'Pause trading',
-                success: checked ? 'Trading paused' : 'Trading resumed',
-              })
-            }
-          />
-          <TradingSettingSwitch
-            checked={!configurations.data.noShorting}
-            description="Off keeps the account long only."
-            label="Short selling"
-            onCheckedChange={(checked) =>
-              save({
-                changes: { noShorting: !checked },
-                name: 'Short selling',
-                success: checked
-                  ? 'Short selling turned on'
-                  : 'Short selling turned off',
-              })
-            }
-          />
-          <TradingSettingSwitch
-            checked={configurations.data.fractionalTrading}
-            description="Trade dollar amounts and parts of a share."
-            label="Fractional shares"
-            onCheckedChange={(checked) =>
-              save({
-                changes: { fractionalTrading: checked },
-                name: 'Fractional shares',
-                success: checked
-                  ? 'Fractional shares turned on'
-                  : 'Fractional shares turned off',
-              })
-            }
-          />
-          <TradingSettingSwitch
-            checked={configurations.data.tradeConfirmEmail === 'all'}
-            description="Alpaca emails you each time an order fills."
-            label="Trade confirmation emails"
-            onCheckedChange={(checked) =>
-              save({
-                changes: { tradeConfirmEmail: checked ? 'all' : 'none' },
-                name: 'Trade confirmation emails',
-                success: checked
-                  ? 'Trade emails turned on'
-                  : 'Trade emails turned off',
-              })
-            }
-          />
-          <TradingSettingChoice
-            description="1× trades with cash only. 4× applies to day trades."
-            label="Maximum margin"
-            onChange={(value) =>
-              save({
-                changes: { maxMarginMultiplier: value },
-                name: 'Maximum margin',
-                success: `Maximum margin set to ${value}×`,
-              })
-            }
-            options={marginOptions}
-            value={configurations.data.maxMarginMultiplier}
-          />
-          <TradingSettingChoice
-            description={
-              approvedLevel === undefined
-                ? 'Caps the option strategies you can place.'
-                : `Caps the option strategies you can place. Alpaca approved level ${approvedLevel}.`
-            }
-            label="Options level limit"
-            onChange={(value) =>
-              save({
-                changes: { maxOptionsTradingLevel: Number(value) },
-                name: 'Options level limit',
-                success:
-                  value === '0'
-                    ? 'Options trading turned off'
-                    : `Options limit set to level ${value}`,
-              })
-            }
-            options={optionsLevelOptions.filter(
-              (option) =>
-                approvedLevel === undefined ||
-                Number(option.value) <= approvedLevel
-            )}
-            value={
-              String(
-                configurations.data.maxOptionsTradingLevel ?? approvedLevel ?? 0
-              ) as OptionsLevel
-            }
-          />
-          <li className="flex min-h-20 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="flex min-w-0 flex-col">
-              <p className="font-medium">Day trade buying power</p>
-              <p className="text-muted-foreground">
-                When Alpaca checks day-trade buying power. Set by Alpaca.
-              </p>
-            </div>
-            <p className="shrink-0 font-medium sm:text-right">
-              {getDayTradeCheckLabel(
-                configurations.data.dayTradeBuyingPowerCheck
+        <>
+          {canTrade ? null : <LiveTradingLocked />}
+          <ul className="flex flex-col divide-y divide-border border-border border-y">
+            <TradingSettingSwitch
+              disabled={!canTrade}
+              checked={configurations.data.suspendTrade}
+              description="Blocks new orders until you turn it back off."
+              label="Pause trading"
+              onCheckedChange={(checked) =>
+                save({
+                  changes: { suspendTrade: checked },
+                  name: 'Pause trading',
+                  success: checked ? 'Trading paused' : 'Trading resumed',
+                })
+              }
+            />
+            <TradingSettingSwitch
+              disabled={!canTrade}
+              checked={!configurations.data.noShorting}
+              description="Off keeps the account long only."
+              label="Short selling"
+              onCheckedChange={(checked) =>
+                save({
+                  changes: { noShorting: !checked },
+                  name: 'Short selling',
+                  success: checked
+                    ? 'Short selling turned on'
+                    : 'Short selling turned off',
+                })
+              }
+            />
+            <TradingSettingSwitch
+              disabled={!canTrade}
+              checked={configurations.data.fractionalTrading}
+              description="Trade dollar amounts and parts of a share."
+              label="Fractional shares"
+              onCheckedChange={(checked) =>
+                save({
+                  changes: { fractionalTrading: checked },
+                  name: 'Fractional shares',
+                  success: checked
+                    ? 'Fractional shares turned on'
+                    : 'Fractional shares turned off',
+                })
+              }
+            />
+            <TradingSettingSwitch
+              disabled={!canTrade}
+              checked={configurations.data.tradeConfirmEmail === 'all'}
+              description="Alpaca emails you each time an order fills."
+              label="Trade confirmation emails"
+              onCheckedChange={(checked) =>
+                save({
+                  changes: { tradeConfirmEmail: checked ? 'all' : 'none' },
+                  name: 'Trade confirmation emails',
+                  success: checked
+                    ? 'Trade emails turned on'
+                    : 'Trade emails turned off',
+                })
+              }
+            />
+            <TradingSettingChoice
+              disabled={!canTrade}
+              description="1× trades with cash only. 4× applies to day trades."
+              label="Maximum margin"
+              onChange={(value) =>
+                save({
+                  changes: { maxMarginMultiplier: value },
+                  name: 'Maximum margin',
+                  success: `Maximum margin set to ${value}×`,
+                })
+              }
+              options={marginOptions}
+              value={configurations.data.maxMarginMultiplier}
+            />
+            <TradingSettingChoice
+              disabled={!canTrade}
+              description={
+                approvedLevel === undefined
+                  ? 'Caps the option strategies you can place.'
+                  : `Caps the option strategies you can place. Alpaca approved level ${approvedLevel}.`
+              }
+              label="Options level limit"
+              onChange={(value) =>
+                save({
+                  changes: { maxOptionsTradingLevel: Number(value) },
+                  name: 'Options level limit',
+                  success:
+                    value === '0'
+                      ? 'Options trading turned off'
+                      : `Options limit set to level ${value}`,
+                })
+              }
+              options={optionsLevelOptions.filter(
+                (option) =>
+                  approvedLevel === undefined ||
+                  Number(option.value) <= approvedLevel
               )}
-            </p>
-          </li>
-          <li className="flex min-h-20 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div className="flex min-w-0 flex-col">
-              <p className="font-medium">Pattern day trader check</p>
-              <p className="text-muted-foreground">
-                When Alpaca applies pattern day trader rules. Set by Alpaca.
+              value={
+                String(
+                  configurations.data.maxOptionsTradingLevel ??
+                    approvedLevel ??
+                    0
+                ) as OptionsLevel
+              }
+            />
+            <li className="flex min-h-20 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="flex min-w-0 flex-col">
+                <p className="font-medium">Day trade buying power</p>
+                <p className="text-muted-foreground">
+                  When Alpaca checks day-trade buying power. Set by Alpaca.
+                </p>
+              </div>
+              <p className="shrink-0 font-medium sm:text-right">
+                {getDayTradeCheckLabel(
+                  configurations.data.dayTradeBuyingPowerCheck
+                )}
               </p>
-            </div>
-            <p className="shrink-0 font-medium sm:text-right">
-              {getDayTradeCheckLabel(configurations.data.patternDayTraderCheck)}
-            </p>
-          </li>
-        </ul>
+            </li>
+            <li className="flex min-h-20 flex-col gap-1 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="flex min-w-0 flex-col">
+                <p className="font-medium">Pattern day trader check</p>
+                <p className="text-muted-foreground">
+                  When Alpaca applies pattern day trader rules. Set by Alpaca.
+                </p>
+              </div>
+              <p className="shrink-0 font-medium sm:text-right">
+                {getDayTradeCheckLabel(
+                  configurations.data.patternDayTraderCheck
+                )}
+              </p>
+            </li>
+          </ul>
+        </>
       )}
     </section>
   )

@@ -1,6 +1,7 @@
 import { AppShell } from '@/components/app-shell'
 import { CredentialsGate } from '@/components/credentials/credentials-gate'
 import { requireSession } from '@/lib/auth/require-session'
+import { canTrade } from '@/lib/workspaces/permissions'
 import { loadWorkspace } from '@/lib/workspaces/shell'
 
 interface Props {
@@ -15,6 +16,7 @@ export default async function DashboardLayout({ children }: Props) {
 
   return (
     <AppShell
+      canTrade={canTrade({ environment, role: shell.role })}
       environment={environment}
       user={{
         email: session.user.email,

@@ -29,6 +29,8 @@ import type {
 } from '@/models/order-ticket/ticket'
 
 export interface TicketContextValue {
+  /** False for a member on a live connection: only owners trade live. */
+  canTrade: boolean
   clearOrderMessages: () => void
   closeTicket: () => void
   draft: TicketDraft
@@ -45,6 +47,7 @@ export interface TicketContextValue {
 }
 
 interface Props {
+  canTrade: boolean
   children: ReactNode
   environment: 'live' | 'paper'
 }
@@ -52,7 +55,11 @@ interface Props {
 export const OrderTicketContext = createContext<TicketContextValue | null>(null)
 
 /** Shares one persistent draft between every ticket placement and entry point. */
-export function OrderTicketProvider({ children, environment }: Props) {
+export function OrderTicketProvider({
+  canTrade,
+  children,
+  environment,
+}: Props) {
   const [draft, setDraft] = useState(createTicketDraft)
   const [isOpen, setIsOpen] = useState(false)
   const [isResolving, setIsResolving] = useState(false)
@@ -213,6 +220,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
   return (
     <OrderTicketContext
       value={{
+        canTrade,
         clearOrderMessages,
         closeTicket,
         draft,

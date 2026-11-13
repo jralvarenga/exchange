@@ -12,6 +12,7 @@ import {
 import { useState } from 'react'
 
 import { formatAssetQuantity } from '@/components/asset-detail/utils'
+import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useClosePosition } from '@/hooks/use-close-position'
 import type { PortfolioPosition } from '@/lib/alpaca/schemas'
 import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
@@ -25,6 +26,7 @@ export function ClosePositionDialog({ position }: Props) {
   const [open, setOpen] = useState(false)
   const closePosition = useClosePosition()
   const quantity = formatAssetQuantity(Math.abs(position.quantity))
+  const { canTrade } = useOrderTicket()
 
   /** Closes the position and dismisses the dialog once Alpaca accepts the order. */
   async function handleConfirm(): Promise<void> {
@@ -44,6 +46,11 @@ export function ClosePositionDialog({ position }: Props) {
         title: 'Not closed',
       })
     }
+  }
+
+  // Members cannot close positions on a live connection.
+  if (!canTrade) {
+    return null
   }
 
   return (
