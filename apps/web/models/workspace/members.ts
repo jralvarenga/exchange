@@ -1,9 +1,11 @@
+import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
+
 /** A workspace member as the account page shows them. */
 export type WorkspaceMember = {
   email: string
   image: string | null
   name: string
-  role: 'member' | 'owner'
+  role: WorkspaceRole
   userId: string
 }
 
@@ -12,5 +14,5 @@ export type PendingInvitation = {
   email: string
   expiresAt: string
   id: string
-  role: 'member' | 'owner'
+  role: WorkspaceRole
 }

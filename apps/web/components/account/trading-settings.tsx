@@ -4,10 +4,10 @@ import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
 import { TradingSettingChoice } from '@/components/account/trading-setting-choice'
 import { TradingSettingSwitch } from '@/components/account/trading-setting-switch'
 import { TradingSettingsFallback } from '@/components/account/trading-settings-fallback'
-import { LiveTradingLocked } from '@/components/live-trading-locked'
 import type { PillOption } from '@/components/pill-group'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
+import { TradingLocked } from '@/components/trading-locked'
 import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useAccountConfigurations } from '@/hooks/use-account-configurations'
 import { useAccountOverview } from '@/hooks/use-account-overview'
@@ -51,7 +51,7 @@ export function TradingSettings({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
   const update = useUpdateAccountConfigurations()
   const approvedLevel = overview.data?.optionsApprovedLevel
-  // Members cannot change a live account's trading rules.
+  // Viewers cannot change the account's trading rules.
   const { canTrade } = useOrderTicket()
 
   /** Saves one change and names it in a toast, whatever the outcome. */
@@ -86,7 +86,7 @@ export function TradingSettings({ ready }: Props) {
         />
       ) : (
         <>
-          {canTrade ? null : <LiveTradingLocked />}
+          {canTrade ? null : <TradingLocked />}
           <ul className="flex flex-col divide-y divide-border border-border border-y">
             <TradingSettingSwitch
               disabled={!canTrade}

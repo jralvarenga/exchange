@@ -17,12 +17,12 @@ import { useMemo, useRef, useState } from 'react'
 import { TextMorph } from 'torph/react'
 
 import { AssetCombobox } from '@/components/assets/asset-combobox'
-import { LiveTradingLocked } from '@/components/live-trading-locked'
 import { TicketAdvanced } from '@/components/order-ticket/ticket-advanced'
 import { TicketContract } from '@/components/order-ticket/ticket-contract'
 import { TicketField } from '@/components/order-ticket/ticket-field'
 import { TicketPills } from '@/components/order-ticket/ticket-pills'
 import { TicketSelect } from '@/components/order-ticket/ticket-select'
+import { TradingLocked } from '@/components/trading-locked'
 import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useAccountOverview } from '@/hooks/use-account-overview'
 import { useMarketClock } from '@/hooks/use-market-clock'
@@ -600,7 +600,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
             {isSubmitting
               ? 'Submitting order…'
               : !canTrade
-                ? 'Owners only on live'
+                ? 'View only'
                 : choosingContract
                   ? 'Select a contract'
                   : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
@@ -612,7 +612,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
                 : 'Live trading. This order uses real money.'}
             </p>
           ) : (
-            <LiveTradingLocked className="justify-center text-center" />
+            <TradingLocked />
           )}
         </div>
       </fieldset>

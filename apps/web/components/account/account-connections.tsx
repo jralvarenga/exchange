@@ -21,6 +21,7 @@ import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
 interface Props {
   activeConnectionId: string | null
   canManage: boolean
+  canTest: boolean
   connections: MaskedConnection[]
   defaultConnectionId: string | null
 }
@@ -29,6 +30,7 @@ interface Props {
 export function AccountConnections({
   activeConnectionId,
   canManage,
+  canTest,
   connections,
   defaultConnectionId,
 }: Props) {
@@ -72,7 +74,9 @@ export function AccountConnections({
         <p className="text-muted-foreground">
           {canManage
             ? 'Each connection is a named Alpaca key pair. Everyone here trades with the default until they pick another.'
-            : 'Each connection is a named Alpaca key pair. You can trade on paper connections; only owners trade live and change keys.'}
+            : canTest
+              ? 'Each connection is a named Alpaca key pair. You can trade on any of them; only owners add or change keys.'
+              : 'Each connection is a named Alpaca key pair. Pick the one to look at; viewers cannot trade.'}
         </p>
       </SectionHeader>
       {connections.length > 0 ? (
@@ -81,6 +85,7 @@ export function AccountConnections({
             <ConnectionRow
               active={connection.id === activeConnectionId}
               canManage={canManage}
+              canTest={canTest}
               connection={connection}
               isDefault={connection.id === defaultConnectionId}
               key={connection.id}

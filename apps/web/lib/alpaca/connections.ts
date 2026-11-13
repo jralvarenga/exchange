@@ -32,9 +32,11 @@ import {
   parseEncryptionKeys,
 } from '@/lib/crypto/secret-box'
 import { env } from '@/lib/env'
+import { canTrade } from '@/lib/workspaces/permissions'
 import {
   type ActiveWorkspace,
   assertWorkspaceOwner,
+  WorkspacePermissionError,
 } from '@/lib/workspaces/workspace'
 
 const connectionStatusSchema = z.enum(['unverified', 'valid', 'invalid'])
@@ -222,10 +224,14 @@ export async function replaceConnectionKeys(
   return toMaskedConnection(updated, keys.keyId)
 }
 
-/** Decrypts a stored key pair, calls Alpaca, and records the result. */
+/** Decrypts a stored key pair, calls Alpaca, and records the result. Not for viewers. */
 export async function testConnection(
   input: TestConnectionInput
 ): Promise<MaskedConnection> {
+  if (!canTrade(input.workspace.role)) {
+    throw new WorkspacePermissionError('Viewers cannot test connections.')
+  }
+
   const row = await requireConnection(input)
   const { apiKeyId, apiSecretKey, environment } = decryptConnection(row)
 

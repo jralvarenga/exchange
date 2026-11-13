@@ -1,23 +1,35 @@
 'use client'
 
+import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 import { Button } from '@workspace/ui/components/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@workspace/ui/components/select'
 import { useState } from 'react'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { UserAvatar } from '@/components/user-avatar'
+import {
+  workspaceRoleLabel,
+  workspaceRoleOptions,
+} from '@/lib/workspaces/roles'
 import type { WorkspaceMember } from '@/models/workspace/members'
 
 interface Props {
   canManage: boolean
   isSelf: boolean
   member: WorkspaceMember
-  onChangeRole: (role: 'member' | 'owner') => Promise<void>
+  onChangeRole: (role: WorkspaceRole) => Promise<void>
   onRemove: () => Promise<boolean>
 }
 
 const actionClassName = 'h-11 rounded-full px-3 text-base'
 
-/** A workspace member with their role and, for owners, role and removal actions. */
+/** A workspace member with their role and, for owners, a role picker and removal. */
 export function MemberRow({
   canManage,
   isSelf,
@@ -60,26 +72,37 @@ export function MemberRow({
             ) : null}
           </p>
           <p className="truncate text-muted-foreground">
-            {member.role === 'owner' ? 'Owner' : 'Member'}
+            {workspaceRoleLabel(member.role)}
             {member.name ? ` · ${member.email}` : null}
           </p>
         </div>
       </div>
       {canManage && !isSelf ? (
         <div className="-ml-3 flex shrink-0 items-center gap-1 sm:ml-0">
-          <Button
-            className={actionClassName}
+          <Select
             disabled={busy}
-            onClick={() => {
-              void run(() =>
-                onChangeRole(member.role === 'owner' ? 'member' : 'owner')
-              )
+            items={workspaceRoleOptions}
+            onValueChange={(next) => {
+              if (next !== null && next !== member.role) {
+                void run(() => onChangeRole(next))
+              }
             }}
-            type="button"
-            variant="ghost"
+            value={member.role}
           >
-            {member.role === 'owner' ? 'Make member' : 'Make owner'}
-          </Button>
+            <SelectTrigger
+              aria-label={`Role of ${label}`}
+              className="h-11 rounded-full px-4 text-base"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {workspaceRoleOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             className={`${actionClassName} text-danger hover:text-danger`}
             disabled={busy}

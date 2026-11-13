@@ -1,6 +1,7 @@
 import {
   listPendingInvitations,
   listWorkspaceMembers,
+  toWorkspaceRole,
 } from '@workspace/db/queries/workspaces'
 
 import { AccountBalances } from '@/components/account/account-balances'
@@ -22,6 +23,7 @@ import { listDepositMethods } from '@/lib/wallet/crypto-wallets'
 import {
   canLeaveWorkspace,
   canManageWorkspace,
+  canTrade,
 } from '@/lib/workspaces/permissions'
 import { loadWorkspace } from '@/lib/workspaces/shell'
 import type {
@@ -62,13 +64,14 @@ export default async function AccountPage({ searchParams }: PageProps) {
     email: invitation.email,
     expiresAt: invitation.expiresAt.toISOString(),
     id: invitation.id,
-    role: invitation.role === 'owner' ? 'owner' : 'member',
+    role: toWorkspaceRole(invitation.role),
   }))
   const ownerCount = members.filter((member) => member.role === 'owner').length
   const connectionsSection = (
     <AccountConnections
       activeConnectionId={active?.id ?? null}
       canManage={canManage}
+      canTest={canTrade(workspace.role)}
       connections={connections}
       defaultConnectionId={workspace.defaultConnectionId}
     />

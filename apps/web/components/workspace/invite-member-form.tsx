@@ -1,5 +1,6 @@
 'use client'
 
+import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 import { Button } from '@workspace/ui/components/button'
 import { Field, FieldLabel } from '@workspace/ui/components/field'
 import {
@@ -10,6 +11,10 @@ import { useActionState, useEffect, useId, useRef, useState } from 'react'
 
 import { inviteMemberAction } from '@/app/(dashboard)/account/workspace-actions'
 import { PillGroup } from '@/components/pill-group'
+import {
+  workspaceRoleDescription,
+  workspaceRoleOptions,
+} from '@/lib/workspaces/roles'
 
 interface Props {
   onInvited: () => void
@@ -17,15 +22,10 @@ interface Props {
   workspaceId: string
 }
 
-const roleOptions = [
-  { label: 'Member', value: 'member' },
-  { label: 'Owner', value: 'owner' },
-] as const
-
-/** Emails a one-week invitation to join the workspace as a member or owner. */
+/** Emails a one-week invitation to join the workspace as an owner, member or viewer. */
 export function InviteMemberForm({ onInvited, workspaceId }: Props) {
   const [state, action, pending] = useActionState(inviteMemberAction, {})
-  const [role, setRole] = useState<'member' | 'owner'>('member')
+  const [role, setRole] = useState<WorkspaceRole>('member')
   const formRef = useRef<HTMLFormElement>(null)
   const handledState = useRef(state)
   const id = useId()
@@ -67,16 +67,12 @@ export function InviteMemberForm({ onInvited, workspaceId }: Props) {
           <PillGroup
             label="Role"
             onChange={setRole}
-            options={[...roleOptions]}
+            options={workspaceRoleOptions}
             value={role}
           />
         </div>
       </div>
-      <p className="text-muted-foreground">
-        {role === 'owner'
-          ? 'Owners trade live and manage connections and members.'
-          : 'Members see every connection and trade on paper.'}
-      </p>
+      <p className="text-muted-foreground">{workspaceRoleDescription(role)}</p>
       {state.message ? (
         <p className="text-destructive" role="alert">
           {state.message}

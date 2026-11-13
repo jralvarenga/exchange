@@ -340,6 +340,42 @@ describe('alpaca connections', () => {
       ).toBe(true)
     }
   )
+
+  integrationTest('lets viewers read but not trade', async () => {
+    const owned = await resolveActiveWorkspace({ id: userB, name: 'User B' })
+    await addConnection({
+      environment: 'paper',
+      fetcher: accountFetcher(200),
+      keyId: 'PKVIEWER0001',
+      name: 'Viewer check',
+      secret: 'secret-viewer01',
+      workspace: owned,
+    })
+    await db
+      .update(workspaceMembers)
+      .set({ role: 'viewer' })
+      .where(
+        and(
+          eq(workspaceMembers.workspaceId, owned.workspaceId),
+          eq(workspaceMembers.userId, userB)
+        )
+      )
+    currentSession = { user: { id: userB, name: 'User B' } }
+    let traded = false
+
+    const read = await createApiResponse(async () => ({ ok: true }))
+    const trade = await createApiResponse(
+      async () => {
+        traded = true
+        return { ok: true }
+      },
+      { trading: true }
+    )
+
+    expect(read.status).toBe(200)
+    expect(trade.status).toBe(403)
+    expect(traded).toBe(false)
+  })
 })
 
 /** True when compose Postgres is up and the current database is exchange. */

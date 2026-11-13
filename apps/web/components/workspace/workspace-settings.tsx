@@ -20,6 +20,7 @@ import { InviteMemberForm } from '@/components/workspace/invite-member-form'
 import { MemberRow } from '@/components/workspace/member-row'
 import { WorkspaceNameForm } from '@/components/workspace/workspace-name-form'
 import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
+import { workspaceRoleNoun } from '@/lib/workspaces/roles'
 import type {
   PendingInvitation,
   WorkspaceMember,
@@ -150,7 +151,7 @@ export function WorkspaceSettings({
             onChangeRole={async (role) => {
               settle(
                 await updateMemberRoleAction(workspaceId, member.userId, role),
-                role === 'owner' ? 'Made an owner' : 'Made a member'
+                `${member.name || member.email} is now ${workspaceRoleNoun(role)}`
               )
             }}
             onRemove={async () =>

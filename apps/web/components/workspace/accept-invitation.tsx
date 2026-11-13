@@ -1,14 +1,19 @@
 'use client'
 
+import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 import { Button } from '@workspace/ui/components/button'
 import { Users } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
 import { acceptInvitationAction } from '@/app/(dashboard)/account/workspace-actions'
+import {
+  workspaceRoleDescription,
+  workspaceRoleNoun,
+} from '@/lib/workspaces/roles'
 
 interface Props {
-  role: 'member' | 'owner'
+  role: WorkspaceRole
   token: string
   workspaceName: string
 }
@@ -44,9 +49,8 @@ export function AcceptInvitation({ role, token, workspaceName }: Props) {
           Join {workspaceName}?
         </h1>
         <p className="text-muted-foreground">
-          {role === 'owner'
-            ? 'As an owner you trade live and manage connections and members.'
-            : 'As a member you see its connections and history, and trade on paper.'}
+          You join as {workspaceRoleNoun(role)}.{' '}
+          {workspaceRoleDescription(role)}
         </p>
       </div>
       {message ? (

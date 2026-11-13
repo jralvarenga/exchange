@@ -29,7 +29,7 @@ import type {
 } from '@/models/order-ticket/ticket'
 
 export interface TicketContextValue {
-  /** False for a member on a live connection: only owners trade live. */
+  /** False for viewers, who can look but not trade. */
   canTrade: boolean
   clearOrderMessages: () => void
   closeTicket: () => void

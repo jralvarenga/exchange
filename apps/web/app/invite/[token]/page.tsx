@@ -1,4 +1,7 @@
-import { findInvitationByTokenHash } from '@workspace/db/queries/workspaces'
+import {
+  findInvitationByTokenHash,
+  toWorkspaceRole,
+} from '@workspace/db/queries/workspaces'
 
 import { AuthPage } from '@/components/login/auth-page'
 import { AcceptInvitation } from '@/components/workspace/accept-invitation'
@@ -46,7 +49,7 @@ export default async function InvitePage({ params }: PageProps) {
   return (
     <AuthPage>
       <AcceptInvitation
-        role={invitation.role === 'owner' ? 'owner' : 'member'}
+        role={toWorkspaceRole(invitation.role)}
         token={token}
         workspaceName={invitation.workspaceName}
       />

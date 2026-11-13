@@ -13,6 +13,8 @@ import {
   renameWorkspace,
   setActiveWorkspace,
   updateMemberRole,
+  type WorkspaceRole,
+  workspaceRoles,
 } from '@workspace/db/queries/workspaces'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -41,7 +43,7 @@ interface WorkspaceActionState {
 
 const workspaceNameSchema = z.string().trim().min(1).max(40)
 const idSchema = z.string().trim().min(1).max(64)
-const roleSchema = z.enum(['owner', 'member'])
+const roleSchema = z.enum(workspaceRoles)
 
 const OWNER_ONLY_MESSAGE = 'Only workspace owners can do that.'
 const LAST_OWNER_MESSAGE = 'Make another member an owner first.'
@@ -275,7 +277,7 @@ export async function revokeInvitationAction(
 export async function updateMemberRoleAction(
   workspaceId: string,
   userId: string,
-  role: 'member' | 'owner'
+  role: WorkspaceRole
 ): Promise<WorkspaceActionState> {
   const session = await requireSession()
   const parsed = z

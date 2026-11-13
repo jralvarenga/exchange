@@ -1,3 +1,4 @@
+import type { WorkspaceRole } from '@workspace/db/queries/workspaces'
 import type { LucideIcon } from 'lucide-react'
 import { CircleUser, House, Wallet } from 'lucide-react'
 
@@ -29,7 +30,7 @@ export type ShellWorkspace = {
   defaultConnectionId: string | null
   id: string
   name: string
-  role: 'member' | 'owner'
+  role: WorkspaceRole
   workspaces: { id: string; name: string }[]
 }
 

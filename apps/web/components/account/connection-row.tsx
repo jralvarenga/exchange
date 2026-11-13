@@ -14,6 +14,8 @@ import type { MaskedConnection } from '@/lib/alpaca/connections'
 interface Props {
   active: boolean
   canManage: boolean
+  /** Viewers cannot test connections. */
+  canTest: boolean
   connection: MaskedConnection
   isDefault: boolean
   onMakeDefault: () => Promise<void>
@@ -32,6 +34,7 @@ const actionClassName = 'h-11 rounded-full px-3 text-base'
 export function ConnectionRow({
   active,
   canManage,
+  canTest,
   connection,
   isDefault,
   onMakeDefault,
@@ -137,17 +140,19 @@ export function ConnectionRow({
               Make default
             </Button>
           ) : null}
-          <Button
-            className={actionClassName}
-            disabled={busy}
-            onClick={() => {
-              void run(onTest)
-            }}
-            type="button"
-            variant="ghost"
-          >
-            Test
-          </Button>
+          {canTest ? (
+            <Button
+              className={actionClassName}
+              disabled={busy}
+              onClick={() => {
+                void run(onTest)
+              }}
+              type="button"
+              variant="ghost"
+            >
+              Test
+            </Button>
+          ) : null}
           {canManage ? (
             <>
               <Button

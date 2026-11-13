@@ -8,7 +8,7 @@ import { OrderTicketProvider } from '@/contexts/order-ticket-context'
 import type { ShellUser, ShellWorkspace } from '@/lib/navigation'
 
 interface Props {
-  /** False for a member on a live connection: only owners trade live. */
+  /** False for viewers, who can look but not trade. */
   canTrade: boolean
   children: ReactNode
   environment: 'live' | 'paper'

@@ -60,7 +60,7 @@ export const workspaceMembers = pgTable(
     index('workspace_members_user_idx').on(table.userId),
     check(
       'workspace_members_role_check',
-      sql`${table.role} in ('owner', 'member')`
+      sql`${table.role} in ('owner', 'member', 'viewer')`
     ),
   ]
 )
@@ -90,7 +90,7 @@ export const workspaceInvitations = pgTable(
     index('workspace_invitations_email_idx').on(table.email),
     check(
       'workspace_invitations_role_check',
-      sql`${table.role} in ('owner', 'member')`
+      sql`${table.role} in ('owner', 'member', 'viewer')`
     ),
   ]
 )

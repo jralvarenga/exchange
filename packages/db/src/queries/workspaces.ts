@@ -9,7 +9,12 @@ import {
   workspaces,
 } from '../schema/workspaces'
 
-export type WorkspaceRole = 'member' | 'owner'
+export const workspaceRoles = ['owner', 'member', 'viewer'] as const
+
+/**
+ * Owners run the workspace, members trade, viewers only look.
+ */
+export type WorkspaceRole = (typeof workspaceRoles)[number]
 
 export type WorkspaceMembershipRow = {
   activeConnectionId: string | null
@@ -222,7 +227,7 @@ export async function listWorkspaceMembers(
 
   return rows.map((row) => ({
     ...row,
-    role: row.role === 'owner' ? 'owner' : 'member',
+    role: toWorkspaceRole(row.role),
   }))
 }
 
@@ -234,7 +239,7 @@ export async function updateMemberRole(
   input: UpdateMemberRoleInput
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
-    if (input.role === 'member' && !(await hasOtherOwner(tx, input))) {
+    if (input.role !== 'owner' && !(await hasOtherOwner(tx, input))) {
       return false
     }
 
@@ -431,9 +436,17 @@ function membershipWhere(input: MembershipIdentity) {
   )
 }
 
-/** Narrows the stored role text to the two known roles. */
+/** Narrows the stored role text to a known role. */
 function toMembershipRow(
   row: Omit<WorkspaceMembershipRow, 'role'> & { role: string }
 ): WorkspaceMembershipRow {
-  return { ...row, role: row.role === 'owner' ? 'owner' : 'member' }
+  return { ...row, role: toWorkspaceRole(row.role) }
+}
+
+/**
+ * Narrows stored role text to a known role. Anything unexpected becomes a
+ * viewer, the role that can change nothing.
+ */
+export function toWorkspaceRole(value: string): WorkspaceRole {
+  return workspaceRoles.find((role) => role === value) ?? 'viewer'
 }

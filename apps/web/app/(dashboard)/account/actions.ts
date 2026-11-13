@@ -406,7 +406,9 @@ function connectionErrorMessage(
   action: 'default' | 'remove' | 'rename' | 'save' | 'switch' | 'test'
 ): string {
   if (error instanceof WorkspacePermissionError) {
-    return 'Only workspace owners can change connections.'
+    return action === 'test'
+      ? error.message
+      : 'Only workspace owners can change connections.'
   }
 
   if (error instanceof ConnectionNameTakenError) {

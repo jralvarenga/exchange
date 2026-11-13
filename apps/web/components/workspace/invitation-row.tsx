@@ -4,6 +4,7 @@ import { Button } from '@workspace/ui/components/button'
 import { useState } from 'react'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { workspaceRoleLabel } from '@/lib/workspaces/roles'
 import type { PendingInvitation } from '@/models/workspace/members'
 
 interface Props {
@@ -40,7 +41,7 @@ export function InvitationRow({ invitation, onRevoke }: Props) {
       <div className="flex min-w-0 flex-col">
         <p className="truncate font-bold text-lg">{invitation.email}</p>
         <p className="text-muted-foreground">
-          {invitation.role === 'owner' ? 'Owner' : 'Member'} · Expires{' '}
+          {workspaceRoleLabel(invitation.role)} · Expires{' '}
           {expiresFormatter.format(new Date(invitation.expiresAt))}
         </p>
       </div>

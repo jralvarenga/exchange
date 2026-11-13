@@ -30,8 +30,8 @@ interface ApiErrorBody {
 interface CreateApiResponseOptions {
   exposeAlpacaMessage?: boolean
   /**
-   * The handler places, changes or closes orders or positions. Members can do
-   * that on paper connections only.
+   * The handler changes the Alpaca account: orders, positions, trading
+   * settings or watchlists. Viewers cannot.
    */
   trading?: boolean
 }
@@ -70,18 +70,12 @@ export async function createApiResponse(
     const workspace = await resolveActiveWorkspace(session.user)
     request = await resolveAlpacaRequestContext(workspace)
 
-    if (
-      options.trading &&
-      !canTrade({
-        environment: request.alpaca.environment,
-        role: workspace.role,
-      })
-    ) {
+    if (options.trading && !canTrade(workspace.role)) {
       return createErrorResponse(
         {
           error: {
-            code: 'LIVE_TRADING_OWNER_ONLY',
-            message: 'Only workspace owners can trade on a live connection.',
+            code: 'VIEWER_READ_ONLY',
+            message: 'Viewers can see this workspace but cannot trade in it.',
           },
         },
         403

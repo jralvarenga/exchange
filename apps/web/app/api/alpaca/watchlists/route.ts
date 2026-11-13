@@ -25,6 +25,6 @@ export async function POST(request: Request): Promise<Response> {
     async function addWatchlist({ alpaca }) {
       return createWatchlist({ ...alpaca, request: watchlist.data })
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

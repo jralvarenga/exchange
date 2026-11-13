@@ -68,7 +68,7 @@ export async function PUT(
         watchlistId: params.data.id,
       })
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }
 
@@ -89,6 +89,6 @@ export async function DELETE(
 
       return { deleted: true }
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }
