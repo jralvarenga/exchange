@@ -12,7 +12,7 @@
     "check": "biome check .",
     "lint": "biome check .",
     "format": "biome check --write --unsafe .",
-    "test": "bun run --filter web test && bun run --filter @workspace/auth test",
+    "test": "bun run --filter web test && bun run --filter @workspace/auth test && bun run --filter @workspace/db test",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {

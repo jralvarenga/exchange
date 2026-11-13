@@ -3,6 +3,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'drizzle-kit'
 
+import { normalizeDatabaseUrl } from './src/utils'
+
 const configDirectory = dirname(fileURLToPath(import.meta.url))
 
 /**
@@ -72,7 +74,7 @@ function readDatabaseUrlFromFile(file: string): string | undefined {
 export default defineConfig({
   casing: 'snake_case',
   dbCredentials: {
-    url: loadDatabaseUrl(),
+    url: normalizeDatabaseUrl(loadDatabaseUrl()),
   },
   dialect: 'postgresql',
   out: './src/migrations',
