@@ -1,6 +1,6 @@
 ---
 import { cn } from '@workspace/ui/lib/utils'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
 
 import AssetLogo from '@/components/asset-logo.astro'
 import Sparkline from '@/components/sparkline.astro'
@@ -13,6 +13,8 @@ interface Props {
 }
 
 const { class: className, ticker } = Astro.props
+const isDown = ticker.change < 0
+const ChangeIcon = isDown ? ArrowDownRight : ArrowUpRight
 ---
 
 <!-- A floating glass tile with an asset's day: change, sparkline, price and holding. -->
@@ -26,9 +28,12 @@ const { class: className, ticker } = Astro.props
       </span>
     </span>
     <span
-      class="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-market-up/10 px-2 py-0.5 font-medium text-market-up text-sm tabular-nums"
+      class={cn(
+        'inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 font-medium text-sm tabular-nums',
+        isDown ? 'bg-market-down/10 text-market-down' : 'bg-market-up/10 text-market-up'
+      )}
     >
-      <ArrowUpRight aria-hidden="true" className="size-3.5" />
+      <ChangeIcon aria-hidden="true" className="size-3.5" />
       {formatSignedPercent({ value: ticker.change })}
     </span>
   </figcaption>
@@ -36,7 +41,7 @@ const { class: className, ticker } = Astro.props
     class="h-14 w-full"
     height={56}
     id={`ticker-${ticker.symbol}`}
-    tone="market-up"
+    tone={isDown ? 'market-down' : 'market-up'}
     values={ticker.series}
   />
   <div class="flex items-baseline justify-between gap-3 tabular-nums">

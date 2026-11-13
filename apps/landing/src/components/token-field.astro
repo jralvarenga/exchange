@@ -72,6 +72,12 @@ const depthClasses = {
       'pointermove',
       (event) => {
         cancelAnimationFrame(frame)
+
+        // Reduced motion can be turned on mid-session; stop the drift then.
+        if (reduceMotion.matches) {
+          return
+        }
+
         frame = requestAnimationFrame(() => {
           const x = (event.clientX / window.innerWidth) * 2 - 1
           const y = (event.clientY / window.innerHeight) * 2 - 1

@@ -41,13 +41,8 @@ const tag =
                   </li>
                 ))
               }
-              <li
-                class="flex size-12 items-center justify-center rounded-full bg-muted font-medium text-muted-foreground ring-3 ring-background"
-              >
-                +2<span class="sr-only"> more members</span>
-              </li>
             </ul>
-            <span class="text-muted-foreground">6 members</span>
+            <span class="text-muted-foreground">{members.length} members</span>
           </div>
           <ul class="flex flex-wrap gap-2">
             {roles.map((role) => <li class={tag}>{role.label}</li>)}

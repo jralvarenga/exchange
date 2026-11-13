@@ -26,18 +26,16 @@ const {
     <Font cssVariable="--font-sans" preload />
     <Font cssVariable="--font-mono" />
     <title>{title}</title>
-    <!-- Applies the theme before paint: the saved choice, else the system's. -->
+    <!--
+      Follows the system theme before paint. The app's saved theme lives in its
+      own origin's storage, so the landing page has no stored choice to read.
+    -->
     <script is:inline>
       ;(() => {
         const query = window.matchMedia('(prefers-color-scheme: dark)')
-        let stored = 'system'
-
-        try {
-          stored = window.localStorage.getItem('theme') ?? 'system'
-        } catch {}
 
         function applyTheme() {
-          const dark = stored === 'dark' || (stored !== 'light' && query.matches)
+          const dark = query.matches
           document.documentElement.classList.toggle('dark', dark)
           document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
         }

@@ -23,8 +23,9 @@ const sizes = {
 ---
 
 <!--
-  A stock or ETF logo as a rounded square, sized like the app's `AssetIcon`. The two-letter mark
-  underneath shows through if the image fails to load.
+  A stock or ETF logo as a rounded square, sized like the app's `AssetIcon`. The image has an
+  opaque fill so transparent logos hide the two-letter mark underneath; if it fails to load, it
+  removes itself and the mark shows.
 -->
 <span
   aria-hidden="true"
@@ -37,10 +38,11 @@ const sizes = {
   {symbol.slice(0, 2).toLowerCase()}
   <img
     alt=""
-    class="absolute inset-0 size-full object-cover"
+    class="absolute inset-0 size-full bg-muted object-cover"
     decoding="async"
     height={sizes[size].pixels / 2}
     loading={eager ? 'eager' : 'lazy'}
+    onerror="this.remove()"
     src={getAssetLogoUrl({ size: sizes[size].pixels, symbol })}
     width={sizes[size].pixels / 2}
   />
