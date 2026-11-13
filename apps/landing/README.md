@@ -1,46 +1,48 @@
-# Astro Starter Kit: Basics
+# Landing
 
-```sh
-npm create astro@latest -- --template basics
-```
+Astro marketing site for Exchange. It is a workspace in the Bun monorepo and
+renders shared components from `@workspace/ui`.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
+## Project structure
 
 ```text
-/
+apps/landing/
 ├── public/
+│   ├── favicon.ico
 │   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
+├── src/
+│   ├── assets/
+│   │   ├── astro.svg
+│   │   └── background.svg
+│   ├── components/
+│   │   └── Welcome.astro
+│   ├── layouts/
+│   │   └── Layout.astro
+│   ├── pages/
+│   │   └── index.astro
+│   └── styles/
+│       └── globals.css
+├── astro.config.mjs
+├── components.json
 └── package.json
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## Commands
 
-## 🧞 Commands
+Install dependencies once from the repository root:
 
-All commands are run from the root of the project, from a terminal:
+```sh
+bun install
+```
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Run the rest from `apps/landing`, or from the root with `bun run --filter landing <script>`:
 
-## 👀 Want to learn more?
+| Command                 | Action                                        |
+| :---------------------- | :-------------------------------------------- |
+| `bun run dev`           | Starts the dev server at `127.0.0.1:4321`     |
+| `bun run build`         | Builds the production site to `./dist/`       |
+| `bun run preview`       | Previews the production build locally         |
+| `bun run typecheck`     | Runs `astro check`                            |
+| `bun run astro -- ...`  | Runs Astro CLI commands, such as `astro add`  |
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+See the [Astro documentation](https://docs.astro.build) for more.
