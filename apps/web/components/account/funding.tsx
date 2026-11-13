@@ -1,6 +1,7 @@
 import { DepositAddressForm } from '@/components/account/deposit-address-form'
 import { DepositPicker } from '@/components/account/deposit-picker'
 import { FundingEmpty } from '@/components/account/funding-empty'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import {
   type DepositMethod,
@@ -15,11 +16,7 @@ interface Props {
 /** Shows where to send stablecoins and lets the user manage those addresses. */
 export function Funding({ methods }: Props) {
   return (
-    <section
-      aria-labelledby="funding-title"
-      className="flex scroll-mt-28 flex-col gap-6"
-      id="funding"
-    >
+    <Section id="funding" titleId="funding-title">
       <SectionHeader id="funding-title" title="Funding">
         <p className="max-w-2xl text-muted-foreground">
           Fund the account by sending USDC or USDT to your Alpaca deposit
@@ -56,6 +53,6 @@ export function Funding({ methods }: Props) {
           </ul>
         </div>
       </div>
-    </section>
+    </Section>
   )
 }

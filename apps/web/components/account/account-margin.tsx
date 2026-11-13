@@ -3,6 +3,7 @@
 import { AccountFact } from '@/components/account/account-fact'
 import { AccountFactsFallback } from '@/components/account/account-facts-fallback'
 import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionStale } from '@/components/section-stale'
 import { SectionUnavailable } from '@/components/section-unavailable'
@@ -26,10 +27,7 @@ export function AccountMargin({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
 
   return (
-    <section
-      aria-labelledby="margin-title"
-      className="flex scroll-mt-28 flex-col gap-4"
-    >
+    <Section titleId="margin-title">
       <SectionHeader id="margin-title" title="Margin" />
       {!ready ? (
         <AccountNeedsKeys label="Margin loads once Alpaca accepts your keys." />
@@ -91,7 +89,7 @@ export function AccountMargin({ ready }: Props) {
           </dl>
         </>
       )}
-    </section>
+    </Section>
   )
 }
 

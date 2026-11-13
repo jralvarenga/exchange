@@ -3,6 +3,7 @@
 import { AccountBalancesFallback } from '@/components/account/account-balances-fallback'
 import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
 import { AccountStat } from '@/components/account/account-stat'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { useAccountOverview } from '@/hooks/use-account-overview'
@@ -19,11 +20,7 @@ export function AccountBalances({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
 
   return (
-    <section
-      aria-labelledby="balances-title"
-      className="flex scroll-mt-28 flex-col gap-4"
-      id="balances"
-    >
+    <Section id="balances" titleId="balances-title">
       <SectionHeader id="balances-title" title="Balances" />
       {!ready ? (
         <AccountNeedsKeys label="Balances load once Alpaca accepts your keys." />
@@ -70,6 +67,6 @@ export function AccountBalances({ ready }: Props) {
           />
         </dl>
       )}
-    </section>
+    </Section>
   )
 }

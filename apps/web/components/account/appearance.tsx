@@ -1,6 +1,7 @@
 'use client'
 
 import { PillGroup, type PillOption } from '@/components/pill-group'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { useTheme } from '@/hooks/use-theme'
 import type { Theme } from '@/lib/theme'
@@ -16,11 +17,7 @@ export function Appearance() {
   const { setTheme, theme } = useTheme()
 
   return (
-    <section
-      aria-labelledby="appearance-title"
-      className="flex scroll-mt-28 flex-col gap-4"
-      id="appearance"
-    >
+    <Section id="appearance" titleId="appearance-title">
       <SectionHeader id="appearance-title" title="Appearance">
         <p className="text-muted-foreground">
           Saved in this browser. Press D anywhere to flip between light and
@@ -35,6 +32,6 @@ export function Appearance() {
           value={theme}
         />
       </div>
-    </section>
+    </Section>
   )
 }

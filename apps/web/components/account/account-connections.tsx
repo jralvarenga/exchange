@@ -14,6 +14,7 @@ import {
 } from '@/app/(dashboard)/account/actions'
 import { ConnectionForm } from '@/components/account/connection-form'
 import { ConnectionRow } from '@/components/account/connection-row'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import type { MaskedConnection } from '@/lib/alpaca/connections'
 import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
@@ -65,11 +66,7 @@ export function AccountConnections({
   )
 
   return (
-    <section
-      aria-labelledby="connections-title"
-      className="flex max-w-3xl scroll-mt-28 flex-col gap-4"
-      id="connections"
-    >
+    <Section className="max-w-3xl" id="connections" titleId="connections-title">
       <SectionHeader id="connections-title" title="Connections">
         <p className="text-muted-foreground">
           {canManage
@@ -148,6 +145,6 @@ export function AccountConnections({
           </Button>
         </div>
       ) : null}
-    </section>
+    </Section>
   )
 }

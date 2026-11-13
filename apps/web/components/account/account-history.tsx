@@ -1,5 +1,6 @@
 import { HistoryEmpty } from '@/components/account/history-empty'
 import { HistoryRow } from '@/components/account/history-row'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import type { HistoryEntry } from '@/lib/activity/history'
 import type { WorkspaceMember } from '@/models/workspace/members'
@@ -26,11 +27,7 @@ export function AccountHistory({ currentUserId, entries, members }: Props) {
   }
 
   return (
-    <section
-      aria-labelledby="history-title"
-      className="flex max-w-3xl scroll-mt-28 flex-col gap-4"
-      id="history"
-    >
+    <Section className="max-w-3xl" id="history" titleId="history-title">
       <SectionHeader id="history-title" title="History">
         <p className="text-muted-foreground">
           Orders and changes made through Exchange in this workspace.
@@ -49,6 +46,6 @@ export function AccountHistory({ currentUserId, entries, members }: Props) {
       ) : (
         <HistoryEmpty />
       )}
-    </section>
+    </Section>
   )
 }

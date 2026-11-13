@@ -82,8 +82,8 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 
 - Mobile first, single column. Page gutter is 16px mobile, 24px from `sm` (`px-4 sm:px-6`, set by the shell).
 - On `md+` the floating sidebar overlays the left edge, so page content is offset with `md:pl-24`. Full-bleed elements (the hero chart) cancel the gutter with `-mx-4 sm:-mx-6` and run under the sidebar.
-- Section rhythm: `gap-10` after the hero, `gap-14` between sections, `gap-4` from a section header to its content.
-- Two sections side by side only from `xl` (`xl:grid-cols-2 xl:gap-16`).
+- Section rhythm: `gap-10` after the hero. Every page section is a `Section` ([section.tsx](apps/web/components/section.tsx)), which owns the space around it (`py-8 md:py-12`, so sections sit 64px apart on phones and 96px from `md`) and `gap-4` from its header to its content. Pages stack sections with no gap of their own.
+- Two sections side by side only from `xl` (`xl:grid-cols-2 xl:gap-x-16`); the grid sets only the column gap, since each `Section` brings its own vertical space.
 - Lists bleed their hover state into the gutter with `-mx-3 px-3 rounded-2xl` so text stays aligned with headings.
 - Stats strips are a `dl` grid with `border-y` and `divide-x` (`divide-y` on mobile), no fills.
 

@@ -16,6 +16,7 @@ import {
   updateMemberRoleAction,
 } from '@/app/(dashboard)/account/workspace-actions'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { InvitationRow } from '@/components/workspace/invitation-row'
 import { InviteMemberForm } from '@/components/workspace/invite-member-form'
@@ -136,11 +137,7 @@ export function WorkspaceSettings({
   }
 
   return (
-    <section
-      aria-labelledby="workspace-title"
-      className="flex max-w-3xl scroll-mt-28 flex-col gap-4"
-      id="workspace"
-    >
+    <Section className="max-w-3xl" id="workspace" titleId="workspace-title">
       <SectionHeader id="workspace-title" title="Workspace">
         <p className="text-muted-foreground">
           <span className="font-medium text-foreground">{name}</span> ·{' '}
@@ -301,6 +298,6 @@ export function WorkspaceSettings({
         title={`Delete ${name}?`}
         tone="destructive"
       />
-    </section>
+    </Section>
   )
 }

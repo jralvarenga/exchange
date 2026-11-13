@@ -8,9 +8,9 @@ export default function Home() {
   return (
     <div className="flex flex-1 flex-col gap-10">
       <Balance />
-      <div className="flex flex-col gap-14 md:pl-24">
+      <div className="flex flex-col md:pl-24">
         <Balances />
-        <div className="grid @5xl:grid-cols-2 grid-cols-1 @5xl:gap-16 gap-14">
+        <div className="grid @5xl:grid-cols-2 grid-cols-1 @5xl:gap-x-16">
           <TopPositions />
           <RecentOrders />
         </div>

@@ -3,6 +3,7 @@
 import { AccountFact } from '@/components/account/account-fact'
 import { AccountFactsFallback } from '@/components/account/account-facts-fallback'
 import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { useAccountOverview } from '@/hooks/use-account-overview'
@@ -19,10 +20,7 @@ export function AccountBuyingPower({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
 
   return (
-    <section
-      aria-labelledby="buying-power-title"
-      className="flex scroll-mt-28 flex-col gap-4"
-    >
+    <Section titleId="buying-power-title">
       <SectionHeader id="buying-power-title" title="Buying power" />
       {!ready ? (
         <AccountNeedsKeys label="Buying power loads once Alpaca accepts your keys." />
@@ -77,6 +75,6 @@ export function AccountBuyingPower({ ready }: Props) {
           ))}
         </dl>
       )}
-    </section>
+    </Section>
   )
 }

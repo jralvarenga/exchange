@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 
 import { createWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { IncomingInvitation } from '@/components/workspace/incoming-invitation'
 import { WorkspaceListRow } from '@/components/workspace/workspace-list-row'
@@ -32,24 +33,18 @@ export function WorkspaceList({ invitations, workspaces }: Props) {
   )
 
   return (
-    <div className="flex max-w-3xl flex-col gap-14">
+    <div className="flex max-w-3xl flex-col">
       {invitations.length > 0 ? (
-        <section
-          aria-labelledby="invitations-title"
-          className="flex flex-col gap-4"
-        >
+        <Section titleId="invitations-title">
           <SectionHeader id="invitations-title" title="Invitations" />
           <ul className="flex flex-col divide-y divide-border border-border border-y">
             {invitations.map((invitation) => (
               <IncomingInvitation invitation={invitation} key={invitation.id} />
             ))}
           </ul>
-        </section>
+        </Section>
       ) : null}
-      <section
-        aria-labelledby="memberships-title"
-        className="flex flex-col gap-4"
-      >
+      <Section titleId="memberships-title">
         <SectionHeader id="memberships-title" title="Your workspaces">
           <p className="text-muted-foreground">
             Open one to trade with its connections. Owners and admins manage it
@@ -61,12 +56,8 @@ export function WorkspaceList({ invitations, workspaces }: Props) {
             <WorkspaceListRow key={workspace.id} workspace={workspace} />
           ))}
         </ul>
-      </section>
-      <section
-        aria-labelledby="new-workspace-title"
-        className="flex scroll-mt-28 flex-col gap-4"
-        id="new"
-      >
+      </Section>
+      <Section id="new" titleId="new-workspace-title">
         <SectionHeader id="new-workspace-title" title="New workspace">
           <p className="text-muted-foreground">
             You own it and can invite people once it exists.
@@ -79,7 +70,7 @@ export function WorkspaceList({ invitations, workspaces }: Props) {
           pendingLabel="Creating…"
           submitLabel="Create and open"
         />
-      </section>
+      </Section>
     </div>
   )
 }

@@ -93,15 +93,15 @@ export default async function AccountPage({ searchParams }: PageProps) {
       />
       <AccountSectionRedirect section={section} />
       <AccountSectionNav />
-      <div className="flex flex-col gap-14">
+      <div className="flex flex-col">
         {/* Without a valid connection nothing else can load, so lead with the fix. */}
         {ready ? null : connectionsSection}
         <AccountBalances ready={ready} />
-        <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+        <div className="grid grid-cols-1 xl:grid-cols-2 xl:gap-x-16">
           <AccountBuyingPower ready={ready} />
           <AccountMargin ready={ready} />
         </div>
-        <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+        <div className="grid grid-cols-1 xl:grid-cols-2 xl:gap-x-16">
           <AccountLimits ready={ready} />
           <TradingSettings ready={ready} />
         </div>

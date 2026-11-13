@@ -5,6 +5,7 @@ import { TradingSettingChoice } from '@/components/account/trading-setting-choic
 import { TradingSettingSwitch } from '@/components/account/trading-setting-switch'
 import { TradingSettingsFallback } from '@/components/account/trading-settings-fallback'
 import type { PillOption } from '@/components/pill-group'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { TradingLocked } from '@/components/trading-locked'
@@ -69,11 +70,7 @@ export function TradingSettings({ ready }: Props) {
   }
 
   return (
-    <section
-      aria-labelledby="trading-title"
-      className="flex scroll-mt-28 flex-col gap-4"
-      id="trading"
-    >
+    <Section id="trading" titleId="trading-title">
       <SectionHeader id="trading-title" title="Trading settings" />
       {!ready ? (
         <AccountNeedsKeys label="Trading settings load once Alpaca accepts your keys." />
@@ -220,7 +217,7 @@ export function TradingSettings({ ready }: Props) {
           </ul>
         </>
       )}
-    </section>
+    </Section>
   )
 }
 
