@@ -141,6 +141,7 @@ export function AccountConnections({
       )}
       {canManage && adding ? (
         <ConnectionForm
+          key={workspaceId}
           onCancel={connections.length > 0 ? () => setAdding(false) : undefined}
           onSaved={handleSaved}
           workspaceId={workspaceId}

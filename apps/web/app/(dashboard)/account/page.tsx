@@ -75,6 +75,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
       canTest={canTestConnection(workspace.role)}
       connections={connections}
       defaultConnectionId={workspace.defaultConnectionId}
+      key={workspace.workspaceId}
       workspaceId={workspace.workspaceId}
     />
   )

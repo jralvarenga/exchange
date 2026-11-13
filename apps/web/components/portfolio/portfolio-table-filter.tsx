@@ -23,6 +23,7 @@ export function PortfolioTableFilter({
         id={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        size="lg"
         type="search"
         value={value}
       />

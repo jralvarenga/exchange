@@ -1,17 +1,10 @@
 'use client'
 
 import { Button } from '@workspace/ui/components/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from '@workspace/ui/components/dialog'
 import { X } from 'lucide-react'
 import { useState } from 'react'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { useCancelOrder } from '@/hooks/use-cancel-order'
 import type { AccountOrder } from '@/lib/alpaca/schemas'
 import { showErrorToast, showSuccessToast } from '@/lib/app-toast'
@@ -47,42 +40,29 @@ export function CancelOrderDialog({ order }: Props) {
   }
 
   return (
-    <Dialog onOpenChange={setOpen} open={open}>
-      <DialogTrigger
-        render={
-          <Button
-            aria-label={`Cancel ${order.symbol} ${side} order`}
-            className="relative z-10"
-            size="icon"
-            variant="ghost"
-          />
-        }
-      >
-        <X aria-hidden="true" className="size-5" />
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <div className="flex flex-col gap-2 pr-10">
-          <DialogTitle>
-            Cancel {order.symbol} {side} order?
-          </DialogTitle>
-          <DialogDescription>
-            Any part that has not filled yet will be withdrawn. Filled shares
-            stay in your portfolio.
-          </DialogDescription>
-        </div>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <DialogClose render={<Button variant="ghost" />}>
-            Keep order
-          </DialogClose>
-          <Button
-            disabled={cancelOrder.isPending}
-            onClick={handleConfirm}
-            variant="destructive"
-          >
-            {cancelOrder.isPending ? 'Canceling…' : 'Cancel order'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      busy={cancelOrder.isPending}
+      busyLabel="Canceling…"
+      confirmLabel="Cancel order"
+      description="Any part that has not filled yet will be withdrawn. Filled shares stay in your portfolio."
+      keepLabel="Keep order"
+      onConfirm={() => {
+        void handleConfirm()
+      }}
+      onOpenChange={setOpen}
+      open={open}
+      title={`Cancel ${order.symbol} ${side} order?`}
+      tone="destructive"
+      trigger={
+        <Button
+          aria-label={`Cancel ${order.symbol} ${side} order`}
+          className="relative z-10"
+          size="icon-xl"
+          variant="ghost"
+        >
+          <X aria-hidden="true" className="size-5" />
+        </Button>
+      }
+    />
   )
 }

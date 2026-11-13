@@ -69,11 +69,10 @@ export function MemberRow({
     <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="flex min-w-0 items-center gap-3">
         <UserAvatar
-          className="size-11"
           email={member.email}
           image={member.image}
           name={member.name}
-          size={44}
+          size="md"
         />
         <div className="flex min-w-0 flex-col">
           <p className="flex items-center gap-2 font-bold text-lg">

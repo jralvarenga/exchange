@@ -88,6 +88,7 @@ export function DepositQr({ method }: Props) {
         <Button
           className="self-start"
           onClick={() => void handleCopy()}
+          size="xl"
           type="button"
           variant="outline"
         >

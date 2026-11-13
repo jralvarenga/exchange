@@ -40,11 +40,10 @@ export function AccountHero({
     >
       <div className="flex min-w-0 items-center gap-4 sm:gap-6">
         <UserAvatar
-          className="size-16 font-bold text-2xl tracking-tight sm:size-24 sm:text-4xl"
           email={user.email}
           image={user.image}
           name={user.name}
-          size={96}
+          size="hero"
         />
         <div className="flex min-w-0 flex-col gap-1">
           <h1

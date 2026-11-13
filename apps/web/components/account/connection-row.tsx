@@ -223,6 +223,7 @@ export function ConnectionRow({
         onOpenChange={(open) => setConfirming(open ? 'live' : undefined)}
         open={confirming === 'live'}
         title={`Trade with ${connection.name}?`}
+        tone="destructive"
       />
       <ConfirmDialog
         busy={busy}

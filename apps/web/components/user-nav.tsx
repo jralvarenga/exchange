@@ -77,21 +77,19 @@ export function UserNav({ user, workspace }: Props) {
           className="flex size-12 shrink-0 touch-manipulation items-center justify-center rounded-full outline-none transition-opacity hover:opacity-80 focus-visible:ring-3 focus-visible:ring-ring"
         >
           <UserAvatar
-            className="size-12"
             email={user.email}
             image={user.image}
             name={user.name}
-            size={48}
+            size="lg"
           />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80" sideOffset={8}>
           <div className="flex items-center gap-3 px-3 pt-2 pb-3">
             <UserAvatar
-              className="size-11"
               email={user.email}
               image={user.image}
               name={user.name}
-              size={44}
+              size="md"
             />
             <div className="flex min-w-0 flex-col">
               {user.name ? (
@@ -200,6 +198,7 @@ export function UserNav({ user, workspace }: Props) {
         }}
         open={confirmingLive !== undefined}
         title={`Trade with ${confirmingLive?.name ?? 'live money'}?`}
+        tone="destructive"
       />
     </>
   )
