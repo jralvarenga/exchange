@@ -43,7 +43,7 @@ export function InvitationUnavailable({
       <div className="flex w-full flex-col gap-2">
         {reason === 'wrong-account' ? (
           <Button
-            className="h-11 w-full rounded-full text-base"
+            className="w-full"
             disabled={pending}
             onClick={() => {
               void signOut()
@@ -54,7 +54,7 @@ export function InvitationUnavailable({
           </Button>
         ) : null}
         <Button
-          className="h-11 w-full rounded-full text-base"
+          className="w-full"
           nativeButton={false}
           render={<Link href="/" />}
           variant="ghost"

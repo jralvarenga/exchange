@@ -28,8 +28,6 @@ interface Props {
 
 type Mode = 'idle' | 'rename' | 'replace'
 
-const actionClassName = 'h-11 rounded-full px-3 text-base'
-
 /** One named connection: environment, masked key, status, and what this member can do with it. */
 export function ConnectionRow({
   active,
@@ -115,10 +113,9 @@ export function ConnectionRow({
       </div>
 
       {mode === 'idle' ? (
-        <div className="-ml-3 flex flex-wrap items-center gap-1">
+        <div className="-ml-2.5 flex flex-wrap items-center gap-1">
           {!active && valid ? (
             <Button
-              className={actionClassName}
               disabled={busy}
               onClick={handleUse}
               type="button"
@@ -129,7 +126,6 @@ export function ConnectionRow({
           ) : null}
           {canManage && !isDefault && valid ? (
             <Button
-              className={actionClassName}
               disabled={busy}
               onClick={() => {
                 void run(onMakeDefault)
@@ -142,7 +138,6 @@ export function ConnectionRow({
           ) : null}
           {canTest ? (
             <Button
-              className={actionClassName}
               disabled={busy}
               onClick={() => {
                 void run(onTest)
@@ -156,7 +151,6 @@ export function ConnectionRow({
           {canManage ? (
             <>
               <Button
-                className={actionClassName}
                 disabled={busy}
                 onClick={() => setMode('rename')}
                 type="button"
@@ -165,7 +159,6 @@ export function ConnectionRow({
                 Rename
               </Button>
               <Button
-                className={actionClassName}
                 disabled={busy}
                 onClick={() => setMode('replace')}
                 type="button"
@@ -174,11 +167,10 @@ export function ConnectionRow({
                 Replace keys
               </Button>
               <Button
-                className={`${actionClassName} text-danger hover:text-danger`}
                 disabled={busy}
                 onClick={() => setConfirming('remove')}
                 type="button"
-                variant="ghost"
+                variant="destructive"
               >
                 Remove
               </Button>

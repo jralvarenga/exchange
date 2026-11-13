@@ -41,7 +41,7 @@ export function OnboardingInvitation({ invitation }: Props) {
         </p>
       </div>
       <Button
-        className="h-11 shrink-0 rounded-full px-5 text-base"
+        className="shrink-0"
         disabled={pending}
         onClick={() => {
           void handleJoin()

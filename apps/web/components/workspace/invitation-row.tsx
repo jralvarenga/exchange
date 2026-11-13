@@ -46,7 +46,7 @@ export function InvitationRow({ invitation, onRevoke }: Props) {
         </p>
       </div>
       <Button
-        className="h-11 shrink-0 rounded-full px-3 text-base"
+        className="shrink-0"
         disabled={busy}
         onClick={() => setConfirming(true)}
         type="button"

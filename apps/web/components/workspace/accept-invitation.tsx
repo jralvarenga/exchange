@@ -60,7 +60,7 @@ export function AcceptInvitation({ role, token, workspaceName }: Props) {
       ) : null}
       <div className="flex w-full flex-col gap-2">
         <Button
-          className="h-11 w-full rounded-full text-base"
+          className="w-full"
           disabled={pending}
           onClick={() => {
             void handleJoin()
@@ -70,7 +70,7 @@ export function AcceptInvitation({ role, token, workspaceName }: Props) {
           {pending ? 'Joining…' : `Join ${workspaceName}`}
         </Button>
         <Button
-          className="h-11 w-full rounded-full text-base"
+          className="w-full"
           nativeButton={false}
           render={<Link href="/" />}
           variant="ghost"

@@ -30,8 +30,6 @@ interface Props {
   onRemove: () => Promise<boolean>
 }
 
-const actionClassName = 'h-11 rounded-full px-3 text-base'
-
 /** A workspace member with their role and, for owners, a role picker and removal. */
 export function MemberRow({
   actorRole,
@@ -90,7 +88,7 @@ export function MemberRow({
         </div>
       </div>
       {editable ? (
-        <div className="-ml-3 flex shrink-0 items-center gap-1 sm:ml-0">
+        <div className="-ml-2.5 flex shrink-0 items-center gap-1 sm:ml-0">
           <Select
             disabled={busy}
             items={roleOptions}
@@ -101,10 +99,7 @@ export function MemberRow({
             }}
             value={member.role}
           >
-            <SelectTrigger
-              aria-label={`Role of ${label}`}
-              className="h-11 rounded-full px-4 text-base"
-            >
+            <SelectTrigger aria-label={`Role of ${label}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -116,11 +111,10 @@ export function MemberRow({
             </SelectContent>
           </Select>
           <Button
-            className={`${actionClassName} text-danger hover:text-danger`}
             disabled={busy}
             onClick={() => setConfirming(true)}
             type="button"
-            variant="ghost"
+            variant="destructive"
           >
             Remove
           </Button>

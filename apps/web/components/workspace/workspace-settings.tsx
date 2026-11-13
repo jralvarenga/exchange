@@ -43,8 +43,6 @@ interface Props {
 
 type Panel = 'create' | 'invite' | 'none' | 'rename'
 
-const actionClassName = 'h-11 rounded-full px-3 text-base'
-
 /** The active workspace: its name, members, invitations, and creating or leaving workspaces. */
 export function WorkspaceSettings({
   canDelete,
@@ -226,10 +224,9 @@ export function WorkspaceSettings({
         />
       ) : null}
 
-      <div className="-ml-3 flex flex-wrap items-center gap-1">
+      <div className="-ml-2.5 flex flex-wrap items-center gap-1">
         {canManage && panel !== 'invite' ? (
           <Button
-            className={actionClassName}
             onClick={() => setPanel('invite')}
             type="button"
             variant="ghost"
@@ -240,7 +237,6 @@ export function WorkspaceSettings({
         ) : null}
         {canManage && panel !== 'rename' ? (
           <Button
-            className={actionClassName}
             onClick={() => setPanel('rename')}
             type="button"
             variant="ghost"
@@ -250,7 +246,6 @@ export function WorkspaceSettings({
         ) : null}
         {panel !== 'create' ? (
           <Button
-            className={actionClassName}
             onClick={() => setPanel('create')}
             type="button"
             variant="ghost"
@@ -260,20 +255,18 @@ export function WorkspaceSettings({
         ) : null}
         {canLeave ? (
           <Button
-            className={`${actionClassName} text-danger hover:text-danger`}
             onClick={() => setConfirmingLeave(true)}
             type="button"
-            variant="ghost"
+            variant="destructive"
           >
             Leave
           </Button>
         ) : null}
         {canDelete ? (
           <Button
-            className={`${actionClassName} text-danger hover:text-danger`}
             onClick={() => setConfirmingDelete(true)}
             type="button"
-            variant="ghost"
+            variant="destructive"
           >
             Delete workspace
           </Button>

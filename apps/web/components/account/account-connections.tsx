@@ -141,13 +141,8 @@ export function AccountConnections({
         />
       ) : null}
       {canManage && !adding ? (
-        <div className="-ml-3 flex">
-          <Button
-            className="h-11 rounded-full px-3 text-base"
-            onClick={() => setAdding(true)}
-            type="button"
-            variant="ghost"
-          >
+        <div className="-ml-2.5 flex">
+          <Button onClick={() => setAdding(true)} type="button" variant="ghost">
             <Plus aria-hidden="true" />
             Add connection
           </Button>

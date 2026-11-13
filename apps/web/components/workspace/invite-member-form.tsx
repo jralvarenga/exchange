@@ -52,7 +52,7 @@ export function InviteMemberForm({ actorRole, onInvited, workspaceId }: Props) {
           >
             Email
           </FieldLabel>
-          <InputGroup className="h-11">
+          <InputGroup>
             <InputGroupInput
               autoComplete="off"
               disabled={pending}
@@ -81,11 +81,7 @@ export function InviteMemberForm({ actorRole, onInvited, workspaceId }: Props) {
         </p>
       ) : null}
       <div className="flex">
-        <Button
-          className="h-11 rounded-full px-5 text-base"
-          disabled={pending}
-          type="submit"
-        >
+        <Button disabled={pending} type="submit">
           {pending ? 'Sending…' : 'Send invitation'}
         </Button>
       </div>

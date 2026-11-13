@@ -36,7 +36,7 @@ export function OnboardingConnect({ workspaceName }: Props) {
       />
       <ConnectionForm onSaved={handleSaved} />
       <Button
-        className="h-11 self-start rounded-full px-3 text-base"
+        className="self-start"
         nativeButton={false}
         render={<Link href="/" />}
         variant="ghost"

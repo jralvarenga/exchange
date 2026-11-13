@@ -30,8 +30,6 @@ const environmentOptions = [
   { label: 'Live', value: 'live' },
 ] as const
 
-const actionClassName = 'h-11 rounded-full px-3 text-base'
-
 /** Adds a named connection, or replaces the key pair of an existing one. */
 export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
   const [state, action, pending] = useActionState(
@@ -68,7 +66,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
               >
                 Name
               </FieldLabel>
-              <InputGroup className="h-11">
+              <InputGroup>
                 <InputGroupInput
                   disabled={pending}
                   id={`${id}-name`}
@@ -103,7 +101,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
           >
             Key ID
           </FieldLabel>
-          <InputGroup className="h-11">
+          <InputGroup>
             <InputGroupInput
               autoComplete="off"
               className="font-mono"
@@ -123,7 +121,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
           >
             Secret
           </FieldLabel>
-          <InputGroup className="h-11">
+          <InputGroup>
             <InputGroupInput
               autoComplete="off"
               className="font-mono"
@@ -158,11 +156,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
         </p>
       ) : null}
       <div className="flex items-center gap-1">
-        <Button
-          className="h-11 rounded-full px-5 text-base"
-          disabled={pending}
-          type="submit"
-        >
+        <Button disabled={pending} type="submit">
           {pending
             ? 'Checking with Alpaca…'
             : connection
@@ -171,7 +165,6 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
         </Button>
         {onCancel ? (
           <Button
-            className={actionClassName}
             disabled={pending}
             onClick={onCancel}
             type="button"

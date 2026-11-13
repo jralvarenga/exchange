@@ -43,7 +43,7 @@ export function ConnectionRenameForm({ name, onCancel, onRename }: Props) {
         >
           Name
         </FieldLabel>
-        <InputGroup className="h-11">
+        <InputGroup>
           <InputGroupInput
             defaultValue={name}
             disabled={pending}
@@ -60,15 +60,10 @@ export function ConnectionRenameForm({ name, onCancel, onRename }: Props) {
         </p>
       ) : null}
       <div className="flex items-center gap-1">
-        <Button
-          className="h-11 rounded-full px-5 text-base"
-          disabled={pending}
-          type="submit"
-        >
+        <Button disabled={pending} type="submit">
           {pending ? 'Renaming…' : 'Rename'}
         </Button>
         <Button
-          className="h-11 rounded-full px-3 text-base"
           disabled={pending}
           onClick={onCancel}
           type="button"
