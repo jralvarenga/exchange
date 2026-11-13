@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt, isNull, ne } from 'drizzle-orm'
+import { and, asc, count, eq, gt, isNull, ne, sql } from 'drizzle-orm'
 
 import { db } from '../client'
 import { alpacaConnections } from '../schema/alpaca-connections'
@@ -150,6 +150,35 @@ export async function listUserMemberships(
     .orderBy(asc(workspaceMembers.createdAt))
 
   return rows.map(toMembershipRow)
+}
+
+/** A workspace the user belongs to, with how many members and connections it has. */
+export type WorkspaceSummaryRow = {
+  connectionCount: number
+  memberCount: number
+  role: WorkspaceRole
+  workspaceId: string
+  workspaceName: string
+}
+
+/** Lists every workspace the user belongs to with its counts, oldest membership first. */
+export async function listUserWorkspaceSummaries(
+  userId: string
+): Promise<WorkspaceSummaryRow[]> {
+  const rows = await db
+    .select({
+      connectionCount: sql<number>`(select count(*) from ${alpacaConnections} where ${alpacaConnections.workspaceId} = ${workspaces.id})::int`,
+      memberCount: sql<number>`(select count(*) from ${workspaceMembers} as others where others.workspace_id = ${workspaces.id})::int`,
+      role: workspaceMembers.role,
+      workspaceId: workspaces.id,
+      workspaceName: workspaces.name,
+    })
+    .from(workspaceMembers)
+    .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+    .where(eq(workspaceMembers.userId, userId))
+    .orderBy(asc(workspaceMembers.createdAt))
+
+  return rows.map((row) => ({ ...row, role: toWorkspaceRole(row.role) }))
 }
 
 /** Reads the workspace the user last switched to. */
@@ -356,6 +385,7 @@ export type IncomingInvitationRow = {
   id: string
   invitedByName: string | null
   role: WorkspaceRole
+  workspaceId: string
   workspaceName: string
 }
 
@@ -369,6 +399,7 @@ export async function listPendingInvitationsForEmail(
       id: workspaceInvitations.id,
       invitedByName: users.name,
       role: workspaceInvitations.role,
+      workspaceId: workspaces.id,
       workspaceName: workspaces.name,
     })
     .from(workspaceInvitations)

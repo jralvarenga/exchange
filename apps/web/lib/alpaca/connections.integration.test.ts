@@ -53,6 +53,7 @@ const {
   createWorkspaceInvitation,
   deleteWorkspace,
   listPendingInvitationsForEmail,
+  listUserWorkspaceSummaries,
   removeWorkspaceMember,
   updateMemberRole,
 } = await import('@workspace/db/queries/workspaces')
@@ -126,6 +127,24 @@ describe('alpaca connections', () => {
     } finally {
       await db.delete(users).where(eq(users.id, loner))
     }
+  })
+
+  integrationTest('counts members and connections per workspace', async () => {
+    const owned = await resolveActiveWorkspace({ id: userB, name: 'User B' })
+    const summaries = await listUserWorkspaceSummaries(userB)
+    const summary = summaries.find(
+      (row) => row.workspaceId === owned.workspaceId
+    )
+    const connections = await db
+      .select()
+      .from(alpacaConnections)
+      .where(eq(alpacaConnections.workspaceId, owned.workspaceId))
+
+    expect(summary).toMatchObject({
+      connectionCount: connections.length,
+      memberCount: 1,
+      role: 'owner',
+    })
   })
 
   integrationTest('lists invitations for the invited email', async () => {

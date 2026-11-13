@@ -6,14 +6,14 @@ import { useState } from 'react'
 import { joinInvitationAction } from '@/app/(dashboard)/account/workspace-actions'
 import { showErrorToast } from '@/lib/app-toast'
 import { workspaceRoleNoun } from '@/lib/workspaces/roles'
-import type { IncomingInvitation } from '@/models/workspace/members'
+import type { IncomingInvitation as Invitation } from '@/models/workspace/members'
 
 interface Props {
-  invitation: IncomingInvitation
+  invitation: Invitation
 }
 
 /** A workspace this person was invited to, with a button to join it. */
-export function OnboardingInvitation({ invitation }: Props) {
+export function IncomingInvitation({ invitation }: Props) {
   const [pending, setPending] = useState(false)
   const inviter = invitation.invitedByName ?? 'An owner'
 

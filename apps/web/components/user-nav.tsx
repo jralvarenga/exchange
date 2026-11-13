@@ -9,9 +9,12 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
-import { CircleUser, LogOut, Plus } from 'lucide-react'
+import { CircleUser, Layers, LogOut, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -31,7 +34,10 @@ interface Props {
   workspace: ShellWorkspace
 }
 
-/** The signed-in account, with workspace and connection switchers and sign-out. */
+/**
+ * The signed-in account, with a workspace switcher (a submenu that also links
+ * to every workspace and to creating one), the connection switcher and sign-out.
+ */
 export function UserNav({ user, workspace }: Props) {
   const { pending, signOut } = useSignOut()
   const switcher = useWorkspaceSwitcher()
@@ -85,21 +91,40 @@ export function UserNav({ user, workspace }: Props) {
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuRadioGroup
-            onValueChange={(value) => selectWorkspace(String(value))}
-            value={workspace.id}
-          >
+          <DropdownMenuGroup>
             <DropdownMenuLabel>Workspace</DropdownMenuLabel>
-            {workspace.workspaces.map((item) => (
-              <DropdownMenuRadioItem
-                disabled={switcher.pending}
-                key={item.id}
-                value={item.id}
-              >
-                <span className="truncate">{item.name}</span>
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger disabled={switcher.pending}>
+                <span className="truncate">{workspace.name}</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-64">
+                <DropdownMenuRadioGroup
+                  onValueChange={(value) => selectWorkspace(String(value))}
+                  value={workspace.id}
+                >
+                  <DropdownMenuLabel>Switch workspace</DropdownMenuLabel>
+                  {workspace.workspaces.map((item) => (
+                    <DropdownMenuRadioItem
+                      disabled={switcher.pending}
+                      key={item.id}
+                      value={item.id}
+                    >
+                      <span className="truncate">{item.name}</span>
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/workspaces" />}>
+                  <Layers aria-hidden="true" />
+                  All workspaces
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href="/workspaces#new" />}>
+                  <Plus aria-hidden="true" />
+                  New workspace
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuRadioGroup
             onValueChange={(value) => selectConnection(String(value))}
@@ -113,7 +138,7 @@ export function UserNav({ user, workspace }: Props) {
                 value={connection.id}
               >
                 <span className="truncate">{connection.name}</span>
-                <span className="ml-auto text-muted-foreground">
+                <span className="text-muted-foreground">
                   {connection.status === 'valid'
                     ? connection.environment === 'live'
                       ? 'Live'

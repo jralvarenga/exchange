@@ -25,3 +25,13 @@ export type IncomingInvitation = {
   role: WorkspaceRole
   workspaceName: string
 }
+
+/** A workspace on the workspaces page. */
+export type WorkspaceSummary = {
+  connectionCount: number
+  id: string
+  isCurrent: boolean
+  memberCount: number
+  name: string
+  role: WorkspaceRole
+}

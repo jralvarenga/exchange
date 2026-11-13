@@ -2,13 +2,13 @@
 
 import { createFirstWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
 import { OnboardingHeader } from '@/components/onboarding/onboarding-header'
-import { OnboardingInvitation } from '@/components/onboarding/onboarding-invitation'
+import { IncomingInvitation } from '@/components/workspace/incoming-invitation'
 import { WorkspaceNameForm } from '@/components/workspace/workspace-name-form'
-import type { IncomingInvitation } from '@/models/workspace/members'
+import type { IncomingInvitation as Invitation } from '@/models/workspace/members'
 
 interface Props {
   defaultName: string
-  invitations: IncomingInvitation[]
+  invitations: Invitation[]
 }
 
 /** First onboarding step: join a workspace you were invited to, or create your own. */
@@ -34,10 +34,7 @@ export function OnboardingWorkspace({ defaultName, invitations }: Props) {
           </h2>
           <ul className="flex flex-col divide-y divide-border border-border border-b">
             {invitations.map((invitation) => (
-              <OnboardingInvitation
-                invitation={invitation}
-                key={invitation.id}
-              />
+              <IncomingInvitation invitation={invitation} key={invitation.id} />
             ))}
           </ul>
         </section>
