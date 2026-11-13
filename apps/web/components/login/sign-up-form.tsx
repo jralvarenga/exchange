@@ -128,7 +128,7 @@ export function SignUpForm({ next }: Props) {
                   aria-describedby={message ? 'signup-error' : undefined}
                   aria-invalid={message ? true : undefined}
                 />
-                <InputGroupAddon align="inline-end" className="pr-2">
+                <InputGroupAddon align="inline-end">
                   <InputGroupButton
                     type="button"
                     size="icon-sm"

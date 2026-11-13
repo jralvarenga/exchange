@@ -52,7 +52,7 @@ export function CancelOrderDialog({ order }: Props) {
         render={
           <Button
             aria-label={`Cancel ${order.symbol} ${side} order`}
-            className="relative z-10 size-11 rounded-full text-muted-foreground hover:text-foreground"
+            className="relative z-10"
             size="icon"
             variant="ghost"
           />
@@ -60,29 +60,21 @@ export function CancelOrderDialog({ order }: Props) {
       >
         <X aria-hidden="true" className="size-5" />
       </DialogTrigger>
-      <DialogContent className="gap-6 rounded-[2rem] bg-background p-6 sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <div className="flex flex-col gap-2 pr-10">
-          <DialogTitle className="font-bold text-xl">
+          <DialogTitle>
             Cancel {order.symbol} {side} order?
           </DialogTitle>
-          <DialogDescription className="text-base">
+          <DialogDescription>
             Any part that has not filled yet will be withdrawn. Filled shares
             stay in your portfolio.
           </DialogDescription>
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <DialogClose
-            render={
-              <Button
-                className="h-11 rounded-full px-5 text-base"
-                variant="ghost"
-              />
-            }
-          >
+          <DialogClose render={<Button variant="ghost" />}>
             Keep order
           </DialogClose>
           <Button
-            className="h-11 rounded-full px-5 text-base"
             disabled={cancelOrder.isPending}
             onClick={handleConfirm}
             variant="destructive"

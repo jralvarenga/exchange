@@ -60,12 +60,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
           <input name="environment" type="hidden" value={environment} />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field>
-              <FieldLabel
-                className="font-medium text-muted-foreground"
-                htmlFor={`${id}-name`}
-              >
-                Name
-              </FieldLabel>
+              <FieldLabel htmlFor={`${id}-name`}>Name</FieldLabel>
               <InputGroup>
                 <InputGroupInput
                   disabled={pending}
@@ -80,9 +75,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
               </InputGroup>
             </Field>
             <div className="flex flex-col gap-2">
-              <span className="font-medium text-muted-foreground">
-                Environment
-              </span>
+              <span>Environment</span>
               <PillGroup
                 label="Environment"
                 onChange={setEnvironment}
@@ -95,12 +88,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
-          <FieldLabel
-            className="font-medium text-muted-foreground"
-            htmlFor={`${id}-key-id`}
-          >
-            Key ID
-          </FieldLabel>
+          <FieldLabel htmlFor={`${id}-key-id`}>Key ID</FieldLabel>
           <InputGroup>
             <InputGroupInput
               autoComplete="off"
@@ -115,12 +103,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
           </InputGroup>
         </Field>
         <Field>
-          <FieldLabel
-            className="font-medium text-muted-foreground"
-            htmlFor={`${id}-secret`}
-          >
-            Secret
-          </FieldLabel>
+          <FieldLabel htmlFor={`${id}-secret`}>Secret</FieldLabel>
           <InputGroup>
             <InputGroupInput
               autoComplete="off"
@@ -132,7 +115,7 @@ export function ConnectionForm({ connection, onCancel, onSaved }: Props) {
               spellCheck={false}
               type={showsSecret ? 'text' : 'password'}
             />
-            <InputGroupAddon align="inline-end" className="pr-2">
+            <InputGroupAddon align="inline-end">
               <InputGroupButton
                 aria-label={showsSecret ? 'Hide secret' : 'Show secret'}
                 aria-pressed={showsSecret}

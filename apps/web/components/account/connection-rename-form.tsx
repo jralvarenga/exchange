@@ -37,12 +37,7 @@ export function ConnectionRenameForm({ name, onCancel, onRename }: Props) {
       className="flex flex-col gap-3"
     >
       <Field className="max-w-sm">
-        <FieldLabel
-          className="font-medium text-muted-foreground"
-          htmlFor={`${id}-name`}
-        >
-          Name
-        </FieldLabel>
+        <FieldLabel htmlFor={`${id}-name`}>Name</FieldLabel>
         <InputGroup>
           <InputGroupInput
             defaultValue={name}

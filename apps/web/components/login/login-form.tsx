@@ -102,7 +102,7 @@ export function LoginForm({ className, next, ...props }: Props) {
                   aria-describedby={message ? 'login-error' : undefined}
                   aria-invalid={message ? true : undefined}
                 />
-                <InputGroupAddon align="inline-end" className="pr-2">
+                <InputGroupAddon align="inline-end">
                   <InputGroupButton
                     type="button"
                     size="icon-sm"

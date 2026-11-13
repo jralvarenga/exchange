@@ -58,12 +58,7 @@ export function WorkspaceNameForm({
         <input name="workspaceId" type="hidden" value={workspaceId} />
       ) : null}
       <Field className="max-w-sm">
-        <FieldLabel
-          className="font-medium text-muted-foreground"
-          htmlFor={`${id}-name`}
-        >
-          {label}
-        </FieldLabel>
+        <FieldLabel htmlFor={`${id}-name`}>{label}</FieldLabel>
         <InputGroup>
           <InputGroupInput
             defaultValue={defaultName}

@@ -46,12 +46,7 @@ export function InviteMemberForm({ actorRole, onInvited, workspaceId }: Props) {
       <input name="workspaceId" type="hidden" value={workspaceId} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
-          <FieldLabel
-            className="font-medium text-muted-foreground"
-            htmlFor={`${id}-email`}
-          >
-            Email
-          </FieldLabel>
+          <FieldLabel htmlFor={`${id}-email`}>Email</FieldLabel>
           <InputGroup>
             <InputGroupInput
               autoComplete="off"
@@ -65,7 +60,7 @@ export function InviteMemberForm({ actorRole, onInvited, workspaceId }: Props) {
           </InputGroup>
         </Field>
         <div className="flex flex-col gap-2">
-          <span className="font-medium text-muted-foreground">Role</span>
+          <span>Role</span>
           <PillGroup
             label="Role"
             onChange={setRole}

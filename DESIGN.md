@@ -97,6 +97,8 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 
 Shared primitives live in [packages/ui/src/components](packages/ui/src/components); app-level shared pieces in [apps/web/components](apps/web/components). Reuse them before creating anything new.
 
+Use the shared components as they are. Never pass classes that restyle them (height, radius, padding, font size or weight, colours, shadows); pick a `variant` or `size` instead, and change the component itself if none fits. `className` on a shared component is for layout only: width, alignment, margins, flex and grid placement, stacking.
+
 | Component | Use |
 | --- | --- |
 | `Button` | Prefer existing variants (`default`, `outline`, `secondary`, `ghost`, `destructive`, `link`). Toggle groups use `ghost` |
@@ -107,7 +109,7 @@ Shared primitives live in [packages/ui/src/components](packages/ui/src/component
 | `Skeleton` | `bg-muted` pulse, sized like the content it replaces |
 | `AssetIcon` | Round asset logo with a two-letter fallback |
 | `AssetListFallback` | Row skeleton for any logo + two lines + two figures list |
-| `Dialog` | Confirmations: `rounded-[2rem] bg-background p-6`, bold `text-xl` title as a question, ghost "Keep" and `destructive` confirm pills |
+| `Dialog` | Confirmations: the stock dialog, title phrased as a question, a ghost "Keep" and a `destructive` confirm button |
 | `ConfirmDialog` | The `Dialog` confirmation pattern as one component; use it for every "are you sure" (remove a connection, leave a workspace, trade live) |
 | `UserAvatar` | Round profile photo, or initials when there is none |
 | `Card` | Only where content must be grouped off the page (forms, settings). Not on the home screen |

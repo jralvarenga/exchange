@@ -587,7 +587,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
           }
         >
           <Button
-            className="h-auto min-h-11 w-full whitespace-normal py-3"
+            className="w-full"
             disabled={
               isResolving ||
               choosingContract ||

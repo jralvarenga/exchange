@@ -58,30 +58,22 @@ export function ClosePositionDialog({ position }: Props) {
       <DialogTrigger render={<Button variant="outline" />}>
         Close position
       </DialogTrigger>
-      <DialogContent className="gap-6 rounded-[2rem] bg-background p-6 sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <div className="flex flex-col gap-2 pr-10">
-          <DialogTitle className="font-bold text-xl">
+          <DialogTitle>
             Close your {position.symbol} {position.side} position?
           </DialogTitle>
-          <DialogDescription className="text-base">
+          <DialogDescription>
             A market order will {position.side === 'long' ? 'sell' : 'buy back'}{' '}
             all {quantity} at the best available price. The final price may
             vary.
           </DialogDescription>
         </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <DialogClose
-            render={
-              <Button
-                className="h-11 rounded-full px-5 text-base"
-                variant="ghost"
-              />
-            }
-          >
+          <DialogClose render={<Button variant="ghost" />}>
             Keep position
           </DialogClose>
           <Button
-            className="h-11 rounded-full px-5 text-base"
             disabled={closePosition.isPending}
             onClick={handleConfirm}
             variant="destructive"
