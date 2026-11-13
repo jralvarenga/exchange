@@ -12,6 +12,7 @@ apps/landing/
 │   ├── components/
 │   │   ├── features/         # feature list, collaboration first
 │   │   ├── hero/             # hero and its ticker tiles
+│   │   ├── legal/            # shared shell and sections for the legal pages
 │   │   ├── open-source/      # repository link, encryption code, self-host steps
 │   │   ├── preview/          # static mock of the portfolio home
 │   │   ├── security/         # how keys are stored
@@ -22,7 +23,7 @@ apps/landing/
 │   │   └── token-field.astro # floating logos that drift with the pointer
 │   ├── layouts/layout.astro
 │   ├── lib/                  # links, mock market and team data, chart helpers
-│   ├── pages/index.astro
+│   ├── pages/                # index, privacy and terms
 │   └── styles/globals.css    # shared tokens plus the float animation
 ├── astro.config.mjs
 └── package.json
@@ -40,7 +41,10 @@ shipped to the browser.
 | `PUBLIC_SUPPORT_EMAIL` | Support address shown in the footer and on the legal pages | `support@example.com` |
 
 Copy `.env.example` to `.env` to change it. It is typed and validated through
-`astro:env`.
+`astro:env`. The defaults only suit local development: set both variables for
+every production build, or the sign up and log in links point to localhost and
+the footer and legal pages show `support@example.com`. A missing value does not
+fail the build.
 
 ## Commands
 

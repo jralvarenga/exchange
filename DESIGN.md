@@ -93,7 +93,7 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 - **Sidebar:** floating vertical pill rail, `surface-floating`, centered on the left from `md`. Active item is `bg-foreground text-background`.
 - **Navbar:** floating, transparent, search on the left, Buy / Sell and avatar on the right. A progressive blur backdrop ([navbar-backdrop.tsx](apps/web/components/navbar-backdrop.tsx)) softens content scrolling under it, iOS top bar style.
 - **Mobile tab bar:** floating pill on a bottom fade to `background`.
-- **Auth pages:** from `lg`, the showcase panel on the left and the form on the right; phones get the form alone under the logo. Forms open with `AuthHeader` (large title, one muted line) and use `AuthLink` for inline links.
+- **Auth pages:** from `lg`, the showcase panel on the left and the form on the right; phones get the form alone under the logo. The log in and sign-up forms open with `AuthHeader` (large title, one muted line) and use `AuthLink` for inline links; the forgot password, reset password and verify email screens still use their own `h1` and should move to it.
 
 ## Components
 
