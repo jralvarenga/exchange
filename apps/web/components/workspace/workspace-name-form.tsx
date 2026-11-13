@@ -21,7 +21,8 @@ interface Props {
   defaultName?: string
   label: string
   onCancel?: () => void
-  onSaved: () => void
+  /** Called after a save that stays on this page. */
+  onSaved?: () => void
   pendingLabel: string
   submitLabel: string
   /** The workspace being renamed, so a switch in another tab is caught. */
@@ -47,7 +48,7 @@ export function WorkspaceNameForm({
   useEffect(() => {
     if (state.saved && handledState.current !== state) {
       handledState.current = state
-      onSaved()
+      onSaved?.()
     }
   }, [onSaved, state])
 

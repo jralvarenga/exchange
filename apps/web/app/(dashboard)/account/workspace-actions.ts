@@ -101,10 +101,48 @@ export async function createWorkspaceAction(
   formData: FormData
 ): Promise<WorkspaceActionState> {
   const session = await requireSession()
+  const message = await createOwnWorkspace(session, formData)
+
+  if (message) {
+    return { message }
+  }
+
+  revalidatePath('/', 'layout')
+
+  return { saved: true }
+}
+
+/**
+ * Creates the first workspace during onboarding and moves on to connecting
+ * Alpaca. The redirect happens here so the onboarding page, which sends
+ * anyone with a workspace to the dashboard, cannot skip that step.
+ */
+export async function createFirstWorkspaceAction(
+  _state: WorkspaceActionState,
+  formData: FormData
+): Promise<WorkspaceActionState> {
+  const session = await requireSession()
+  const message = await createOwnWorkspace(session, formData)
+
+  if (message) {
+    return { message }
+  }
+
+  redirect('/onboarding?step=connect')
+}
+
+/**
+ * Creates a workspace owned by the user from the form's name and logs it.
+ * Returns a message when it cannot.
+ */
+async function createOwnWorkspace(
+  session: Session,
+  formData: FormData
+): Promise<string | undefined> {
   const name = workspaceNameSchema.safeParse(formData.get('name'))
 
   if (!name.success) {
-    return { message: 'Use a name between 1 and 40 characters.' }
+    return 'Use a name between 1 and 40 characters.'
   }
 
   try {
@@ -117,12 +155,11 @@ export async function createWorkspaceAction(
       actor: workspaceActor({ userId: session.user.id, workspaceId }),
       metadata: { name: name.data },
     })
-    revalidatePath('/', 'layout')
-
-    return { saved: true }
   } catch {
-    return { message: 'The workspace could not be created.' }
+    return 'The workspace could not be created.'
   }
+
+  return undefined
 }
 
 /** Renames the active workspace. Owners and admins. */

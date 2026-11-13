@@ -1,9 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
-
-import { createWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
+import { createFirstWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
 import { OnboardingHeader } from '@/components/onboarding/onboarding-header'
 import { OnboardingInvitation } from '@/components/onboarding/onboarding-invitation'
 import { WorkspaceNameForm } from '@/components/workspace/workspace-name-form'
@@ -16,15 +13,7 @@ interface Props {
 
 /** First onboarding step: join a workspace you were invited to, or create your own. */
 export function OnboardingWorkspace({ defaultName, invitations }: Props) {
-  const router = useRouter()
   const invited = invitations.length > 0
-
-  const handleCreated = useCallback(
-    function handleCreated(): void {
-      router.push('/onboarding?step=connect')
-    },
-    [router]
-  )
 
   return (
     <div className="flex flex-col gap-8">
@@ -36,7 +25,7 @@ export function OnboardingWorkspace({ defaultName, invitations }: Props) {
         }
         step={1}
         title={invited ? 'Pick a workspace' : 'Create your workspace'}
-        total={invited ? 1 : 2}
+        total={2}
       />
       {invited ? (
         <section aria-labelledby="invitations-title" className="flex flex-col">
@@ -64,10 +53,9 @@ export function OnboardingWorkspace({ defaultName, invitations }: Props) {
           </h2>
         )}
         <WorkspaceNameForm
-          action={createWorkspaceAction}
+          action={createFirstWorkspaceAction}
           defaultName={defaultName}
           label="Workspace name"
-          onSaved={handleCreated}
           pendingLabel="Creating…"
           submitLabel="Create workspace"
         />
