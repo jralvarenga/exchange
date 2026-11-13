@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt, isNull } from 'drizzle-orm'
+import { and, asc, count, eq, gt, isNull, ne } from 'drizzle-orm'
 
 import { db } from '../client'
 import { alpacaConnections } from '../schema/alpaca-connections'
@@ -29,6 +29,8 @@ export type WorkspaceMemberRow = {
 }
 
 export type WorkspaceInvitationRow = typeof workspaceInvitations.$inferSelect
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 interface CreateWorkspaceInput {
   name: string
@@ -224,41 +226,40 @@ export async function listWorkspaceMembers(
   }))
 }
 
-/** Counts the owners of a workspace. */
-export async function countWorkspaceOwners(
-  workspaceId: string
-): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, workspaceId),
-        eq(workspaceMembers.role, 'owner')
-      )
-    )
-
-  return row?.value ?? 0
-}
-
-/** Changes a member's role. */
+/**
+ * Changes a member's role. Returns false, changing nothing, when it would
+ * demote the last owner.
+ */
 export async function updateMemberRole(
   input: UpdateMemberRoleInput
-): Promise<void> {
-  await db
-    .update(workspaceMembers)
-    .set({ role: input.role, updatedAt: new Date() })
-    .where(membershipWhere(input))
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    if (input.role === 'member' && !(await hasOtherOwner(tx, input))) {
+      return false
+    }
+
+    await tx
+      .update(workspaceMembers)
+      .set({ role: input.role, updatedAt: new Date() })
+      .where(membershipWhere(input))
+
+    return true
+  })
 }
 
 /**
  * Removes a member. The connections they added stay with the workspace.
  * Their active workspace is cleared so the next request picks another one.
+ * Returns false, changing nothing, when they are the last owner.
  */
 export async function removeWorkspaceMember(
   input: MembershipIdentity
-): Promise<void> {
-  await db.transaction(async (tx) => {
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    if (!(await hasOtherOwner(tx, input))) {
+      return false
+    }
+
     await tx.delete(workspaceMembers).where(membershipWhere(input))
     await tx
       .update(users)
@@ -269,6 +270,8 @@ export async function removeWorkspaceMember(
           eq(users.activeWorkspaceId, input.workspaceId)
         )
       )
+
+    return true
   })
 }
 
@@ -389,6 +392,35 @@ export async function acceptWorkspaceInvitation(
 
     return invitation.workspaceId
   })
+}
+
+/**
+ * Locks the workspace row, then checks that someone other than this user owns
+ * it. The lock makes two owners demoting or removing each other at the same
+ * time run one after the other, so a workspace never ends up without an owner.
+ */
+async function hasOtherOwner(
+  tx: Transaction,
+  input: MembershipIdentity
+): Promise<boolean> {
+  await tx
+    .select({ id: workspaces.id })
+    .from(workspaces)
+    .where(eq(workspaces.id, input.workspaceId))
+    .for('update')
+
+  const [row] = await tx
+    .select({ value: count() })
+    .from(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.workspaceId, input.workspaceId),
+        eq(workspaceMembers.role, 'owner'),
+        ne(workspaceMembers.userId, input.userId)
+      )
+    )
+
+  return (row?.value ?? 0) > 0
 }
 
 /** Matches one user's membership in one workspace. */

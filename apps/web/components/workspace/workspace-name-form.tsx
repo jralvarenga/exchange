@@ -24,6 +24,8 @@ interface Props {
   onSaved: () => void
   pendingLabel: string
   submitLabel: string
+  /** The workspace being renamed, so a switch in another tab is caught. */
+  workspaceId?: string
 }
 
 /** One name field with a submit pill, used to create or rename a workspace. */
@@ -35,6 +37,7 @@ export function WorkspaceNameForm({
   onSaved,
   pendingLabel,
   submitLabel,
+  workspaceId,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, {})
   const handledState = useRef(state)
@@ -50,6 +53,9 @@ export function WorkspaceNameForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-3">
+      {workspaceId ? (
+        <input name="workspaceId" type="hidden" value={workspaceId} />
+      ) : null}
       <Field className="max-w-sm">
         <FieldLabel
           className="font-medium text-muted-foreground"

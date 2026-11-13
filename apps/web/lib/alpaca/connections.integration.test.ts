@@ -28,7 +28,7 @@ process.env.RESEND_API_KEY ??= 're_test'
 
 const { afterAll, beforeAll, describe, expect, test } = await import('bun:test')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-const { eq } = await import('drizzle-orm')
+const { and, eq } = await import('drizzle-orm')
 const { Pool } = await import('pg')
 const { db, pool: databasePool } = await import('@workspace/db/client')
 const { users } = await import('@workspace/db/schema/auth')
@@ -47,6 +47,10 @@ const { AlpacaApiError } = await import('@/lib/alpaca/client')
 const { createApiResponse } = await import('@/lib/alpaca/http')
 const { resolveActiveWorkspace, WorkspacePermissionError } = await import(
   '@/lib/workspaces/workspace'
+)
+const { workspaceMembers } = await import('@workspace/db/schema/workspaces')
+const { removeWorkspaceMember, updateMemberRole } = await import(
+  '@workspace/db/queries/workspaces'
 )
 
 const userA = crypto.randomUUID()
@@ -279,6 +283,61 @@ describe('alpaca connections', () => {
       await expect(resolveAlpacaRequestContext(after)).rejects.toMatchObject({
         code: 'INVALID',
       })
+    }
+  )
+
+  integrationTest(
+    'keeps an owner when two owners demote each other at once',
+    async () => {
+      const workspace = await resolveActiveWorkspace({
+        id: userA,
+        name: 'User A',
+      })
+      const now = new Date()
+      await db.insert(workspaceMembers).values({
+        createdAt: now,
+        id: crypto.randomUUID(),
+        role: 'owner',
+        updatedAt: now,
+        userId: userB,
+        workspaceId: workspace.workspaceId,
+      })
+
+      const results = await Promise.all(
+        [userA, userB].map((userId) =>
+          updateMemberRole({
+            role: 'member',
+            userId,
+            workspaceId: workspace.workspaceId,
+          })
+        )
+      )
+      const owners = await db
+        .select({ userId: workspaceMembers.userId })
+        .from(workspaceMembers)
+        .where(
+          and(
+            eq(workspaceMembers.workspaceId, workspace.workspaceId),
+            eq(workspaceMembers.role, 'owner')
+          )
+        )
+
+      expect(results.filter(Boolean)).toHaveLength(1)
+      expect(owners).toHaveLength(1)
+
+      const lastOwner = owners[0]?.userId ?? ''
+      expect(
+        await removeWorkspaceMember({
+          userId: lastOwner,
+          workspaceId: workspace.workspaceId,
+        })
+      ).toBe(false)
+      expect(
+        await removeWorkspaceMember({
+          userId: lastOwner === userA ? userB : userA,
+          workspaceId: workspace.workspaceId,
+        })
+      ).toBe(true)
     }
   )
 })

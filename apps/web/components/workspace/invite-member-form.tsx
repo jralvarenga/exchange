@@ -13,6 +13,8 @@ import { PillGroup } from '@/components/pill-group'
 
 interface Props {
   onInvited: () => void
+  /** The workspace this page shows, so a switch in another tab is caught. */
+  workspaceId: string
 }
 
 const roleOptions = [
@@ -21,7 +23,7 @@ const roleOptions = [
 ] as const
 
 /** Emails a one-week invitation to join the workspace as a member or owner. */
-export function InviteMemberForm({ onInvited }: Props) {
+export function InviteMemberForm({ onInvited, workspaceId }: Props) {
   const [state, action, pending] = useActionState(inviteMemberAction, {})
   const [role, setRole] = useState<'member' | 'owner'>('member')
   const formRef = useRef<HTMLFormElement>(null)
@@ -39,6 +41,7 @@ export function InviteMemberForm({ onInvited }: Props) {
   return (
     <form action={action} className="flex flex-col gap-4" ref={formRef}>
       <input name="role" type="hidden" value={role} />
+      <input name="workspaceId" type="hidden" value={workspaceId} />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
           <FieldLabel

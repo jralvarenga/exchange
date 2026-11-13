@@ -112,6 +112,7 @@ export default async function AccountPage({ searchParams }: PageProps) {
           invitations={invitations}
           members={members}
           name={workspace.workspaceName}
+          workspaceId={workspace.workspaceId}
         />
         <AccountHistory
           currentUserId={session.user.id}

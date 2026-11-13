@@ -32,6 +32,7 @@ interface Props {
   invitations: PendingInvitation[]
   members: WorkspaceMember[]
   name: string
+  workspaceId: string
 }
 
 type Panel = 'create' | 'invite' | 'none' | 'rename'
@@ -46,6 +47,7 @@ export function WorkspaceSettings({
   invitations,
   members,
   name,
+  workspaceId,
 }: Props) {
   const router = useRouter()
   const [panel, setPanel] = useState<Panel>('none')
@@ -104,7 +106,7 @@ export function WorkspaceSettings({
     setLeaving(true)
 
     try {
-      if (settle(await leaveWorkspaceAction(), `Left ${name}`)) {
+      if (settle(await leaveWorkspaceAction(workspaceId), `Left ${name}`)) {
         setConfirmingLeave(false)
       }
     } finally {
@@ -134,6 +136,7 @@ export function WorkspaceSettings({
           onSaved={handleRenamed}
           pendingLabel="Renaming…"
           submitLabel="Rename workspace"
+          workspaceId={workspaceId}
         />
       ) : null}
 
@@ -146,13 +149,13 @@ export function WorkspaceSettings({
             member={member}
             onChangeRole={async (role) => {
               settle(
-                await updateMemberRoleAction(member.userId, role),
+                await updateMemberRoleAction(workspaceId, member.userId, role),
                 role === 'owner' ? 'Made an owner' : 'Made a member'
               )
             }}
             onRemove={async () =>
               settle(
-                await removeMemberAction(member.userId),
+                await removeMemberAction(workspaceId, member.userId),
                 `${member.name || member.email} removed`
               )
             }
@@ -170,7 +173,7 @@ export function WorkspaceSettings({
                 key={invitation.id}
                 onRevoke={async () =>
                   settle(
-                    await revokeInvitationAction(invitation.id),
+                    await revokeInvitationAction(workspaceId, invitation.id),
                     'Invitation canceled'
                   )
                 }
@@ -181,7 +184,7 @@ export function WorkspaceSettings({
       ) : null}
 
       {panel === 'invite' ? (
-        <InviteMemberForm onInvited={handleInvited} />
+        <InviteMemberForm onInvited={handleInvited} workspaceId={workspaceId} />
       ) : null}
 
       {panel === 'create' ? (
