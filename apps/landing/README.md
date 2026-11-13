@@ -1,7 +1,7 @@
 # Landing
 
 Astro marketing site for Exchange. It is a workspace in the Bun monorepo and
-renders shared components from `@workspace/ui`.
+is configured to use the shared styles and components from `@workspace/ui`.
 
 ## Project structure
 
