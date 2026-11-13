@@ -1,3 +1,4 @@
+import { recordActivity } from '@/lib/activity/record'
 import {
   createApiResponse,
   createValidationErrorResponse,
@@ -25,9 +26,19 @@ export async function PATCH(request: Request): Promise<Response> {
   }
 
   return createApiResponse(
-    async function saveConfigurations({ alpaca }) {
-      return updateAccountConfigurations({ ...alpaca, changes: changes.data })
+    async function saveConfigurations({ actor, alpaca }) {
+      const configurations = await updateAccountConfigurations({
+        ...alpaca,
+        changes: changes.data,
+      })
+      await recordActivity({
+        action: 'trading_settings.updated',
+        actor,
+        metadata: { changes: changes.data },
+      })
+
+      return configurations
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

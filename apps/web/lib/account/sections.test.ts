@@ -4,7 +4,7 @@ import { isAccountSectionId } from '@/lib/account/sections'
 
 describe('isAccountSectionId', () => {
   test('accepts account section ids used by legacy redirects', () => {
-    expect(isAccountSectionId('keys')).toBe(true)
+    expect(isAccountSectionId('connections')).toBe(true)
     expect(isAccountSectionId('funding')).toBe(true)
   })
 

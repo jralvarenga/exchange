@@ -15,6 +15,16 @@ describe('authentication proxy', () => {
     )
   })
 
+  test('keeps an invitation link through sign-in', () => {
+    const response = proxy(
+      new NextRequest('http://localhost/invite/abc_DEF-123')
+    )
+
+    expect(response.headers.get('location')).toBe(
+      'http://localhost/login?next=%2Finvite%2Fabc_DEF-123'
+    )
+  })
+
   test('rejects an unauthenticated API request', async () => {
     const response = proxy(
       new NextRequest('https://dashboard.example.com/api/alpaca/account')

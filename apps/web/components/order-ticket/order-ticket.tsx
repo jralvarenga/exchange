@@ -22,6 +22,7 @@ import { TicketContract } from '@/components/order-ticket/ticket-contract'
 import { TicketField } from '@/components/order-ticket/ticket-field'
 import { TicketPills } from '@/components/order-ticket/ticket-pills'
 import { TicketSelect } from '@/components/order-ticket/ticket-select'
+import { TradingLocked } from '@/components/trading-locked'
 import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useAccountOverview } from '@/hooks/use-account-overview'
 import { useMarketClock } from '@/hooks/use-market-clock'
@@ -71,6 +72,7 @@ interface Props {
 /** Renders the same asset-aware order form in the dock, sheet, drawer, and Trade page. */
 export function OrderTicket({ stickyFooter = true }: Props) {
   const {
+    canTrade,
     clearOrderMessages,
     draft,
     environment,
@@ -79,6 +81,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
     orderError,
     orderSuccess,
     submitOrder,
+    tradeLock,
     updateDraft,
   } = useOrderTicket()
   const optionMode = isTicketOptionMode(draft)
@@ -204,6 +207,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
+        if (!canTrade) return
         clearOrderMessages()
         setAttempted(true)
         if (choosingContract || !draft.asset || !result.success) {
@@ -583,27 +587,36 @@ export function OrderTicket({ stickyFooter = true }: Props) {
           }
         >
           <Button
-            className="h-auto min-h-11 w-full whitespace-normal py-3"
+            className="w-full"
             disabled={
               isResolving ||
               choosingContract ||
               !draft.asset ||
               isSubmitting ||
-              blocked
+              blocked ||
+              !canTrade
             }
             type="submit"
           >
             {isSubmitting
               ? 'Submitting order…'
-              : choosingContract
-                ? 'Select a contract'
-                : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
+              : tradeLock === 'viewer'
+                ? 'View only'
+                : tradeLock === 'paper_only'
+                  ? 'Paper only'
+                  : choosingContract
+                    ? 'Select a contract'
+                    : `${sideLabel} ${size} ${tradedName} · ${environmentLabel}`}
           </Button>
-          <p className="text-center text-muted-foreground">
-            {environment === 'paper'
-              ? 'Simulated trading. No real money moves.'
-              : 'Live trading. This order uses real money.'}
-          </p>
+          {tradeLock === null ? (
+            <p className="text-center text-muted-foreground">
+              {environment === 'paper'
+                ? 'Simulated trading. No real money moves.'
+                : 'Live trading. This order uses real money.'}
+            </p>
+          ) : (
+            <TradingLocked reason={tradeLock} />
+          )}
         </div>
       </fieldset>
     </form>

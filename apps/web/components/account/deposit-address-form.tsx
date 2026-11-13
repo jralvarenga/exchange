@@ -19,8 +19,6 @@ interface Props {
   slot: DepositSlot
 }
 
-const pillClassName = 'h-11 rounded-full px-5 text-base'
-
 /** Edits the user's deposit address for one network and stablecoin. */
 export function DepositAddressForm({ address, slot }: Props) {
   const [state, action, pending] = useActionState(saveDepositAddressAction, {})
@@ -77,7 +75,7 @@ export function DepositAddressForm({ address, slot }: Props) {
           <span className="text-muted-foreground">{slot.tokenStandard}</span>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <InputGroup className="h-11 min-w-0 flex-1">
+          <InputGroup className="min-w-0 flex-1">
             <InputGroupInput
               aria-describedby={message ? `${inputId}-message` : undefined}
               aria-invalid={state.message ? true : undefined}
@@ -96,7 +94,6 @@ export function DepositAddressForm({ address, slot }: Props) {
           </InputGroup>
           <div className="flex gap-2">
             <Button
-              className={pillClassName}
               disabled={pending || removing}
               type="submit"
               variant={address ? 'outline' : 'default'}
@@ -106,7 +103,6 @@ export function DepositAddressForm({ address, slot }: Props) {
             {address ? (
               <Button
                 aria-label={`Remove ${name} address`}
-                className={pillClassName}
                 disabled={pending || removing}
                 onClick={() => {
                   void handleRemove()

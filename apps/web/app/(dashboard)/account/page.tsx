@@ -1,7 +1,14 @@
+import {
+  listPendingInvitations,
+  listWorkspaceMembers,
+  toWorkspaceRole,
+} from '@workspace/db/queries/workspaces'
+
 import { AccountBalances } from '@/components/account/account-balances'
 import { AccountBuyingPower } from '@/components/account/account-buying-power'
+import { AccountConnections } from '@/components/account/account-connections'
 import { AccountHero } from '@/components/account/account-hero'
-import { AccountKeys } from '@/components/account/account-keys'
+import { AccountHistory } from '@/components/account/account-history'
 import { AccountLimits } from '@/components/account/account-limits'
 import { AccountMargin } from '@/components/account/account-margin'
 import { AccountSectionNav } from '@/components/account/account-section-nav'
@@ -9,12 +16,21 @@ import { AccountSectionRedirect } from '@/components/account/account-section-red
 import { Appearance } from '@/components/account/appearance'
 import { Funding } from '@/components/account/funding'
 import { TradingSettings } from '@/components/account/trading-settings'
-import {
-  listMaskedCredentials,
-  resolveActiveEnvironment,
-} from '@/lib/alpaca/credentials'
+import { WorkspaceSettings } from '@/components/workspace/workspace-settings'
+import { listWorkspaceHistory } from '@/lib/activity/feed'
 import { requireSession } from '@/lib/auth/require-session'
 import { listDepositMethods } from '@/lib/wallet/crypto-wallets'
+import {
+  canDeleteWorkspace,
+  canLeaveWorkspace,
+  canManageWorkspace,
+  canTestConnection,
+} from '@/lib/workspaces/permissions'
+import { loadWorkspace } from '@/lib/workspaces/shell'
+import type {
+  PendingInvitation,
+  WorkspaceMember,
+} from '@/models/workspace/members'
 
 interface PageProps {
   searchParams: Promise<{
@@ -22,46 +38,98 @@ interface PageProps {
   }>
 }
 
-/** Renders the account: balances, limits, trading settings, keys and funding. */
+/** Renders the account: balances, limits, trading, connections, workspace, history and funding. */
 export default async function AccountPage({ searchParams }: PageProps) {
   const session = await requireSession()
-  const [credentials, depositMethods, environment, params] = await Promise.all([
-    listMaskedCredentials(session.user.id),
-    listDepositMethods(session.user.id),
-    resolveActiveEnvironment(session.user.id),
-    searchParams,
-  ])
+  const { active, connections, workspace } = await loadWorkspace(session.user)
+  const canManage = canManageWorkspace(workspace.role)
+  const [depositMethods, memberRows, invitationRows, history, params] =
+    await Promise.all([
+      listDepositMethods(session.user.id),
+      listWorkspaceMembers(workspace.workspaceId),
+      canManage ? listPendingInvitations(workspace.workspaceId) : [],
+      listWorkspaceHistory(workspace.workspaceId),
+      searchParams,
+    ])
   const section =
     typeof params.section === 'string' ? params.section : undefined
-  const ready =
-    credentials.find((credential) => credential.environment === environment)
-      ?.status === 'valid'
-  const keys = (
-    <AccountKeys activeEnvironment={environment} credentials={credentials} />
+  const ready = active?.status === 'valid'
+  const members: WorkspaceMember[] = memberRows.map((member) => ({
+    email: member.email,
+    image: member.image,
+    name: member.name,
+    role: member.role,
+    userId: member.userId,
+  }))
+  const invitations: PendingInvitation[] = invitationRows.map((invitation) => ({
+    email: invitation.email,
+    expiresAt: invitation.expiresAt.toISOString(),
+    id: invitation.id,
+    role: toWorkspaceRole(invitation.role),
+  }))
+  const ownerCount = members.filter((member) => member.role === 'owner').length
+  const connectionsSection = (
+    <AccountConnections
+      activeConnectionId={active?.id ?? null}
+      canManage={canManage}
+      canTest={canTestConnection(workspace.role)}
+      connections={connections}
+      defaultConnectionId={workspace.defaultConnectionId}
+      key={workspace.workspaceId}
+      workspaceId={workspace.workspaceId}
+    />
   )
 
   return (
     <div className="flex flex-1 flex-col gap-10 md:pl-24">
       <AccountHero
-        environment={environment}
+        connectionName={active?.name}
+        environment={active?.environment ?? 'paper'}
         ready={ready}
-        user={{ email: session.user.email, name: session.user.name }}
+        user={{
+          email: session.user.email,
+          image: session.user.image ?? null,
+          name: session.user.name,
+        }}
+        workspaceName={workspace.workspaceName}
       />
       <AccountSectionRedirect section={section} />
       <AccountSectionNav />
-      <div className="flex flex-col gap-14">
-        {/* Without valid keys nothing else can load, so lead with the fix. */}
-        {ready ? null : keys}
+      <div className="flex flex-col">
+        {/* Without a valid connection nothing else can load, so lead with the fix. */}
+        {ready ? null : connectionsSection}
         <AccountBalances ready={ready} />
-        <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+        <div className="grid grid-cols-1 xl:grid-cols-2 xl:gap-x-16">
           <AccountBuyingPower ready={ready} />
           <AccountMargin ready={ready} />
         </div>
-        <div className="grid grid-cols-1 gap-14 xl:grid-cols-2 xl:gap-16">
+        <div className="grid grid-cols-1 xl:grid-cols-2 xl:gap-x-16">
           <AccountLimits ready={ready} />
           <TradingSettings ready={ready} />
         </div>
-        {ready ? keys : null}
+        {ready ? connectionsSection : null}
+        <WorkspaceSettings
+          canDelete={
+            workspace.memberships.length > 1 &&
+            canDeleteWorkspace(workspace.role)
+          }
+          canLeave={
+            workspace.memberships.length > 1 &&
+            canLeaveWorkspace({ ownerCount, role: workspace.role })
+          }
+          canManage={canManage}
+          currentUserId={session.user.id}
+          invitations={invitations}
+          members={members}
+          name={workspace.workspaceName}
+          role={workspace.role}
+          workspaceId={workspace.workspaceId}
+        />
+        <AccountHistory
+          currentUserId={session.user.id}
+          entries={history}
+          members={members}
+        />
         <Funding methods={depositMethods} />
         <Appearance />
       </div>

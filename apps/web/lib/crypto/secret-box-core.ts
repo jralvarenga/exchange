@@ -26,17 +26,17 @@ interface DecryptSecretInput {
 }
 
 interface CredentialAadInput {
+  connectionId: string
   environment: string
   field: 'keyId' | 'secret'
-  userId: string
 }
 
 /**
- * Binds a ciphertext to one user, environment, and field.
+ * Binds a ciphertext to one connection, environment, and field.
  * A copy pasted into another row or column fails to decrypt.
  */
 export function credentialAad(input: CredentialAadInput): string {
-  return `${input.userId}:${input.environment}:${input.field}`
+  return `connection:${input.connectionId}:${input.environment}:${input.field}`
 }
 
 /**

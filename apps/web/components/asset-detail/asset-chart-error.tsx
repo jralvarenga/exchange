@@ -13,7 +13,7 @@ export function AssetChartError({ onRetry }: Props) {
         The asset summary is still current. Try loading this range again.
       </p>
       <Button
-        className="mt-5 h-11 px-5"
+        className="mt-5"
         onClick={onRetry}
         type="button"
         variant="outline"

@@ -5,15 +5,36 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1792880285360,
-      "tag": "0000_fantastic_marvel_boy",
+      "when": 1794530183076,
+      "tag": "0000_init",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1792882967896,
-      "tag": "0001_dark_bug",
+      "when": 1794538669876,
+      "tag": "0001_viewer_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794539117677,
+      "tag": "0002_admin_paper_member_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794541659543,
+      "tag": "0003_review_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794551342098,
+      "tag": "0004_better_auth_workspaces",
       "breakpoints": true
     }
   ]

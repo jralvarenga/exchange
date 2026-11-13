@@ -52,6 +52,6 @@ export async function DELETE(
         watchlistId: params.data.id,
       })
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

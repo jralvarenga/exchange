@@ -5,18 +5,32 @@ import { Navbar } from '@/components/navbar'
 import { OrderWorkspace } from '@/components/order-ticket/order-workspace'
 import { Sidebar } from '@/components/sidebar'
 import { OrderTicketProvider } from '@/contexts/order-ticket-context'
-import type { ShellUser } from '@/lib/navigation'
+import type { ShellUser, ShellWorkspace } from '@/lib/navigation'
+import type { TradeLock } from '@/lib/workspaces/permissions'
 
 interface Props {
   children: ReactNode
   environment: 'live' | 'paper'
+  /** Why this person cannot trade on the active connection, if they cannot. */
+  tradeLock: TradeLock | null
   user: ShellUser
+  workspace: ShellWorkspace
 }
 
 /** Floats the navigation layers over a page that scrolls behind them. */
-export function AppShell({ children, environment, user }: Props) {
+export function AppShell({
+  children,
+  environment,
+  tradeLock,
+  user,
+  workspace,
+}: Props) {
   return (
-    <OrderTicketProvider environment={environment}>
+    <OrderTicketProvider
+      accountKey={`${workspace.id}:${workspace.activeConnectionId ?? 'none'}`}
+      environment={environment}
+      tradeLock={tradeLock}
+    >
       <div className="flex min-h-dvh flex-col overflow-x-clip bg-background text-foreground">
         <a
           href="#main"
@@ -25,7 +39,7 @@ export function AppShell({ children, environment, user }: Props) {
           Skip to main content
         </a>
         <Sidebar />
-        <Navbar user={user} />
+        <Navbar user={user} workspace={workspace} />
         <main
           id="main"
           className="flex flex-1 flex-col px-4 pt-22 pb-28 sm:px-6 md:pb-5"

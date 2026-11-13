@@ -25,11 +25,17 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
   const passwordHash = process.env.DASHBOARD_PASSWORD_HASH
   const { and, eq } = await import('drizzle-orm')
   const { db, pool } = await import('../packages/db/src/client')
+  const { insertAlpacaConnection, listAlpacaConnections } = await import(
+    '../packages/db/src/queries/alpaca-connections'
+  )
   const {
-    findAlpacaCredential,
-    updateUserAlpacaEnvironment,
-    upsertAlpacaCredential,
-  } = await import('../packages/db/src/queries/alpaca-credentials')
+    listUserMemberships,
+    findActiveWorkspaceId,
+    setDefaultConnectionIfUnset,
+    setMemberActiveConnection,
+  } = await import('../packages/db/src/queries/workspaces')
+  const { auth } = await import('../packages/auth/src/server')
+  const { personalWorkspaceName } = await import('../packages/auth/src/profile')
   const { upsertCryptoWallet } = await import(
     '../packages/db/src/queries/crypto-wallets'
   )
@@ -70,17 +76,9 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       )
     }
 
-    const storedAlpaca =
-      userId && alpaca
-        ? await findAlpacaCredential({
-            environment: alpaca.environment,
-            userId,
-          })
-        : undefined
-    const keys =
-      alpaca && !storedAlpaca
-        ? parseEncryptionKeys(process.env.CREDENTIALS_ENCRYPTION_KEYS ?? '')
-        : undefined
+    const keys = alpaca
+      ? parseEncryptionKeys(process.env.CREDENTIALS_ENCRYPTION_KEYS ?? '')
+      : undefined
 
     if (!userId) {
       if (!isUsableBcryptHash(passwordHash)) {
@@ -91,7 +89,6 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
 
       userId = crypto.randomUUID()
       await db.insert(users).values({
-        activeAlpacaEnvironment: 'paper',
         createdAt: now,
         email: ownerEmail,
         emailVerified: true,
@@ -133,48 +130,79 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
       console.log('Password login already exists and was left unchanged.')
     }
 
-    if (alpaca) {
-      const currentAlpaca = await findAlpacaCredential({
-        environment: alpaca.environment,
-        userId,
-      })
+    // A workspace the owner manages: the active one, else the oldest, else a
+    // new one. Keys never land where they're only a member or viewer.
+    const managed = (await listUserMemberships(userId)).filter(
+      (item) => item.role === 'owner' || item.role === 'admin'
+    )
+    const activeWorkspaceId = await findActiveWorkspaceId(userId)
+    const membership =
+      managed.find((item) => item.workspaceId === activeWorkspaceId) ??
+      managed[0]
+    const workspaceId =
+      membership?.workspaceId ??
+      (
+        await auth.api.createOrganization({
+          body: {
+            name: personalWorkspaceName(existing[0]?.name ?? 'Owner'),
+            slug: crypto.randomUUID(),
+            userId,
+          },
+        })
+      )?.id
 
-      if (currentAlpaca) {
+    if (!workspaceId)
+      throw new Error('The owner workspace could not be created.')
+
+    if (alpaca && keys) {
+      const name = alpaca.environment === 'live' ? 'Main live' : 'Main paper'
+      const stored = await listAlpacaConnections(workspaceId)
+      // Names are unique per workspace ignoring case, like the database index.
+      const existingConnection = stored.find(
+        (connection) => connection.name.toLowerCase() === name.toLowerCase()
+      )
+      let connectionId = existingConnection?.id
+
+      if (existingConnection) {
         console.log(
-          `Alpaca ${alpaca.environment} keys already stored and were left unchanged.`
+          `Connection "${existingConnection.name}" already exists; its keys were left unchanged.`
         )
-      } else if (keys) {
-        await upsertAlpacaCredential({
+      } else {
+        connectionId = crypto.randomUUID()
+        const newConnectionId = connectionId
+        const aad = (field: 'keyId' | 'secret') =>
+          credentialAad({
+            connectionId: newConnectionId,
+            environment: alpaca.environment,
+            field,
+          })
+
+        await insertAlpacaConnection({
+          createdByUserId: userId,
           environment: alpaca.environment,
-          id: crypto.randomUUID(),
+          id: connectionId,
           keyIdCiphertext: encryptSecret({
-            aad: credentialAad({
-              environment: alpaca.environment,
-              field: 'keyId',
-              userId,
-            }),
+            aad: aad('keyId'),
             keys,
             plaintext: alpaca.keyId,
           }),
           keyIdLast4: alpaca.keyId.slice(-4),
           lastVerifiedAt: now,
+          name,
           secretCiphertext: encryptSecret({
-            aad: credentialAad({
-              environment: alpaca.environment,
-              field: 'secret',
-              userId,
-            }),
+            aad: aad('secret'),
             keys,
             plaintext: alpaca.secret,
           }),
-          status: 'valid',
-          userId,
+          workspaceId,
         })
-        await updateUserAlpacaEnvironment({
-          environment: alpaca.environment,
-          userId,
-        })
-        console.log(`Stored encrypted Alpaca ${alpaca.environment} keys.`)
+        console.log(`Stored encrypted Alpaca keys as "${name}".`)
+      }
+
+      // Run on every pass, so a rerun finishes what an interrupted one left.
+      if (connectionId) {
+        await setDefaultConnectionIfUnset({ connectionId, workspaceId })
+        await setMemberActiveConnection({ connectionId, userId, workspaceId })
       }
     }
 

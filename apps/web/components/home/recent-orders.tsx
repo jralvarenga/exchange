@@ -8,6 +8,7 @@ import { BalanceErrorBoundary } from '@/components/balance/balance-error-boundar
 import { ClientSuspense } from '@/components/client-suspense'
 import { RecentOrdersList } from '@/components/home/recent-orders-list'
 import { PillGroup, type PillOption } from '@/components/pill-group'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { ordersAndPositionsQueryKey } from '@/lib/alpaca/query-keys'
@@ -33,10 +34,7 @@ export function RecentOrders() {
   }
 
   return (
-    <section
-      aria-labelledby="recent-orders-title"
-      className="flex flex-col gap-4"
-    >
+    <Section titleId="recent-orders-title">
       <SectionHeader
         href="/portfolio"
         id="recent-orders-title"
@@ -62,6 +60,6 @@ export function RecentOrders() {
           <RecentOrdersList filter={filter} />
         </ClientSuspense>
       </BalanceErrorBoundary>
-    </section>
+    </Section>
   )
 }

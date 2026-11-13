@@ -11,13 +11,19 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    "./workspace-roles": "./src/workspace-roles.ts",
     "./client": "./src/client.ts",
     "./schema/auth": "./src/schema/auth.ts",
-    "./schema/alpaca-credentials": "./src/schema/alpaca-credentials.ts",
-    "./queries/alpaca-credentials": "./src/queries/alpaca-credentials.ts",
     "./queries/rate-limits": "./src/queries/rate-limits.ts",
     "./schema/crypto-wallets": "./src/schema/crypto-wallets.ts",
-    "./queries/crypto-wallets": "./src/queries/crypto-wallets.ts"
+    "./queries/crypto-wallets": "./src/queries/crypto-wallets.ts",
+    "./schema/alpaca-connections": "./src/schema/alpaca-connections.ts",
+    "./schema/workspaces": "./src/schema/workspaces.ts",
+    "./schema/activity": "./src/schema/activity.ts",
+    "./queries/alpaca-connections": "./src/queries/alpaca-connections.ts",
+    "./queries/workspaces": "./src/queries/workspaces.ts",
+    "./queries/activity": "./src/queries/activity.ts",
+    "./sql-extras": "./src/sql-extras.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",

@@ -19,10 +19,11 @@ export function PortfolioTableFilter({
   return (
     <div className="flex flex-col gap-2 px-1">
       <Input
-        className="h-11 min-h-11 md:max-w-xs"
+        className="md:max-w-xs"
         id={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
+        size="lg"
         type="search"
         value={value}
       />

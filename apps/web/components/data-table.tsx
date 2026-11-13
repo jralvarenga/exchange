@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactTable, RowData } from '@tanstack/react-table'
+import { Button } from '@workspace/ui/components/button'
 import {
   Table,
   TableBody,
@@ -63,7 +64,7 @@ export function DataTable<TData extends RowData>({
         <TableCaption className="sr-only">{caption}</TableCaption>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow className="hover:bg-transparent" key={headerGroup.id}>
+            <TableRow key={headerGroup.id}>
               {headerGroup.headers.map((header) => {
                 const isEndAligned =
                   header.column.columnDef.meta?.align === 'end'
@@ -84,16 +85,15 @@ export function DataTable<TData extends RowData>({
                             : 'none'
                         : undefined
                     }
-                    className={cn(
-                      'first:pl-5 last:pr-5',
-                      isEndAligned && 'text-right'
-                    )}
+                    className={cn(isEndAligned && 'text-right')}
                     key={header.id}
                   >
                     {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <button
+                      <Button
                         aria-label={`Sort ${headerLabel}`}
-                        className="-mx-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 outline-none transition-colors hover:text-foreground/70 focus-visible:ring-3 focus-visible:ring-ring"
+                        className="-mx-2.5"
+                        size="sm"
+                        variant="ghost"
                         onClick={(event) => {
                           event.stopPropagation()
                           header.column.getToggleSortingHandler()?.(event)
@@ -111,7 +111,7 @@ export function DataTable<TData extends RowData>({
                             className="size-4 text-muted-foreground"
                           />
                         )}
-                      </button>
+                      </Button>
                     ) : (
                       <table.FlexRender header={header} />
                     )}
@@ -123,12 +123,9 @@ export function DataTable<TData extends RowData>({
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                className="h-28 px-5 text-center text-muted-foreground"
-                colSpan={columnCount}
-              >
-                {emptyMessage}
+            <TableRow>
+              <TableCell className="text-center" colSpan={columnCount}>
+                <p className="py-10 text-muted-foreground">{emptyMessage}</p>
               </TableCell>
             </TableRow>
           ) : null}
@@ -154,7 +151,6 @@ export function DataTable<TData extends RowData>({
                 {row.getAllCells().map((cell) => (
                   <TableCell
                     className={cn(
-                      'py-3 first:pl-5 last:pr-5',
                       cell.column.columnDef.meta?.align === 'end' &&
                         'text-right font-mono tabular-nums'
                     )}

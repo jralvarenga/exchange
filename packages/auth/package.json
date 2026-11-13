@@ -8,10 +8,12 @@
     "typecheck": "tsc --noEmit"
   },
   "exports": {
+    "./access": "./src/access.ts",
     "./server": "./src/server.ts",
     "./client": "./src/client.ts",
     "./password": "./src/password.ts",
-    "./email": "./src/email.ts"
+    "./email": "./src/email.ts",
+    "./profile": "./src/profile.ts"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",

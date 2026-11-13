@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { recordOrderPlaced } from '@/lib/activity/record'
 import { getPosition } from '@/lib/alpaca/client'
 import {
   createApiResponse,
@@ -56,13 +57,16 @@ export async function DELETE(
   }
 
   return createApiResponse(
-    async function closeOpenPosition({ alpaca }) {
-      return closePosition({
+    async function closeOpenPosition({ actor, alpaca }) {
+      const order = await closePosition({
         ...alpaca,
         request: query.data,
         symbolOrAssetId: params.data.symbol.join('/'),
       })
+      await recordOrderPlaced({ actor, order, source: 'close_position' })
+
+      return order
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

@@ -103,7 +103,7 @@ export function AssetCombobox({
     >
       <ComboboxInput
         aria-label="Search assets"
-        className={cn('h-12 w-full', className)}
+        className={cn('w-full', className)}
         id={inputId}
         placeholder={placeholder}
         showClear
@@ -128,7 +128,7 @@ export function AssetCombobox({
         </ComboboxEmpty>
         <ComboboxList>
           {assets.map((asset) => (
-            <ComboboxItem className="py-2" key={asset.id} value={asset}>
+            <ComboboxItem key={asset.id} value={asset}>
               <AssetIcon assetClass={asset.assetClass} symbol={asset.symbol} />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="flex items-center justify-between gap-3">

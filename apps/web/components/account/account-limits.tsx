@@ -3,6 +3,7 @@
 import { AccountFact } from '@/components/account/account-fact'
 import { AccountFactsFallback } from '@/components/account/account-facts-fallback'
 import { AccountNeedsKeys } from '@/components/account/account-needs-keys'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { StatusPill } from '@/components/status-pill'
@@ -32,11 +33,7 @@ export function AccountLimits({ ready }: Props) {
   const overview = useAccountOverview({ enabled: ready })
 
   return (
-    <section
-      aria-labelledby="limits-title"
-      className="flex scroll-mt-28 flex-col gap-4"
-      id="limits"
-    >
+    <Section id="limits" titleId="limits-title">
       <SectionHeader id="limits-title" title="Status and limits" />
       {!ready ? (
         <AccountNeedsKeys label="Limits load once Alpaca accepts your keys." />
@@ -140,6 +137,6 @@ export function AccountLimits({ ready }: Props) {
           </AccountFact>
         </dl>
       )}
-    </section>
+    </Section>
   )
 }

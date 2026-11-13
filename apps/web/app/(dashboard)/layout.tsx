@@ -1,38 +1,36 @@
 import { AppShell } from '@/components/app-shell'
 import { CredentialsGate } from '@/components/credentials/credentials-gate'
-import {
-  listMaskedCredentials,
-  resolveActiveEnvironment,
-} from '@/lib/alpaca/credentials'
 import { requireSession } from '@/lib/auth/require-session'
+import { canManageWorkspace, tradeLock } from '@/lib/workspaces/permissions'
+import { loadWorkspace } from '@/lib/workspaces/shell'
 
 interface Props {
   children: React.ReactNode
 }
 
-/** Requires a session and hides portfolio data until Alpaca keys are valid. */
+/** Requires a session and hides portfolio data until the active connection is valid. */
 export default async function DashboardLayout({ children }: Props) {
   const session = await requireSession()
-  const credentials = await listMaskedCredentials(session.user.id)
-  const environment = await resolveActiveEnvironment(session.user.id)
-  const active = credentials.find(
-    (credential) => credential.environment === environment
-  )
-  const ready = active?.status === 'valid'
+  const { active, shell } = await loadWorkspace(session.user)
+  const environment = active?.environment ?? 'paper'
 
   return (
     <AppShell
+      tradeLock={tradeLock({ environment, role: shell.role })}
       environment={environment}
-      user={{ email: session.user.email, name: session.user.name }}
+      user={{
+        email: session.user.email,
+        image: session.user.image ?? null,
+        name: session.user.name,
+      }}
+      workspace={shell}
     >
       <CredentialsGate
-        credentialVersion={`${environment}:${active?.status}:${active?.lastVerifiedAt}`}
-        credentials={credentials.map((credential) => ({
-          environment: credential.environment,
-          status: credential.status,
-        }))}
-        environment={environment}
-        ready={ready}
+        active={active}
+        canManage={canManageWorkspace(shell.role)}
+        connectionVersion={`${shell.id}:${active?.id}:${active?.status}:${active?.lastVerifiedAt}`}
+        connections={shell.connections}
+        ready={active?.status === 'valid'}
       >
         {children}
       </CredentialsGate>

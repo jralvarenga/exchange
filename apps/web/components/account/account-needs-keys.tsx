@@ -9,9 +9,9 @@ export function AccountNeedsKeys({ label }: Props) {
       {label}{' '}
       <a
         className="rounded-sm text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring"
-        href="#keys"
+        href="#connections"
       >
-        Add valid keys
+        Add a connection
       </a>
     </p>
   )

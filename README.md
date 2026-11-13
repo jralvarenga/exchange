@@ -32,6 +32,25 @@ Session cookies are Secure. Locally, set `BETTER_AUTH_URL` to
 `http://127.0.0.1:3000`. Chrome treats that host as a secure context, so the
 cookie is sent on local HTTP. Production stays behind HTTPS.
 
+### Workspace authorization
+
+Workspaces use Better Auth's organization plugin, mapped to `workspaces`,
+`workspace_members`, and `workspace_invitations`. Membership and invitation
+changes go through its server APIs. The shared access-control definitions in
+`packages/auth/src/access.ts` cover owner, admin, member, paper member, and
+viewer permissions, including paper versus live trading.
+
+On a database that already ran `0000` through `0003` of this history,
+`0004_better_auth_workspaces.sql` adds organization fields and invitation
+status without replacing workspace IDs or memberships. Hashed invitation
+links keep working; new invitations use Better Auth's opaque IDs and still
+require a verified matching email. A deferred database constraint preserves
+at least one owner even during concurrent membership changes.
+
+Migrations run with `bun run db:migrate`. `.github/workflows/migrate.yml`
+runs that command on every push to `main`. `CREDENTIALS_ENCRYPTION_KEYS`
+must be set before anyone can store Alpaca keys.
+
 ### Google
 
 In Google Cloud, create an OAuth client and set the authorized redirect URI to:
@@ -198,9 +217,9 @@ it up once:
 3. Set required reviewers on that environment so each migration waits for approval.
 
 Vercel deploys `main` at the same time, so the new code can go live before the
-migration finishes. Keep every migration backwards compatible with the version
-that is running: add columns and tables first, and drop or rename them in a
-later release.
+migration finishes. Keep every later migration backwards compatible with the
+version that is running: add columns and tables first, and drop or rename
+them in a later release.
 
 ## Adding components
 

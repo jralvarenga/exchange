@@ -6,6 +6,11 @@ import {
   users,
   verifications,
 } from '@workspace/db/schema/auth'
+import {
+  workspaceInvitations,
+  workspaceMembers,
+  workspaces,
+} from '@workspace/db/schema/workspaces'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { APIError } from 'better-auth/api'
@@ -14,8 +19,11 @@ import { eq } from 'drizzle-orm'
 
 import { canLinkTrustedProvider } from './account-linking'
 import { queueAuthEmail, sendAuthEmail } from './email'
+import { workspaceOrganization } from './organization'
+import { workspacePolicy } from './organization-policy'
 import { resolveAuthBaseURL, resolveAuthTrustedOrigins } from './origins'
 import { verifyStoredPassword } from './password'
+import { isAllowedProfileImage, profileImageToStore } from './profile'
 import { isSignUpEmailAllowed, resolveSignUpPolicy } from './sign-up-policy'
 
 /**
@@ -46,7 +54,11 @@ function createAuth() {
         sessions,
         users,
         verifications,
+        workspaces,
+        workspaceMembers,
+        workspaceInvitations,
       },
+      transaction: true,
       usePlural: true,
     }),
     databaseHooks: {
@@ -83,11 +95,33 @@ function createAuth() {
               })
             }
 
+            const image = profileImageToStore(user.image)
+
+            if (image === undefined && user.image) {
+              throw new APIError('BAD_REQUEST', {
+                message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
+              })
+            }
+
+            return { data: { ...user, image } }
+          },
+        },
+        update: {
+          before: async function validateProfileImage(user) {
+            // Only sign-up drops a disallowed provider photo. An update is
+            // refused instead, so the stored photo is kept.
+            if ('image' in user && !isAllowedProfileImage(user.image)) {
+              throw new APIError('BAD_REQUEST', {
+                message: 'Use a PNG, JPEG or WebP photo under 90 KB.',
+              })
+            }
+
             return { data: user }
           },
         },
       },
     },
+    hooks: workspacePolicy,
     emailAndPassword: {
       disableSignUp: signUpPolicy.disableSignUp,
       enabled: true,
@@ -120,7 +154,7 @@ function createAuth() {
         })
       },
     },
-    plugins: [nextCookies()],
+    plugins: [workspaceOrganization(), nextCookies()],
     rateLimit: {
       customRules: {
         '/sign-in/email': {
@@ -140,16 +174,6 @@ function createAuth() {
       },
     },
     trustedOrigins: resolveAuthTrustedOrigins(process.env),
-    user: {
-      additionalFields: {
-        activeAlpacaEnvironment: {
-          defaultValue: 'paper',
-          input: false,
-          required: true,
-          type: ['paper', 'live'],
-        },
-      },
-    },
   })
 }
 

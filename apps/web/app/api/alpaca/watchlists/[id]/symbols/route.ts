@@ -48,6 +48,6 @@ export async function POST(
         watchlistId: params.data.id,
       })
     },
-    { exposeAlpacaMessage: true }
+    { exposeAlpacaMessage: true, trading: true }
   )
 }

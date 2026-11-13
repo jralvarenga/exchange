@@ -82,8 +82,8 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 
 - Mobile first, single column. Page gutter is 16px mobile, 24px from `sm` (`px-4 sm:px-6`, set by the shell).
 - On `md+` the floating sidebar overlays the left edge, so page content is offset with `md:pl-24`. Full-bleed elements (the hero chart) cancel the gutter with `-mx-4 sm:-mx-6` and run under the sidebar.
-- Section rhythm: `gap-10` after the hero, `gap-14` between sections, `gap-4` from a section header to its content.
-- Two sections side by side only from `xl` (`xl:grid-cols-2 xl:gap-16`).
+- Section rhythm: `gap-10` after the hero. Every page section is a `Section` ([section.tsx](apps/web/components/section.tsx)), which owns the space around it (`py-8 md:py-12`, so sections sit 64px apart on phones and 96px from `md`) and `gap-4` from its header to its content. Pages stack sections with no gap of their own.
+- Two sections side by side only from `xl` (`xl:grid-cols-2 xl:gap-x-16`); the grid sets only the column gap, since each `Section` brings its own vertical space.
 - Lists bleed their hover state into the gutter with `-mx-3 px-3 rounded-2xl` so text stays aligned with headings.
 - Stats strips are a `dl` grid with `border-y` and `divide-x` (`divide-y` on mobile), no fills.
 
@@ -97,6 +97,8 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 
 Shared primitives live in [packages/ui/src/components](packages/ui/src/components); app-level shared pieces in [apps/web/components](apps/web/components). Reuse them before creating anything new.
 
+Use the shared components as they are. Never pass classes that restyle them (height, radius, padding, font size or weight, colours, shadows); pick a `variant` or `size` instead, and change the component itself if none fits. `className` on a shared component is for layout only: width, alignment, margins, flex and grid placement, stacking.
+
 | Component | Use |
 | --- | --- |
 | `Button` | Prefer existing variants (`default`, `outline`, `secondary`, `ghost`, `destructive`, `link`). Toggle groups use `ghost` |
@@ -107,7 +109,9 @@ Shared primitives live in [packages/ui/src/components](packages/ui/src/component
 | `Skeleton` | `bg-muted` pulse, sized like the content it replaces |
 | `AssetIcon` | Round asset logo with a two-letter fallback |
 | `AssetListFallback` | Row skeleton for any logo + two lines + two figures list |
-| `Dialog` | Confirmations: `rounded-[2rem] bg-background p-6`, bold `text-xl` title as a question, ghost "Keep" and `destructive` confirm pills |
+| `Dialog` | Confirmations: the stock dialog, title phrased as a question, a ghost "Keep" and a `destructive` confirm button |
+| `ConfirmDialog` | The `Dialog` confirmation pattern as one component; use it for every "are you sure" (remove a connection, leave a workspace, trade live) |
+| `UserAvatar` | Round profile photo, or initials when there is none |
 | `Card` | Only where content must be grouped off the page (forms, settings). Not on the home screen |
 
 Row patterns:

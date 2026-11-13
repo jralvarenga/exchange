@@ -5,12 +5,18 @@ import { Button } from '@workspace/ui/components/button'
 import { useState } from 'react'
 
 interface Props {
+  /** Where Google returns the browser after sign-in. */
+  callbackURL?: string
   disabled?: boolean
   onBusyChange?: (busy: boolean) => void
 }
 
-/** Starts the Google OAuth flow and returns the browser to the dashboard. */
-export function GoogleSignInButton({ disabled, onBusyChange }: Props) {
+/** Starts the Google OAuth flow and returns the browser to the dashboard or `callbackURL`. */
+export function GoogleSignInButton({
+  callbackURL = '/',
+  disabled,
+  onBusyChange,
+}: Props) {
   const [message, setMessage] = useState<string>()
   const [pending, setPending] = useState(false)
 
@@ -21,7 +27,7 @@ export function GoogleSignInButton({ disabled, onBusyChange }: Props) {
 
     try {
       const result = await authClient.signIn.social({
-        callbackURL: '/',
+        callbackURL,
         provider: 'google',
       })
 

@@ -23,12 +23,15 @@ import {
   selectTicketAsset,
 } from '@/lib/order-ticket/draft'
 import { isSameTicketSubmission } from '@/lib/order-ticket/request'
+import type { TradeLock } from '@/lib/workspaces/permissions'
 import type {
   OpenTicketOptions,
   TicketDraft,
 } from '@/models/order-ticket/ticket'
 
 export interface TicketContextValue {
+  /** False when `tradeLock` is set. */
+  canTrade: boolean
   clearOrderMessages: () => void
   closeTicket: () => void
   draft: TicketDraft
@@ -41,18 +44,31 @@ export interface TicketContextValue {
   /** Resolves true once the broker accepts the order. */
   submitOrder: (request: CreateOrderRequest) => Promise<boolean>
   openTicket: (options?: OpenTicketOptions) => Promise<void>
+  /** Why this person cannot trade on the active connection, if they cannot. */
+  tradeLock: TradeLock | null
   updateDraft: (patch: Partial<TicketDraft>) => void
 }
 
 interface Props {
+  /**
+   * Identifies the account orders go to: the workspace and its active
+   * connection. Any change resets the ticket and drops in-flight orders.
+   */
+  accountKey: string
   children: ReactNode
   environment: 'live' | 'paper'
+  tradeLock: TradeLock | null
 }
 
 export const OrderTicketContext = createContext<TicketContextValue | null>(null)
 
 /** Shares one persistent draft between every ticket placement and entry point. */
-export function OrderTicketProvider({ children, environment }: Props) {
+export function OrderTicketProvider({
+  accountKey,
+  children,
+  environment,
+  tradeLock,
+}: Props) {
   const [draft, setDraft] = useState(createTicketDraft)
   const [isOpen, setIsOpen] = useState(false)
   const [isResolving, setIsResolving] = useState(false)
@@ -67,14 +83,15 @@ export function OrderTicketProvider({ children, environment }: Props) {
   const pathname = usePathname()
   const inline = isTradePath(pathname)
   const draftRef = useRef(draft)
-  const environmentRef = useRef(environment)
+  const accountKeyRef = useRef(accountKey)
   // Ignore an in-flight order after the trader switches accounts.
   const submitEpoch = useRef(0)
-  // Drop the previous account's order before paint. The shell stays mounted so
-  // the credentials gate can clear that account's cached queries.
+  // Drop the previous account's order before paint, whether the switch was to
+  // another workspace, another connection, or between paper and live. The
+  // shell stays mounted so the credentials gate can clear cached queries.
   useLayoutEffect(() => {
-    if (environmentRef.current === environment) return
-    environmentRef.current = environment
+    if (accountKeyRef.current === accountKey) return
+    accountKeyRef.current = accountKey
     submitEpoch.current += 1
     submitting.current = false
     resolution.current?.abort()
@@ -86,7 +103,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
     setIsResolving(false)
     setOrderError(null)
     setOrderSuccess(null)
-  }, [environment])
+  }, [accountKey])
 
   // The Trade page shows the ticket inline, so a floating copy would duplicate it.
   useEffect(() => {
@@ -213,6 +230,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
   return (
     <OrderTicketContext
       value={{
+        canTrade: tradeLock === null,
         clearOrderMessages,
         closeTicket,
         draft,
@@ -224,6 +242,7 @@ export function OrderTicketProvider({ children, environment }: Props) {
         orderSuccess,
         submitOrder,
         openTicket,
+        tradeLock,
         updateDraft,
       }}
     >

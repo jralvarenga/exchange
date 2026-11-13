@@ -50,13 +50,11 @@ export function OrderWorkspace({ children }: Props) {
           open={isOpen}
         >
           <SheetContent
-            className="scrollbar-none gap-0 overflow-y-auto bg-background px-6 pt-6 pb-0 data-[side=right]:w-112 motion-reduce:transition-none data-[side=right]:sm:max-w-none"
+            className="scrollbar-none gap-0 overflow-y-auto px-6 pt-6 pb-0 data-[side=right]:w-112 motion-reduce:transition-none data-[side=right]:sm:max-w-none"
             showCloseButton={false}
           >
             <div className="mb-6 flex items-center justify-between gap-3">
-              <SheetTitle className="font-bold text-2xl tracking-tight">
-                Order ticket
-              </SheetTitle>
+              <SheetTitle>Order ticket</SheetTitle>
               <SheetClose
                 render={
                   <Button
@@ -83,12 +81,10 @@ export function OrderWorkspace({ children }: Props) {
           }}
           open={isOpen}
         >
-          <DrawerContent className="inset-x-0 bottom-0 h-dvh max-h-dvh w-full rounded-t-[2rem] bg-background [--drawer-content-height:100dvh] [--drawer-content-max-height:100dvh] motion-reduce:transition-none">
+          <DrawerContent className="inset-x-0 bottom-0 h-dvh max-h-dvh w-full [--drawer-content-height:100dvh] [--drawer-content-max-height:100dvh] motion-reduce:transition-none">
             <div className="scrollbar-none flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-5 pt-[max(1rem,env(safe-area-inset-top))]">
               <div className="mb-6 flex shrink-0 items-center justify-between gap-3">
-                <DrawerTitle className="font-bold text-2xl tracking-tight">
-                  Order ticket
-                </DrawerTitle>
+                <DrawerTitle>Order ticket</DrawerTitle>
                 <DrawerClose
                   render={
                     <Button

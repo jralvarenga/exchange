@@ -15,10 +15,17 @@ import { useState } from 'react'
 
 import { AuthDivider } from '@/components/login/auth-divider'
 import { GoogleSignInButton } from '@/components/login/google-sign-in-button'
+import { ProfilePhotoField } from '@/components/login/profile-photo-field'
 
-/** Creates a password account and tells the user to verify their email. */
-export function SignUpForm() {
+interface Props {
+  /** Where to land after verifying the email, e.g. an invitation link. */
+  next: string
+}
+
+/** Creates a password account with an optional photo and tells the user to verify their email. */
+export function SignUpForm({ next }: Props) {
   const [message, setMessage] = useState<string>()
+  const [photo, setPhoto] = useState<string>()
   const [pending, setPending] = useState(false)
   const [showsPassword, setShowsPassword] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -29,8 +36,9 @@ export function SignUpForm() {
 
     try {
       const result = await authClient.signUp.email({
-        callbackURL: '/',
+        callbackURL: next,
         email: String(formData.get('email') ?? ''),
+        image: photo,
         name: String(formData.get('name') ?? ''),
         password: String(formData.get('password') ?? ''),
       })
@@ -66,10 +74,19 @@ export function SignUpForm() {
     <div className="flex flex-col gap-6">
       <FieldGroup>
         <h1 className="text-center font-bold text-xl">Create your account</h1>
-        <GoogleSignInButton disabled={pending} onBusyChange={setPending} />
+        <GoogleSignInButton
+          callbackURL={next}
+          disabled={pending}
+          onBusyChange={setPending}
+        />
         <AuthDivider />
         <form action={(formData) => handleSubmit(formData)}>
           <FieldGroup>
+            <ProfilePhotoField
+              disabled={pending}
+              onChange={setPhoto}
+              value={photo}
+            />
             <Field>
               <FieldLabel htmlFor="name">Name</FieldLabel>
               <InputGroup>
@@ -111,7 +128,7 @@ export function SignUpForm() {
                   aria-describedby={message ? 'signup-error' : undefined}
                   aria-invalid={message ? true : undefined}
                 />
-                <InputGroupAddon align="inline-end" className="pr-2">
+                <InputGroupAddon align="inline-end">
                   <InputGroupButton
                     type="button"
                     size="icon-sm"
@@ -142,7 +159,14 @@ export function SignUpForm() {
         </form>
         <p className="text-center">
           Already have an account?{' '}
-          <Link href="/login" className="underline underline-offset-4">
+          <Link
+            href={
+              next === '/'
+                ? '/login'
+                : `/login?next=${encodeURIComponent(next)}`
+            }
+            className="underline underline-offset-4"
+          >
             Login
           </Link>
         </p>

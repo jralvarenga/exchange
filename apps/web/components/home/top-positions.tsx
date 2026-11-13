@@ -8,6 +8,7 @@ import { BalanceErrorBoundary } from '@/components/balance/balance-error-boundar
 import { ClientSuspense } from '@/components/client-suspense'
 import { TopPositionsList } from '@/components/home/top-positions-list'
 import { PillGroup, type PillOption } from '@/components/pill-group'
+import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { portfolioQueryKey } from '@/lib/alpaca/query-keys'
@@ -32,10 +33,7 @@ export function TopPositions() {
   }
 
   return (
-    <section
-      aria-labelledby="top-positions-title"
-      className="flex flex-col gap-4"
-    >
+    <Section titleId="top-positions-title">
       <SectionHeader
         href="/portfolio"
         id="top-positions-title"
@@ -63,6 +61,6 @@ export function TopPositions() {
           <TopPositionsList filter={filter} />
         </ClientSuspense>
       </BalanceErrorBoundary>
-    </section>
+    </Section>
   )
 }

@@ -2,7 +2,9 @@ export const accountSections = [
   { id: 'balances', label: 'Balances' },
   { id: 'limits', label: 'Limits' },
   { id: 'trading', label: 'Trading' },
-  { id: 'keys', label: 'Keys' },
+  { id: 'connections', label: 'Connections' },
+  { id: 'workspace', label: 'Workspace' },
+  { id: 'history', label: 'History' },
   { id: 'funding', label: 'Funding' },
   { id: 'appearance', label: 'Appearance' },
 ] as const

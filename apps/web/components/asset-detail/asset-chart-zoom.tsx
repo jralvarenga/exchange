@@ -51,7 +51,6 @@ export function AssetChartZoom({
         <legend className="sr-only">Chart zoom and pan controls</legend>
         <Button
           aria-label="Show earlier prices"
-          className="size-11 rounded-full"
           disabled={!canPanLeft}
           onClick={onPanLeft}
           size="icon"
@@ -62,7 +61,6 @@ export function AssetChartZoom({
         </Button>
         <Button
           aria-label="Show later prices"
-          className="size-11 rounded-full"
           disabled={!canPanRight}
           onClick={onPanRight}
           size="icon"
@@ -73,7 +71,6 @@ export function AssetChartZoom({
         </Button>
         <Button
           aria-label="Zoom in"
-          className="size-11 rounded-full"
           disabled={!canZoomIn}
           onClick={onZoomIn}
           size="icon"
@@ -84,7 +81,6 @@ export function AssetChartZoom({
         </Button>
         <Button
           aria-label="Zoom out"
-          className="size-11 rounded-full"
           disabled={!canZoomOut}
           onClick={onZoomOut}
           size="icon"
@@ -95,7 +91,6 @@ export function AssetChartZoom({
         </Button>
         <Button
           aria-label="Reset chart zoom"
-          className="size-11 rounded-full"
           disabled={!canReset}
           onClick={onReset}
           size="icon"

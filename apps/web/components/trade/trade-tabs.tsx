@@ -76,31 +76,27 @@ export function TradeTabs({ isCrypto, symbol }: Props) {
       </h2>
       <Tabs defaultValue="news" key={symbol}>
         <div className="scrollbar-none -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-          <TabsList className="rounded-full group-data-horizontal/tabs:h-10">
+          <TabsList>
             {tabs.map((tab) => (
-              <TabsTrigger
-                className="rounded-full px-3.5 text-base"
-                key={tab.value}
-                value={tab.value}
-              >
+              <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
         </div>
         {isCrypto ? (
-          <TabsContent className="text-base" value="orderbook">
+          <TabsContent value="orderbook">
             <TradeOrderbook symbol={symbol} />
           </TabsContent>
         ) : null}
-        <TabsContent className="text-base" value="trades">
+        <TabsContent value="trades">
           <TradeTrades symbol={symbol} />
         </TabsContent>
-        <TabsContent className="text-base" value="news">
+        <TabsContent value="news">
           <TradeNews symbol={symbol} />
         </TabsContent>
         {isCrypto ? null : (
-          <TabsContent className="text-base" value="actions">
+          <TabsContent value="actions">
             <TradeCorporateActions symbol={symbol} />
           </TabsContent>
         )}

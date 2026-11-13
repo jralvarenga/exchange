@@ -6,15 +6,20 @@ import { z } from 'zod'
 
 import {
   AlpacaCredentialsError,
-  markCredentialInvalid,
-  resolveAlpacaClientOptions,
-} from '@/lib/alpaca/credentials'
-import type { AlpacaClientOptions } from '@/lib/alpaca/schemas'
+  type AlpacaRequestContext,
+  decryptAlpacaRequestContext,
+  loadActiveAlpacaConnection,
+  markConnectionInvalid,
+} from '@/lib/alpaca/connections'
+import { alpacaEnvironmentSchema } from '@/lib/alpaca/schemas'
+import { tradeLock } from '@/lib/workspaces/permissions'
+import {
+  NoWorkspaceError,
+  resolveActiveWorkspace,
+} from '@/lib/workspaces/workspace'
 import { AlpacaApiError } from './client'
 
-interface ApiHandlerContext {
-  alpaca: AlpacaClientOptions
-}
+type ApiHandlerContext = Pick<AlpacaRequestContext, 'actor' | 'alpaca'>
 
 type ApiHandler = (context: ApiHandlerContext) => Promise<unknown>
 
@@ -29,13 +34,21 @@ interface ApiErrorBody {
 
 interface CreateApiResponseOptions {
   exposeAlpacaMessage?: boolean
+  /**
+   * The handler changes the Alpaca account: orders, positions, trading
+   * settings or watchlists. Viewers cannot, paper members only on paper.
+   */
+  trading?: boolean
 }
 
 const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
 }
 
-/** Runs an API handler with the signed-in user's Alpaca credentials. */
+/**
+ * Runs an API handler with the Alpaca connection the signed-in member has
+ * active in their current workspace.
+ */
 export async function createApiResponse(
   handler: ApiHandler,
   options: CreateApiResponseOptions = {}
@@ -56,33 +69,71 @@ export async function createApiResponse(
     )
   }
 
-  let environment: 'live' | 'paper' | undefined
-  let credentialUpdatedAt: Date | undefined
+  let request: AlpacaRequestContext | undefined
 
   try {
-    const resolved = await resolveAlpacaClientOptions(session.user.id)
-    const { credentialUpdatedAt: resolvedUpdatedAt, ...alpaca } = resolved
-    environment = alpaca.environment
-    credentialUpdatedAt = resolvedUpdatedAt
-    const data = await handler({ alpaca })
+    const workspace = await resolveActiveWorkspace(session.user)
+    const row = await loadActiveAlpacaConnection(workspace)
+
+    const lock = options.trading
+      ? tradeLock({
+          environment: alpacaEnvironmentSchema.parse(row.environment),
+          role: workspace.role,
+        })
+      : null
+
+    if (lock) {
+      return createErrorResponse(
+        lock === 'viewer'
+          ? {
+              error: {
+                code: 'VIEWER_READ_ONLY',
+                message:
+                  'Viewers can see this workspace but cannot trade in it.',
+              },
+            }
+          : {
+              error: {
+                code: 'LIVE_TRADING_NOT_ALLOWED',
+                message: 'Paper members cannot trade on a live connection.',
+              },
+            },
+        403
+      )
+    }
+
+    request = decryptAlpacaRequestContext({ row, workspace })
+
+    const data = await handler({
+      actor: request.actor,
+      alpaca: request.alpaca,
+    })
 
     return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
   } catch (error) {
+    if (error instanceof NoWorkspaceError) {
+      return createErrorResponse(
+        {
+          error: {
+            code: 'WORKSPACE_REQUIRED',
+            message: error.message,
+          },
+        },
+        428
+      )
+    }
+
     if (error instanceof AlpacaCredentialsError) {
       return credentialErrorResponse(error.code)
     }
 
     // Only 401 means the keys were rejected. Alpaca also returns 403 for
     // valid keys, e.g. insufficient buying power on an order.
-    if (
-      error instanceof AlpacaApiError &&
-      error.status === 401 &&
-      environment
-    ) {
-      await markCredentialInvalid({
-        environment,
-        updatedAt: credentialUpdatedAt,
-        userId: session.user.id,
+    if (error instanceof AlpacaApiError && error.status === 401 && request) {
+      await markConnectionInvalid({
+        connectionId: request.actor.connectionId,
+        updatedAt: request.connectionUpdatedAt,
+        workspaceId: request.actor.workspaceId,
       })
 
       return credentialErrorResponse('INVALID')
@@ -152,7 +203,7 @@ function credentialErrorResponse(code: 'INVALID' | 'MISSING'): Response {
       {
         error: {
           code: 'ALPACA_CREDENTIALS_REQUIRED',
-          message: 'Add Alpaca keys for the active environment to continue.',
+          message: 'Add an Alpaca connection to this workspace to continue.',
         },
       },
       428
@@ -163,7 +214,7 @@ function credentialErrorResponse(code: 'INVALID' | 'MISSING'): Response {
     {
       error: {
         code: 'ALPACA_CREDENTIALS_INVALID',
-        message: 'The Alpaca keys for the active environment were rejected.',
+        message: 'Alpaca rejected the keys of the active connection.',
       },
     },
     428

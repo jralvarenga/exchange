@@ -30,14 +30,14 @@ export function PortfolioCard() {
         <CardTitle>Portfolio</CardTitle>
       </CardHeader>
       <Tabs className="flex min-h-0 flex-1 flex-col" defaultValue="assets">
-        <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
+        <CardContent className="flex min-h-0 flex-1 flex-col">
           <TabsList>
             <TabsTrigger value="assets">Assets</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
           <TabsContent
-            className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
             value="assets"
           >
             <BalanceErrorBoundary
@@ -53,7 +53,7 @@ export function PortfolioCard() {
             </BalanceErrorBoundary>
           </TabsContent>
           <TabsContent
-            className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
             value="orders"
           >
             <BalanceErrorBoundary
@@ -69,7 +69,7 @@ export function PortfolioCard() {
             </BalanceErrorBoundary>
           </TabsContent>
           <TabsContent
-            className="flex min-h-0 flex-1 flex-col overflow-hidden pt-4"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
             value="activity"
           >
             <BalanceErrorBoundary

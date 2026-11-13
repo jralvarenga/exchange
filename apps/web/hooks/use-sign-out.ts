@@ -9,8 +9,13 @@ interface UseSignOutResult {
   signOut: () => Promise<void>
 }
 
+interface UseSignOutOptions {
+  /** A same-site path to return to after signing in again, such as an invite link. */
+  next?: string
+}
+
 /** Ends the Better Auth session and returns to the login page. */
-export function useSignOut(): UseSignOutResult {
+export function useSignOut(options: UseSignOutOptions = {}): UseSignOutResult {
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
@@ -25,7 +30,11 @@ export function useSignOut(): UseSignOutResult {
         return
       }
 
-      router.replace('/login')
+      router.replace(
+        options.next
+          ? `/login?next=${encodeURIComponent(options.next)}`
+          : '/login'
+      )
       router.refresh()
     } catch {
       setPending(false)
