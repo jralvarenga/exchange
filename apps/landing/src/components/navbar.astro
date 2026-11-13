@@ -1,0 +1,38 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+
+import EdgeFade from '@/components/edge-fade.astro'
+import Logo from '@/components/logo.astro'
+import { appLinks, sectionLinks } from '@/lib/links'
+---
+
+<!-- Floats the logo, section links and account actions over the page. -->
+<EdgeFade edge="top" />
+<header
+  class="pointer-events-none fixed inset-x-4 top-3 z-40 flex h-16 items-center justify-between gap-2 sm:inset-x-6"
+>
+  <a
+    aria-label="Exchange home"
+    class="pointer-events-auto rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring"
+    href="/"
+  >
+    <Logo />
+  </a>
+  <nav aria-label="Sections" class="pointer-events-auto hidden lg:block">
+    <ul class="flex items-center gap-1">
+      {
+        sectionLinks.map((link) => (
+          <li>
+            <a class={buttonVariants({ size: 'lg', variant: 'ghost' })} href={link.href}>
+              {link.title}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+  <div class="pointer-events-auto flex items-center gap-2">
+    <a class={buttonVariants({ size: 'lg', variant: 'ghost' })} href={appLinks.logIn}>Log in</a>
+    <a class={buttonVariants({ size: 'lg' })} href={appLinks.signUp}>Sign up</a>
+  </div>
+</header>

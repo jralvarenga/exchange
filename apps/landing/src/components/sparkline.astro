@@ -1,0 +1,60 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+import type { Tone } from '@/lib/market'
+import { buildSparkline } from '@/lib/utils'
+
+interface Props {
+  class?: string
+  /** Fades the line into the page at both horizontal edges, for full-bleed use. */
+  edgeFade?: boolean
+  height?: number
+  /** Unique per page, so each chart keeps its own gradient. */
+  id: string
+  tone: Tone
+  values: number[]
+  width?: number
+}
+
+const {
+  class: className,
+  edgeFade = false,
+  height = 64,
+  id,
+  tone,
+  values,
+  width = 240,
+} = Astro.props
+
+const paths = buildSparkline({ height, values, width })
+const color = `var(--${tone})`
+---
+
+<!-- An area chart with no axes: a toned line over a fill that melts into the page. -->
+<svg
+  aria-hidden="true"
+  class={cn(
+    'overflow-visible',
+    edgeFade && '[mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]',
+    className
+  )}
+  preserveAspectRatio="none"
+  viewBox={`0 0 ${width} ${height}`}
+>
+  <defs>
+    <linearGradient id={id} x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color={color} stop-opacity="0.32"></stop>
+      <stop offset="55%" stop-color={color} stop-opacity="0.08"></stop>
+      <stop offset="100%" stop-color="var(--background)" stop-opacity="0"></stop>
+    </linearGradient>
+  </defs>
+  <path d={paths.area} fill={`url(#${id})`}></path>
+  <path
+    d={paths.line}
+    fill="none"
+    stroke={color}
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2.5"
+    vector-effect="non-scaling-stroke"></path>
+</svg>

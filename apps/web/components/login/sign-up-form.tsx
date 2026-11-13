@@ -10,11 +10,13 @@ import {
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
 import { Eye, EyeOff } from 'lucide-react'
-import Link from 'next/link'
 import { useState } from 'react'
 
 import { AuthDivider } from '@/components/login/auth-divider'
+import { AuthHeader } from '@/components/login/auth-header'
+import { AuthLink } from '@/components/login/auth-link'
 import { GoogleSignInButton } from '@/components/login/google-sign-in-button'
+import { LegalNotice } from '@/components/login/legal-notice'
 import { ProfilePhotoField } from '@/components/login/profile-photo-field'
 
 interface Props {
@@ -58,22 +60,23 @@ export function SignUpForm({ next }: Props) {
 
   if (submitted) {
     return (
-      <div className="flex flex-col gap-4 text-center">
-        <h1 className="font-bold text-xl">Check your email</h1>
-        <p role="status">
-          We sent a verification link. Open it to finish creating your account.
-        </p>
-        <Link href="/login" className="underline underline-offset-4">
-          Back to login
-        </Link>
+      <div className="flex flex-col items-start gap-8" role="status">
+        <AuthHeader
+          description="We sent a verification link. Open it to finish creating your account."
+          title="Check your email"
+        />
+        <AuthLink href="/login">Back to log in</AuthLink>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
+      <AuthHeader
+        description="Start on paper. You add your Alpaca keys after this."
+        title="Create your account"
+      />
       <FieldGroup>
-        <h1 className="text-center font-bold text-xl">Create your account</h1>
         <GoogleSignInButton
           callbackURL={next}
           disabled={pending}
@@ -94,6 +97,7 @@ export function SignUpForm({ next }: Props) {
                   id="name"
                   name="name"
                   autoComplete="name"
+                  placeholder="Your name"
                   required
                   disabled={pending}
                 />
@@ -107,6 +111,7 @@ export function SignUpForm({ next }: Props) {
                   name="email"
                   type="email"
                   autoComplete="username email"
+                  placeholder="you@example.com"
                   required
                   disabled={pending}
                   aria-describedby={message ? 'signup-error' : undefined}
@@ -123,6 +128,7 @@ export function SignUpForm({ next }: Props) {
                   type={showsPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   minLength={8}
+                  placeholder="At least 8 characters"
                   required
                   disabled={pending}
                   aria-describedby={message ? 'signup-error' : undefined}
@@ -152,25 +158,28 @@ export function SignUpForm({ next }: Props) {
                 {message}
               </p>
             ) : null}
-            <Button type="submit" disabled={pending} className="w-full">
+            <Button
+              type="submit"
+              disabled={pending}
+              size="xl"
+              className="w-full"
+            >
               Create account
             </Button>
           </FieldGroup>
         </form>
-        <p className="text-center">
-          Already have an account?{' '}
-          <Link
-            href={
-              next === '/'
-                ? '/login'
-                : `/login?next=${encodeURIComponent(next)}`
-            }
-            className="underline underline-offset-4"
-          >
-            Login
-          </Link>
-        </p>
+        <LegalNotice />
       </FieldGroup>
+      <p className="text-center text-muted-foreground">
+        Already have an account?{' '}
+        <AuthLink
+          href={
+            next === '/' ? '/login' : `/login?next=${encodeURIComponent(next)}`
+          }
+        >
+          Log in
+        </AuthLink>
+      </p>
     </div>
   )
 }

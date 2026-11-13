@@ -1,0 +1,38 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+interface Props {
+  class?: string
+  image?: string
+  initials: string
+}
+
+const { class: className, image, initials } = Astro.props
+---
+
+<!--
+  A member's round profile photo, like the app's `UserAvatar`. The initials
+  underneath show when there is no photo or it fails to load.
+-->
+<span
+  aria-hidden="true"
+  class={cn(
+    'relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted font-medium text-foreground',
+    className
+  )}
+>
+  {initials}
+  {
+    image ? (
+      <img
+        alt=""
+        class="absolute inset-0 size-full object-cover"
+        decoding="async"
+        height="40"
+        loading="lazy"
+        src={image}
+        width="40"
+      />
+    ) : null
+  }
+</span>

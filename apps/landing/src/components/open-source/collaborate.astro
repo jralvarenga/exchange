@@ -1,0 +1,36 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+import { ArrowUpRight, GitPullRequest, Handshake } from 'lucide-react'
+
+import { externalLinks } from '@/lib/links'
+---
+
+<!-- An open invitation to contribute: issues, pull requests or building together. -->
+<div
+  aria-labelledby="collaborate-title"
+  class="flex flex-col gap-6 border-t pt-10 md:flex-row md:items-end md:justify-between md:gap-10"
+  role="region"
+>
+  <div class="flex max-w-xl flex-col gap-3">
+    <span class="flex size-12 items-center justify-center rounded-full bg-muted">
+      <Handshake aria-hidden="true" className="size-5" />
+    </span>
+    <h3 class="font-bold text-2xl tracking-tight" id="collaborate-title">
+      We're open to collaborations
+    </h3>
+    <p class="text-muted-foreground">
+      Found a bug, want a feature or want to build something on top of Exchange? Open an issue, send
+      a pull request or reach out on GitHub. Every contribution is welcome.
+    </p>
+  </div>
+  <div class="flex flex-wrap items-center gap-3">
+    <a class={buttonVariants({ size: 'xl', variant: 'outline' })} href={externalLinks.issues}>
+      Open an issue
+      <ArrowUpRight aria-hidden="true" data-icon="inline-end" />
+    </a>
+    <a class={buttonVariants({ size: 'xl', variant: 'ghost' })} href={externalLinks.pullRequests}>
+      <GitPullRequest aria-hidden="true" data-icon="inline-start" />
+      Send a pull request
+    </a>
+  </div>
+</div>

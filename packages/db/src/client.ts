@@ -6,13 +6,16 @@ import { alpacaConnections } from './schema/alpaca-connections'
 import * as authSchema from './schema/auth'
 import { cryptoWallets } from './schema/crypto-wallets'
 import * as workspaceSchema from './schema/workspaces'
+import { normalizeDatabaseUrl } from './utils'
+
+const databaseUrl = process.env.DATABASE_URL
 
 /**
  * Shared Postgres pool for compose locally and Neon's pooled connection string.
  * The pool connects on the first query.
  */
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: databaseUrl ? normalizeDatabaseUrl(databaseUrl) : undefined,
 })
 
 const schema = {

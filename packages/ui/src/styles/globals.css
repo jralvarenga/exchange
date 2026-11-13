@@ -268,3 +268,54 @@
     animation-range: 0 4rem;
   }
 }
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/*
+ * Scrolls a row whose items are rendered twice end to end, so moving it by
+ * half its width loops seamlessly. A row with a `gap` also needs end padding
+ * of one gap (`gap-4 pr-4`), so each half spans its items and their gaps.
+ * Reduced motion keeps it still.
+ */
+@utility animate-marquee {
+  animation: marquee var(--marquee-duration, 40s) linear infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes glow-drift {
+  0%,
+  100% {
+    scale: 1;
+    translate: 0 0;
+  }
+
+  33% {
+    scale: 1.15;
+    translate: var(--drift-x, 12%) var(--drift-y, -10%);
+  }
+
+  66% {
+    scale: 0.9;
+    translate: calc(var(--drift-x, 12%) * -0.7) calc(var(--drift-y, -10%) * -1);
+  }
+}
+
+/*
+ * Wanders a blurred glow along its own path, set with `--drift-x`,
+ * `--drift-y` and `--drift-duration`. Uses `translate` and `scale` so it never
+ * fights a Tailwind transform. Reduced motion keeps it still.
+ */
+@utility animate-glow-drift {
+  animation: glow-drift var(--drift-duration, 18s) ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

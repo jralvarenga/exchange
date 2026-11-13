@@ -1,0 +1,51 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react'
+
+import AssetLogo from '@/components/asset-logo.astro'
+import Sparkline from '@/components/sparkline.astro'
+import type { Ticker } from '@/lib/market'
+import { formatCurrency, formatSignedPercent } from '@/lib/utils'
+
+interface Props {
+  class?: string
+  ticker: Ticker
+}
+
+const { class: className, ticker } = Astro.props
+const isDown = ticker.change < 0
+const ChangeIcon = isDown ? ArrowDownRight : ArrowUpRight
+---
+
+<!-- A floating glass tile with an asset's day: change, sparkline, price and holding. -->
+<figure class={cn('surface-floating flex w-64 flex-col gap-3 rounded-3xl p-4', className)}>
+  <figcaption class="flex items-center justify-between gap-3">
+    <span class="flex min-w-0 items-center gap-2.5">
+      <AssetLogo size="row" symbol={ticker.symbol} />
+      <span class="flex min-w-0 flex-col">
+        <span class="font-bold">{ticker.symbol}</span>
+        <span class="truncate text-muted-foreground text-sm">{ticker.name}</span>
+      </span>
+    </span>
+    <span
+      class={cn(
+        'inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 font-medium text-sm tabular-nums',
+        isDown ? 'bg-market-down/10 text-market-down' : 'bg-market-up/10 text-market-up'
+      )}
+    >
+      <ChangeIcon aria-hidden="true" className="size-3.5" />
+      {formatSignedPercent({ value: ticker.change })}
+    </span>
+  </figcaption>
+  <Sparkline
+    class="h-14 w-full"
+    height={56}
+    id={`ticker-${ticker.symbol}`}
+    tone={isDown ? 'market-down' : 'market-up'}
+    values={ticker.series}
+  />
+  <div class="flex items-baseline justify-between gap-3 tabular-nums">
+    <span class="font-bold text-lg">{formatCurrency({ value: ticker.price })}</span>
+    <span class="text-muted-foreground">{ticker.shares} shares</span>
+  </div>
+</figure>

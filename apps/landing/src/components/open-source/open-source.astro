@@ -1,0 +1,70 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+import { cn } from '@workspace/ui/lib/utils'
+
+import Collaborate from '@/components/open-source/collaborate.astro'
+import SelfHost from '@/components/open-source/self-host.astro'
+import SectionIntro from '@/components/section-intro.astro'
+import { externalLinks } from '@/lib/links'
+
+/** Lines 64 to 82 of `secret-box-core.ts`, copied as they are on `main`. */
+const firstLine = 64
+const code = [
+  '/**',
+  ' * Encrypts a secret with AES-256-GCM.',
+  ' * Stored form: `v1:<keyId>:<iv>:<tag>:<ciphertext>`, each binary part base64url.',
+  ' */',
+  'export function encryptSecret(input: EncryptSecretInput): string {',
+  '  const encryptionKey = input.keys[0]',
+  '',
+  '  if (!encryptionKey) {',
+  "    throw new Error('No encryption key is configured.')",
+  '  }',
+  '',
+  '  const iv = randomBytes(IV_BYTES)',
+  "  const cipher = createCipheriv('aes-256-gcm', encryptionKey.key, iv)",
+  "  cipher.setAAD(Buffer.from(input.aad, 'utf8'))",
+  '  const ciphertext = Buffer.concat([',
+  "    cipher.update(input.plaintext, 'utf8'),",
+  '    cipher.final(),',
+  '  ])',
+  '  const tag = cipher.getAuthTag()',
+]
+---
+
+<!-- Trust through transparency: the repository, the real code that encrypts keys, and how to self-host. -->
+<section aria-labelledby="open-source-title" class="scroll-mt-24 py-24 md:py-40" id="open-source">
+  <div class="mx-auto flex max-w-6xl flex-col gap-20 px-4 sm:px-6 md:gap-32">
+    <div class="grid items-center gap-10 lg:grid-cols-[1fr_1.2fr] lg:gap-16">
+      <div class="flex flex-col items-start gap-8">
+        <SectionIntro id="open-source-title" muted=" Read the code." title="You don't have to trust us.">
+          Exchange is fully open source. Every line that touches your keys and your orders is public
+          on GitHub, so you can check how keys are encrypted, open an issue or run your own copy.
+        </SectionIntro>
+        <a class={buttonVariants({ size: 'xl', variant: 'outline' })} href={externalLinks.github}>
+          <svg aria-hidden="true" data-icon="inline-start" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.6 18.3 5 18.3 5c.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"
+            ></path>
+          </svg>
+          View on GitHub
+        </a>
+      </div>
+
+      <figure
+        aria-label="Preview of the code that encrypts your Alpaca keys"
+        class="flex min-w-0 flex-col overflow-hidden rounded-[2rem] ring-1 ring-border"
+      >
+        <pre class="overflow-x-auto py-6 font-mono text-sm leading-6"><code>{
+          code.map((line, index) => (
+            <span class="flex"><span aria-hidden="true" class="w-14 shrink-0 select-none pr-4 text-right text-muted-foreground/60 tabular-nums">{firstLine + index}</span><span class={cn('whitespace-pre pr-5', /^\s*(\/\*\*|\*)/.test(line) ? 'text-muted-foreground' : 'text-foreground')}>{line}</span></span>
+          ))
+        }</code></pre>
+      </figure>
+    </div>
+
+    <SelfHost />
+
+    <Collaborate />
+  </div>
+</section>

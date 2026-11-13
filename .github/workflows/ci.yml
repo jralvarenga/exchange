@@ -75,5 +75,9 @@ jobs:
         working-directory: apps/web
         run: bun test
 
+      - name: Test db package
+        working-directory: packages/db
+        run: bun test
+
       - name: Build
         run: bun run build

@@ -1,0 +1,93 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+import { cn } from '@workspace/ui/lib/utils'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
+
+import TickerTile from '@/components/hero/ticker-tile.astro'
+import TokenField from '@/components/token-field.astro'
+import { appLinks } from '@/lib/links'
+import { heroTickers, heroTokens } from '@/lib/market'
+
+const [firstTicker, secondTicker] = heroTickers
+const reveal =
+  'animate-in fade-in blur-in-sm slide-in-from-bottom-2 duration-700 ease-[cubic-bezier(0.19,1,0.22,1)] fill-mode-both motion-reduce:animate-none'
+---
+
+<!-- The pitch on the left, a field of floating ETF coins and live tiles on the right. -->
+<section
+  aria-labelledby="hero-title"
+  class="relative isolate flex min-h-svh flex-col justify-center pt-28 pb-24 md:pb-32"
+>
+  <div
+    class="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:gap-8"
+  >
+    <div class="flex flex-col items-start gap-6">
+      <a
+        class:list={[
+          'group inline-flex items-center gap-2 rounded-full bg-muted py-1 pr-3 pl-1 outline-none transition-colors hover:bg-secondary focus-visible:ring-3 focus-visible:ring-ring',
+          reveal,
+        ]}
+        href="#workspaces"
+      >
+        <span class="rounded-full bg-foreground px-2.5 py-0.5 font-medium text-background text-sm">New</span>
+        <span class="text-sm">Workspaces with members and roles</span>
+        <ArrowRight
+          aria-hidden="true"
+          className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+        />
+      </a>
+
+      <h1
+        class:list={[
+          'text-balance font-bold text-5xl leading-[0.95] tracking-tighter sm:text-6xl lg:text-7xl',
+          reveal,
+          'delay-75',
+        ]}
+        id="hero-title"
+      >
+        Trade on Alpaca <span class="text-muted-foreground">without the noise.</span>
+      </h1>
+
+      <p class:list={['max-w-md text-lg text-muted-foreground', reveal, 'delay-100']}>
+        A quiet trading desk for your Alpaca account. Trade on your own, or share a workspace with
+        your team and decide what each person can do.
+      </p>
+
+      <div class:list={['flex flex-wrap items-center gap-3', reveal, 'delay-150']}>
+        <a class={buttonVariants({ size: 'xl' })} href={appLinks.signUp}>
+          Create your account
+          <ArrowUpRight aria-hidden="true" data-icon="inline-end" />
+        </a>
+        <a class={buttonVariants({ size: 'xl', variant: 'outline' })} href={appLinks.logIn}>Log in</a>
+      </div>
+
+      <p class:list={['text-muted-foreground', reveal, 'delay-200']}>
+        Bring your own Alpaca keys. Start on paper.
+      </p>
+    </div>
+
+    <div class="relative mx-auto h-136 w-full max-w-md overflow-x-clip lg:max-w-none lg:overflow-x-visible">
+      <TokenField tokens={heroTokens} />
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="relative h-72 w-72 sm:w-80">
+          {
+            firstTicker ? (
+              <TickerTile
+                class={cn('absolute top-0 left-0 -rotate-3', reveal, 'delay-200')}
+                ticker={firstTicker}
+              />
+            ) : null
+          }
+          {
+            secondTicker ? (
+              <TickerTile
+                class={cn('absolute right-0 bottom-0 rotate-2', reveal, 'delay-300')}
+                ticker={secondTicker}
+              />
+            ) : null
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

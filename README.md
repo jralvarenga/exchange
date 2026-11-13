@@ -74,7 +74,11 @@ docker compose up -d
 
 `DATABASE_URL` for that database is
 `postgresql://exchange:exchange@127.0.0.1:5432/exchange`. Production uses a Neon
-pooled connection string in the same variable. Apply migrations as a deploy
+pooled connection string in the same variable. Set `sslmode=verify-full` on it,
+not the `sslmode=require` Neon copies by default. pg 8 already treats
+`require`, `prefer`, and `verify-ca` as `verify-full` and prints a security
+warning about it, so `packages/db` rewrites those modes to `verify-full` unless
+the URL sets `uselibpqcompat`. Apply migrations as a deploy
 step. Do not use `drizzle-kit push`. `bun run db:migrate` reads `DATABASE_URL`
 from the environment, `packages/db/.env`, or `apps/web/.env.local`.
 
@@ -180,6 +184,7 @@ EMAIL_FROM
 CREDENTIALS_ENCRYPTION_KEYS
 AUTH_ALLOWED_EMAILS
 AUTH_DISABLE_SIGNUP
+NEXT_PUBLIC_LANDING_URL
 ```
 
 A non-empty `AUTH_ALLOWED_EMAILS` restricts sign-up to those addresses in
@@ -195,6 +200,10 @@ target that preview. Google sign-in on a preview still needs that preview's
 callback URI in Google Cloud; otherwise use email and password there. Add
 extra CSRF origins with a comma-separated `BETTER_AUTH_TRUSTED_ORIGINS` if
 needed.
+`NEXT_PUBLIC_LANDING_URL` is the landing site origin, for example
+`https://example.com`. The login and sign-up pages link its `/terms` and
+`/privacy` pages. Next.js inlines it at build time, so redeploy after changing
+it. It defaults to the Astro dev server, `http://127.0.0.1:4321`.
 `ALPACA_CRYPTO_LOCATION` and `ALPACA_DATA_BASE_URL` stay optional. After
 `bun run auth:migrate-owner` succeeds, remove the legacy password, Alpaca, and
 `ADDRESS_*` variables from Vercel.
@@ -213,7 +222,8 @@ were already applied, so a push without schema changes does nothing. Set
 it up once:
 
 1. In the repository settings, create an environment named `production`.
-2. Add a `DATABASE_URL` secret to it with the Neon pooled connection string.
+2. Add a `DATABASE_URL` secret to it with the Neon pooled connection string,
+   using `sslmode=verify-full`.
 3. Set required reviewers on that environment so each migration waits for approval.
 
 Vercel deploys `main` at the same time, so the new code can go live before the

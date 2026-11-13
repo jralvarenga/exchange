@@ -14,6 +14,7 @@ declare namespace NodeJS {
     GOOGLE_CLIENT_SECRET?: string
     RESEND_API_KEY?: string
     NEXT_PUBLIC_APP_URL?: string
+    NEXT_PUBLIC_LANDING_URL?: string
     PORT?: string
     VERCEL_ENV?: 'development' | 'preview' | 'production'
     VERCEL_URL?: string

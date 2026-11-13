@@ -2,6 +2,7 @@
 
 import { authClient } from '@workspace/auth/client'
 import { Button } from '@workspace/ui/components/button'
+import Image from 'next/image'
 import { useState } from 'react'
 
 interface Props {
@@ -48,12 +49,21 @@ export function GoogleSignInButton({
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        size="xl"
+        className="w-full gap-2.5 text-base"
         disabled={pending || disabled}
         onClick={() => {
           void handleClick()
         }}
       >
+        <Image
+          alt=""
+          className="size-5"
+          data-icon="inline-start"
+          height={20}
+          src="/icons/google.svg"
+          width={20}
+        />
         Continue with Google
       </Button>
       {message ? (

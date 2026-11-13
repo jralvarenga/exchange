@@ -1,0 +1,26 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+import { ArrowUpRight } from 'lucide-react'
+
+import SectionIntro from '@/components/section-intro.astro'
+import TokenField from '@/components/token-field.astro'
+import { appLinks } from '@/lib/links'
+import { ctaTokens } from '@/lib/market'
+---
+
+<!-- The closing ask, framed by a few floating coins from the hero. -->
+<section aria-labelledby="cta-title" class="relative isolate overflow-hidden py-32 md:py-48">
+  <TokenField class="-z-10 hidden md:block" tokens={ctaTokens} />
+  <div class="mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 sm:px-6">
+    <SectionIntro align="center" id="cta-title" muted=" Go live when you're ready." title="Start on paper today.">
+      Create an account, add your Alpaca paper keys and place your first order in a few minutes.
+    </SectionIntro>
+    <div class="flex flex-wrap items-center justify-center gap-3">
+      <a class={buttonVariants({ size: 'xl' })} href={appLinks.signUp}>
+        Create your account
+        <ArrowUpRight aria-hidden="true" data-icon="inline-end" />
+      </a>
+      <a class={buttonVariants({ size: 'xl', variant: 'outline' })} href={appLinks.logIn}>Log in</a>
+    </div>
+  </div>
+</section>

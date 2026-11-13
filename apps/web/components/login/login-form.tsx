@@ -9,12 +9,13 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@workspace/ui/components/input-group'
-import { Eye, EyeOff, GalleryVerticalEnd } from 'lucide-react'
-import Link from 'next/link'
+import { Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 import { AuthDivider } from '@/components/login/auth-divider'
+import { AuthHeader } from '@/components/login/auth-header'
+import { AuthLink } from '@/components/login/auth-link'
 import { GoogleSignInButton } from '@/components/login/google-sign-in-button'
 import { cn } from '@/lib/utils'
 
@@ -58,14 +59,12 @@ export function LoginForm({ className, next, ...props }: Props) {
   }
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
+    <div className={cn('flex flex-col gap-8', className)} {...props}>
+      <AuthHeader
+        description="Log in to your account to continue."
+        title="Welcome back"
+      />
       <FieldGroup>
-        <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex size-8 items-center justify-center rounded-md">
-            <GalleryVerticalEnd className="size-6" aria-hidden="true" />
-          </div>
-          <h1 className="font-bold text-xl">Welcome to Exchange.</h1>
-        </div>
         <GoogleSignInButton
           callbackURL={next}
           disabled={pending}
@@ -82,6 +81,7 @@ export function LoginForm({ className, next, ...props }: Props) {
                   name="email"
                   type="email"
                   autoComplete="username email"
+                  placeholder="you@example.com"
                   required
                   disabled={pending}
                   aria-describedby={message ? 'login-error' : undefined}
@@ -90,7 +90,10 @@ export function LoginForm({ className, next, ...props }: Props) {
               </InputGroup>
             </Field>
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <div className="flex items-center justify-between gap-3">
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <AuthLink href="/forgot-password">Forgot password?</AuthLink>
+              </div>
               <InputGroup>
                 <InputGroupInput
                   id="password"
@@ -122,45 +125,33 @@ export function LoginForm({ className, next, ...props }: Props) {
               </InputGroup>
             </Field>
             {message ? (
-              <Field>
-                <p
-                  id="login-error"
-                  role="alert"
-                  className="text-destructive text-sm"
-                >
-                  {message}
-                </p>
-              </Field>
+              <p id="login-error" role="alert" className="text-destructive">
+                {message}
+              </p>
             ) : null}
-            <Field>
-              <Button type="submit" disabled={pending} className="w-full">
-                Login
-              </Button>
-            </Field>
+            <Button
+              type="submit"
+              disabled={pending}
+              size="xl"
+              className="w-full"
+            >
+              Log in
+            </Button>
           </FieldGroup>
         </form>
-        <p className="text-center">
-          <Link
-            href="/forgot-password"
-            className="underline underline-offset-4"
-          >
-            Forgot password
-          </Link>
-        </p>
-        <p className="text-center">
-          New here?{' '}
-          <Link
-            href={
-              next === '/'
-                ? '/sign-up'
-                : `/sign-up?next=${encodeURIComponent(next)}`
-            }
-            className="underline underline-offset-4"
-          >
-            Create an account
-          </Link>
-        </p>
       </FieldGroup>
+      <p className="text-center text-muted-foreground">
+        New here?{' '}
+        <AuthLink
+          href={
+            next === '/'
+              ? '/sign-up'
+              : `/sign-up?next=${encodeURIComponent(next)}`
+          }
+        >
+          Create an account
+        </AuthLink>
+      </p>
     </div>
   )
 }

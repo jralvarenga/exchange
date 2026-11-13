@@ -1,0 +1,44 @@
+---
+import EdgeFade from '@/components/edge-fade.astro'
+import Footer from '@/components/footer.astro'
+import Navbar from '@/components/navbar.astro'
+import Layout from '@/layouts/layout.astro'
+import { support } from '@/lib/links'
+
+interface Props {
+  description: string
+  title: string
+  /** ISO date the text last changed, e.g. `2026-11-13`. */
+  updated: string
+}
+
+const { description, title, updated } = Astro.props
+const updatedLabel = new Intl.DateTimeFormat('en-US', {
+  dateStyle: 'long',
+  timeZone: 'UTC',
+}).format(new Date(updated))
+---
+
+<!-- Shared shell for the privacy policy and the terms: title, date, readable column, contact line. -->
+<Layout description={description} title={`${title} · Exchange`}>
+  <Navbar />
+  <main class="mx-auto flex max-w-3xl flex-col gap-16 px-4 pt-40 pb-24 sm:px-6 md:pb-40">
+    <header class="flex flex-col gap-4">
+      <h1 class="text-balance font-bold text-5xl tracking-tighter md:text-6xl">{title}</h1>
+      <p class="text-muted-foreground">
+        Last updated <time datetime={updated}>{updatedLabel}</time>
+      </p>
+    </header>
+    <div class="flex flex-col gap-12">
+      <slot />
+    </div>
+    <p class="border-t pt-10 text-muted-foreground">
+      Questions about this page? Email{' '}
+      <a class="font-medium text-foreground underline-offset-4 hover:underline" href={support.href}>
+        {support.email}
+      </a>.
+    </p>
+  </main>
+  <Footer />
+  <EdgeFade edge="bottom" />
+</Layout>

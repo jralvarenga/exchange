@@ -1,0 +1,109 @@
+---
+import LegalPage from '@/components/legal/legal-page.astro'
+import LegalSection from '@/components/legal/legal-section.astro'
+import { externalLinks, legalLinks, support } from '@/lib/links'
+---
+
+<LegalPage
+  description="The rules for using the hosted Exchange with your Alpaca account."
+  title="Terms of service"
+  updated="2026-11-13"
+>
+  <LegalSection title="What Exchange does">
+    <p>
+      Exchange is an app that uses your Alpaca API keys to show your Alpaca account and send orders to
+      it. <strong>Alpaca is your broker, not Exchange.</strong> Alpaca holds your money and positions,
+      fills your orders and is bound by its own terms with you. Exchange never holds funds, and
+      nothing in Exchange is investment advice.
+    </p>
+    <p>By signing up you agree to these terms and to the <a href={legalLinks.privacy}>privacy policy</a>.</p>
+  </LegalSection>
+
+  <LegalSection title="Signing up">
+    <ul>
+      <li>You must verify your email before you can sign in with a password.</li>
+      <li>Sign-up may be closed, or open only to invited email addresses.</li>
+      <li>You need your own Alpaca account. Exchange doesn't open one for you.</li>
+      <li>Keep your password to yourself. What happens in your account is your responsibility.</li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection title="Your keys and your orders">
+    <ul>
+      <li>
+        Adding keys lets Exchange read that Alpaca account and place, change and cancel orders in it
+        when you or a workspace member asks.
+      </li>
+      <li>
+        Exchange sends each order as entered. Check the symbol, side, quantity, order type and whether
+        you're on paper or live before you confirm.
+      </li>
+      <li>
+        Closing a position or canceling all orders acts on every matching item in that Alpaca account,
+        including ones placed outside Exchange.
+      </li>
+      <li>
+        Prices, charts and news come from Alpaca and can be delayed or wrong. Alpaca's own records are
+        the final word on what was filled and at what price.
+      </li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection title="Workspaces">
+    <ul>
+      <li>Keys added to a workspace belong to that workspace and stay when the person who added them leaves.</li>
+      <li>
+        Anyone whose role allows trading can place orders with the workspace's connections, live ones
+        included. Owners and admins choose those roles and answer for who they invite.
+      </li>
+      <li>Every order and change is logged with the name of the member who made it.</li>
+      <li>A workspace always keeps at least one owner.</li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection title="Crypto deposit addresses">
+    <p>
+      Exchange shows the deposit addresses exactly as you saved them. Crypto sent to a wrong address
+      or on the wrong network usually can't be recovered. Check the address and the network against
+      Alpaca before you send anything.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="Things you can't do">
+    <ul>
+      <li>Use keys or an Alpaca account you aren't allowed to use.</li>
+      <li>Use Exchange to break the law, Alpaca's terms or market rules.</li>
+      <li>Try to get into other people's accounts or workspaces, or overload the service.</li>
+    </ul>
+  </LegalSection>
+
+  <LegalSection title="Open source">
+    <p>
+      The code is <a href={externalLinks.github}>public on GitHub</a>. These terms cover the hosted
+      service on this site only. If you run your own copy, you run it on your own terms.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="No guarantees">
+    <p>
+      Exchange is provided as is. It can have bugs and outages, and Alpaca can too. As far as the law
+      allows, we aren't liable for trading losses, orders that didn't go through, orders sent as
+      entered, or losses from delayed or wrong data.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="Ending your use">
+    <p>
+      You can stop at any time. Remove your connections, or revoke the keys in Alpaca. To delete your
+      account, email <a href={support.href}>{support.email}</a>. We may suspend an account that
+      breaks these terms or puts other users at risk.
+    </p>
+  </LegalSection>
+
+  <LegalSection title="Changes">
+    <p>
+      When these terms change, the date at the top changes too. We'll email you before a change
+      takes effect.
+    </p>
+  </LegalSection>
+</LegalPage>

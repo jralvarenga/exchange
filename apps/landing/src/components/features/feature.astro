@@ -1,0 +1,27 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+import type { LucideIcon } from 'lucide-react'
+
+interface Props {
+  /** Layout only, such as spanning both columns. */
+  class?: string
+  icon: LucideIcon
+  title: string
+}
+
+const { class: className, icon: Icon, title } = Astro.props
+---
+
+<!-- One feature: icon, title, a sentence, and a small detail from the app below. -->
+<li class={cn('flex flex-col gap-4 border-t py-8', className)}>
+  <span class="flex size-12 items-center justify-center rounded-full bg-muted">
+    <Icon aria-hidden="true" className="size-5" />
+  </span>
+  <h3 class="font-bold text-xl tracking-tight">{title}</h3>
+  <p class="max-w-md text-muted-foreground">
+    <slot />
+  </p>
+  <div class="mt-auto pt-2">
+    <slot name="detail" />
+  </div>
+</li>

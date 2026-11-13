@@ -2,3 +2,32 @@
 
 /* The shared stylesheet only scans .ts and .tsx files. */
 @source "../**/*.astro";
+
+html {
+  scroll-behavior: smooth;
+
+  @media (prefers-reduced-motion: reduce) {
+    scroll-behavior: auto;
+  }
+}
+
+@keyframes token-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-4deg);
+  }
+
+  50% {
+    transform: translate3d(0, -14px, 0) rotate(4deg);
+  }
+}
+
+/* Bobs a token on its own rhythm, set with `--float-duration` and `--float-delay`. */
+@utility animate-token-float {
+  animation: token-float var(--float-duration, 8s) ease-in-out
+    var(--float-delay, 0s) infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

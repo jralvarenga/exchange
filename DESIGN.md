@@ -37,6 +37,7 @@ Tokens live in [globals.css](packages/ui/src/styles/globals.css) and are used th
 - Gains and losses always carry a sign and an arrow (`ArrowUpRight` / `ArrowDownRight`), never color alone.
 - Status pills tint with the tone at 10% (`bg-market-up/10 text-market-up`) and always include the status word.
 - Gradients are allowed only to fade something into `background` (the chart fill, its edges, the navbar backdrop and the mobile tab bar) and as the sheen inside the `elevation-*` utilities.
+- The auth showcase ([auth-showcase.tsx](apps/web/components/login/auth-showcase.tsx)) is the one filled brand surface: `bg-primary` with blurred `chart-*` glows behind the pitch and a marquee of asset logos.
 - The one color not taken from a token is the Trade hero glow: [use-asset-tint.ts](apps/web/hooks/use-asset-tint.ts) samples the asset logo's dominant color at runtime into `--asset-tint`, shown at 12% behind a blur. Logos with no color fall back to `primary`.
 
 ## Typography
@@ -92,6 +93,7 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 - **Sidebar:** floating vertical pill rail, `surface-floating`, centered on the left from `md`. Active item is `bg-foreground text-background`.
 - **Navbar:** floating, transparent, search on the left, Buy / Sell and avatar on the right. A progressive blur backdrop ([navbar-backdrop.tsx](apps/web/components/navbar-backdrop.tsx)) softens content scrolling under it, iOS top bar style.
 - **Mobile tab bar:** floating pill on a bottom fade to `background`.
+- **Auth pages:** from `lg`, the showcase panel on the left and the form on the right; phones get the form alone under the logo. The log in and sign-up forms open with `AuthHeader` (large title, one muted line) and use `AuthLink` for inline links; the forgot password, reset password and verify email screens still use their own `h1` and should move to it.
 
 ## Components
 
