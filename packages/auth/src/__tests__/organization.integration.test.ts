@@ -335,7 +335,7 @@ describe('Better Auth workspace organizations', () => {
         ])
         const security = await freshPool.query(
           `SELECT c.relrowsecurity AS enabled,
-                  array_agg(p.policyname ORDER BY p.policyname) AS policies
+                  array_agg(p.policyname::text ORDER BY p.policyname) AS policies
            FROM pg_class c
            LEFT JOIN pg_policies p ON p.tablename = c.relname
            WHERE c.relname = 'alpaca_connections'
