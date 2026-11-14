@@ -165,6 +165,31 @@ export function openTicketDraft({
   return { draft, needsLookup: Boolean(identifier) && !options.asset }
 }
 
+interface WithPageAssetOptions {
+  current: TicketDraft
+  options: OpenTicketOptions
+  /** The asset of the screen the trader is on, such as the Trade screen's symbol. */
+  pageAsset: TicketAsset | null
+}
+
+/**
+ * Fills an open request that names no asset with the current screen's asset.
+ * A ticket already trading that asset, or an option on it, keeps its draft.
+ */
+export function withPageAsset({
+  current,
+  options,
+  pageAsset,
+}: WithPageAssetOptions): OpenTicketOptions {
+  if (!pageAsset || options.asset || options.assetIdentifier?.trim()) {
+    return options
+  }
+  if (getTicketUnderlying(current.asset)?.symbol === pageAsset.symbol) {
+    return options
+  }
+  return { ...options, asset: pageAsset }
+}
+
 /** True when the ticket is writing an option or asking for a contract on a stock. */
 export function isTicketOptionMode(draft: TicketDraft): boolean {
   if (draft.asset?.assetClass === 'us_option') return true

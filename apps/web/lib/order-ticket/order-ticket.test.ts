@@ -14,6 +14,7 @@ import {
   resolveListedExpiration,
   selectTicketAsset,
   toOptionTicketAsset,
+  withPageAsset,
 } from '@/lib/order-ticket/draft'
 import { getTicketErrorField } from '@/lib/order-ticket/focus'
 import {
@@ -327,6 +328,46 @@ describe('order ticket request contract', () => {
     expect(changed.needsLookup).toBe(true)
     expect(changed.draft.asset).toBeNull()
     expect(isSameTicketSubmission({ current, next: changed.draft })).toBe(false)
+  })
+  test('an open request without an asset takes the page asset', () => {
+    const empty = createTicketDraft()
+    const opened = openTicketDraft({
+      current: empty,
+      options: withPageAsset({
+        current: empty,
+        options: { side: 'sell' },
+        pageAsset: crypto,
+      }),
+    })
+    expect(opened.needsLookup).toBe(false)
+    expect(opened.draft.asset).toBe(crypto)
+    expect(opened.draft.side).toBe('sell')
+    const other = makeDraft({ asset: { ...stock, id: 'msft', symbol: 'MSFT' } })
+    expect(
+      withPageAsset({ current: other, options: {}, pageAsset: stock }).asset
+    ).toBe(stock)
+    expect(
+      withPageAsset({
+        current: other,
+        options: { assetIdentifier: 'TSLA' },
+        pageAsset: stock,
+      })
+    ).toEqual({ assetIdentifier: 'TSLA' })
+    expect(
+      withPageAsset({ current: other, options: {}, pageAsset: null })
+    ).toEqual({})
+  })
+  test('the page asset keeps a draft already trading it or its options', () => {
+    const current = makeDraft({ amount: '4', limitPrice: '12', type: 'limit' })
+    const options = withPageAsset({ current, options: {}, pageAsset: stock })
+    expect(options).toEqual({})
+    expect(openTicketDraft({ current, options }).draft).toBe(current)
+    const contract = makeDraft({
+      asset: { ...option, underlying: { ...stock, assetClass: 'us_equity' } },
+    })
+    expect(
+      withPageAsset({ current: contract, options: {}, pageAsset: stock })
+    ).toEqual({})
   })
   test('option-picking lives on the draft and clears when the asset changes', () => {
     const picking = makeDraft({ preferOption: true })

@@ -16,14 +16,12 @@ import {
   SheetTitle,
 } from '@workspace/ui/components/sheet'
 import { X } from 'lucide-react'
-import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
 import { OrderTicket } from '@/components/order-ticket/order-ticket'
 import { TicketDock } from '@/components/order-ticket/ticket-dock'
 import { useOrderTicket } from '@/contexts/order-ticket-context'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { isTradePath } from '@/lib/navigation'
 
 interface Props {
   children: ReactNode
@@ -34,15 +32,13 @@ export function OrderWorkspace({ children }: Props) {
   const { isOpen, closeTicket } = useOrderTicket()
   const desktop = useMediaQuery('(min-width: 1280px)')
   const tablet = useMediaQuery('(min-width: 768px)')
-  const pathname = usePathname()
-  const inline = isTradePath(pathname)
   return (
     <div className="flex min-w-0 flex-1 items-start gap-8">
       <div className="@container flex min-w-0 flex-1 flex-col self-stretch">
         {children}
       </div>
-      {isOpen && !inline && desktop ? <TicketDock /> : null}
-      {!inline && !desktop && tablet ? (
+      {isOpen && desktop ? <TicketDock /> : null}
+      {!desktop && tablet ? (
         <Sheet
           onOpenChange={(open) => {
             if (!open) closeTicket()
@@ -74,7 +70,7 @@ export function OrderWorkspace({ children }: Props) {
           </SheetContent>
         </Sheet>
       ) : null}
-      {!inline && !tablet ? (
+      {!tablet ? (
         <Drawer
           onOpenChange={(open) => {
             if (!open) closeTicket()

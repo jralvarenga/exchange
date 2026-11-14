@@ -57,11 +57,6 @@ interface IsNavItemActiveParams {
   pathname: string
 }
 
-/** Returns whether a pathname is the Trade screen, which shows the ticket inline. */
-export function isTradePath(pathname: string): boolean {
-  return pathname === '/trade' || pathname.startsWith('/trade/')
-}
-
 /**
  * Returns whether a nav href matches the current pathname.
  */

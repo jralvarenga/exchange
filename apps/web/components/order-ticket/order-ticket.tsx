@@ -64,13 +64,8 @@ const typeDescriptions = {
     'Follows the market, then triggers when it reverses by your trail.',
 }
 
-interface Props {
-  /** Pins the submit bar to the bottom of a scrolling panel. Off for the inline Trade page. */
-  stickyFooter?: boolean
-}
-
-/** Renders the same asset-aware order form in the dock, sheet, drawer, and Trade page. */
-export function OrderTicket({ stickyFooter = true }: Props) {
+/** Renders the same asset-aware order form in the dock, sheet, and drawer. */
+export function OrderTicket() {
   const {
     canTrade,
     clearOrderMessages,
@@ -253,11 +248,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
         disabled={isSubmitting || isResolving}
       >
         <legend className="sr-only">Order details</legend>
-        <div className="relative isolate flex flex-col gap-4 overflow-hidden border-b pb-5">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-20 -right-16 -z-10 size-64 rounded-full bg-primary/8 blur-3xl"
-          />
+        <div className="flex flex-col gap-4 overflow-hidden border-b pb-5">
           <div className="flex flex-wrap items-center justify-between gap-3 text-muted-foreground">
             <span className="flex items-center gap-2">
               <ShieldCheck aria-hidden="true" className="size-4" />
@@ -579,13 +570,7 @@ export function OrderTicket({ stickyFooter = true }: Props) {
             {orderSuccess}
           </p>
         ) : null}
-        <div
-          className={
-            stickyFooter
-              ? 'sticky bottom-0 mt-8 flex flex-col gap-3 bg-background pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-10 before:bg-linear-to-t before:from-background before:to-transparent'
-              : 'mt-8 flex flex-col gap-3'
-          }
-        >
+        <div className="sticky bottom-0 mt-8 flex flex-col gap-3 bg-background pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-10 before:bg-linear-to-t before:from-background before:to-transparent">
           <Button
             className="w-full"
             disabled={
