@@ -31,7 +31,9 @@ export function Navbar({ user, workspace }: Props) {
           </search>
         </div>
         <div className="pointer-events-auto flex items-center gap-2">
-          <TicketTrigger />
+          <div className="hidden md:block">
+            <TicketTrigger />
+          </div>
 
           <div className="shrink-0">
             <UserNav user={user} workspace={workspace} />
