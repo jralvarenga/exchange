@@ -1,58 +1,52 @@
 import { buttonVariants } from '@workspace/ui/components/button'
-import { ArrowUpRight, Landmark } from 'lucide-react'
+import { ArrowUpRight } from 'lucide-react'
+import Image from 'next/image'
 
-const ALPACA_SIGN_IN_URL = 'https://app.alpaca.markets/login'
-const ALPACA_SIGN_UP_URL = 'https://app.alpaca.markets/signup'
+const ALPACA_URL = 'https://app.alpaca.markets'
 
 /**
  * Tells someone creating a workspace that trading runs through their own
- * Alpaca account, with links to sign in to it or open one.
+ * Alpaca account, with a link to sign in to it or open one.
  */
 export function AlpacaRequirement() {
   return (
     <aside
-      aria-labelledby="alpaca-requirement-title"
-      className="flex gap-4 border-border border-y py-6"
+      aria-label="Alpaca account required"
+      className="flex flex-col gap-4 border-border border-y py-6 sm:flex-row sm:items-center sm:justify-between"
     >
-      <span
-        aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted text-foreground"
-      >
-        <Landmark className="size-5" />
-      </span>
-      <div className="flex min-w-0 flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="font-bold text-lg" id="alpaca-requirement-title">
-            An Alpaca account is required
-          </h2>
-          <p className="text-muted-foreground">
-            Treid reads balances and places orders through your own Alpaca
-            account. You'll add its API keys in the next step. Paper trading is
-            free and needs no deposit.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            className={buttonVariants({ size: 'lg', variant: 'outline' })}
-            href={ALPACA_SIGN_IN_URL}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Sign in to Alpaca
-            <ArrowUpRight aria-hidden="true" data-icon="inline-end" />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-          <a
-            className={buttonVariants({ size: 'lg', variant: 'ghost' })}
-            href={ALPACA_SIGN_UP_URL}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Open an account
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        </div>
+      <div className="flex flex-col gap-3">
+        <Image
+          alt="Alpaca"
+          className="h-7 w-auto self-start dark:hidden"
+          height={309}
+          src="/brands/alpaca.svg"
+          width={1081}
+        />
+        <Image
+          alt="Alpaca"
+          className="hidden h-7 w-auto self-start dark:block"
+          height={309}
+          src="/brands/alpaca-dark.svg"
+          width={1081}
+        />
+        <p className="text-muted-foreground">
+          You need an Alpaca account to trade. Paper trading is free.
+        </p>
       </div>
+      <a
+        className={buttonVariants({
+          className: 'self-start sm:self-auto',
+          size: 'lg',
+          variant: 'outline',
+        })}
+        href={ALPACA_URL}
+        rel="noreferrer"
+        target="_blank"
+      >
+        Go to Alpaca
+        <ArrowUpRight aria-hidden="true" data-icon="inline-end" />
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
     </aside>
   )
 }
