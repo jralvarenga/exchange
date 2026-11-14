@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 
 import { ConnectionForm } from '@/components/account/connection-form'
+import { AlpacaRequirement } from '@/components/alpaca-requirement'
 import { OnboardingHeader } from '@/components/onboarding/onboarding-header'
 import type { MaskedConnection } from '@/lib/alpaca/connections'
 import { showSuccessToast } from '@/lib/app-toast'
@@ -35,6 +36,7 @@ export function OnboardingConnect({ workspaceId, workspaceName }: Props) {
         title="Connect Alpaca"
         total={2}
       />
+      <AlpacaRequirement />
       <ConnectionForm onSaved={handleSaved} workspaceId={workspaceId} />
       <Button
         className="self-start"
