@@ -149,7 +149,9 @@ closed; a new Google user must be on the allowlist when one is set.
 
 ### 4. Set up the database
 
-`DATABASE_URL` can point at any Postgres. For a hosted one such as Neon, use
+`DATABASE_URL` can point at any Postgres, created before you migrate. The
+sample points at the Postgres in `compose.yaml`; start it with
+`docker compose up -d` to use that one. For a hosted one such as Neon, use
 the pooled connection string with `sslmode=verify-full`, not the
 `sslmode=require` Neon copies by default. pg 8 already treats `require`,
 `prefer` and `verify-ca` as `verify-full` and warns about it, so `packages/db`
