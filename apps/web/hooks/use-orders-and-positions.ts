@@ -32,7 +32,6 @@ interface UseOrderPagesOptions {
 }
 
 interface UseOrdersAndPositionsOptions {
-  ordersOnly?: boolean
   beforeOrderId?: GetOrdersOptions['beforeOrderId']
   direction?: GetOrdersOptions['direction']
   limit?: GetOrdersOptions['limit']
@@ -41,22 +40,26 @@ interface UseOrdersAndPositionsOptions {
   symbols?: GetOrdersOptions['symbols']
 }
 
+type FetchOrdersOptions = UseOrdersAndPositionsOptions & {
+  ordersOnly?: boolean
+}
+
 type OrderPage = { orders: AccountOrder[] }
 
 const orderPageSchema = z.object({ orders: z.array(accountOrderSchema) })
 
 /** Fetches orders without positions. */
 async function fetchOrdersAndPositions(
-  options: UseOrdersAndPositionsOptions & { ordersOnly: true }
+  options: FetchOrdersOptions & { ordersOnly: true }
 ): Promise<OrderPage>
 /** Fetches orders and positions. */
 async function fetchOrdersAndPositions(
   options: UseOrdersAndPositionsOptions
 ): Promise<OrdersAndPositions>
 
-/** Fetches crypto and equity orders together with all open positions. */
+/** Fetches orders, optionally including all open positions. */
 async function fetchOrdersAndPositions(
-  options: UseOrdersAndPositionsOptions
+  options: FetchOrdersOptions
 ): Promise<OrdersAndPositions | OrderPage> {
   const query = new URLSearchParams()
 

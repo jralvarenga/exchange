@@ -30,31 +30,36 @@ export function PortfolioPositionsList({ filter, query }: Props) {
     matchesSymbolQuery({ query, values: [position.symbol] })
   )
 
-  if (positions.length === 0) {
-    return (
-      <PortfolioPositionsEmpty
-        reason={
-          data.positions.length === 0
-            ? 'none'
-            : query.trim()
-              ? 'search'
-              : 'filter'
-        }
-      />
-    )
-  }
-
   return (
-    <ul aria-live="polite" className={cn('flex flex-col', revealClassName)}>
-      {positions.map((position) => (
-        <TopPositionRow
-          allocation={
-            totalValue === 0 ? 0 : Math.abs(position.marketValue) / totalValue
+    <>
+      <span className="sr-only" role="status">
+        {positions.length} {positions.length === 1 ? 'position' : 'positions'}
+      </span>
+      {positions.length === 0 ? (
+        <PortfolioPositionsEmpty
+          reason={
+            data.positions.length === 0
+              ? 'none'
+              : query.trim()
+                ? 'search'
+                : 'filter'
           }
-          key={position.assetId}
-          position={position}
         />
-      ))}
-    </ul>
+      ) : (
+        <ul className={cn('flex flex-col', revealClassName)}>
+          {positions.map((position) => (
+            <TopPositionRow
+              allocation={
+                totalValue === 0
+                  ? 0
+                  : Math.abs(position.marketValue) / totalValue
+              }
+              key={position.assetId}
+              position={position}
+            />
+          ))}
+        </ul>
+      )}
+    </>
   )
 }
