@@ -1,0 +1,45 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_LANDING_URL"],
+      "passThroughEnv": [
+        "ALPACA_CRYPTO_LOCATION",
+        "ALPACA_DATA_BASE_URL",
+        "AUTH_ALLOWED_EMAILS",
+        "AUTH_DISABLE_SIGNUP",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_URL",
+        "CREDENTIALS_ENCRYPTION_KEYS",
+        "DATABASE_URL",
+        "EMAIL_FROM",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "RESEND_API_KEY",
+        "VERCEL_URL"
+      ]
+    },
+    "dev": {
+      "env": ["NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_LANDING_URL"],
+      "passThroughEnv": [
+        "ALPACA_CRYPTO_LOCATION",
+        "ALPACA_DATA_BASE_URL",
+        "AUTH_ALLOWED_EMAILS",
+        "AUTH_DISABLE_SIGNUP",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_TRUSTED_ORIGINS",
+        "BETTER_AUTH_URL",
+        "CREDENTIALS_ENCRYPTION_KEYS",
+        "DATABASE_URL",
+        "EMAIL_FROM",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "PORT",
+        "RESEND_API_KEY",
+        "VERCEL_URL"
+      ]
+    }
+  }
+}

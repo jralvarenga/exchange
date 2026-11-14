@@ -2,10 +2,8 @@
 
 import { Button } from '@workspace/ui/components/button'
 import { ArrowLeftRight } from 'lucide-react'
-import { usePathname } from 'next/navigation'
 
 import { useOrderTicket } from '@/contexts/order-ticket-context'
-import { isTradePath } from '@/lib/navigation'
 import type { OpenTicketOptions } from '@/models/order-ticket/ticket'
 
 interface Props extends OpenTicketOptions {
@@ -14,7 +12,7 @@ interface Props extends OpenTicketOptions {
 
 /**
  * Opens the shared ticket from any screen, retaining the active symbol and side.
- * Hidden on the Trade screen, where the ticket is already inline.
+ * With no asset given, the ticket opens on the current screen's asset, if any.
  */
 export function TicketTrigger({
   asset,
@@ -23,11 +21,6 @@ export function TicketTrigger({
   side,
 }: Props) {
   const { openTicket } = useOrderTicket()
-  const pathname = usePathname()
-
-  if (isTradePath(pathname)) {
-    return null
-  }
 
   return (
     <Button

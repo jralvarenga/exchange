@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "auth:migrate-owner": "bun run scripts/migrate-owner.ts",
+    "auth:rewrap-credentials": "bun run scripts/rewrap-credentials.ts",
     "auth:secrets": "bun run scripts/generate-secrets.ts",
     "db:generate": "bun run --filter @workspace/db db:generate",
     "db:migrate": "bun run --filter @workspace/db db:migrate",

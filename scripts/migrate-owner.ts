@@ -25,9 +25,8 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
   const passwordHash = process.env.DASHBOARD_PASSWORD_HASH
   const { and, eq } = await import('drizzle-orm')
   const { db, pool } = await import('../packages/db/src/client')
-  const { insertAlpacaConnection, listAlpacaConnections } = await import(
-    '../packages/db/src/queries/alpaca-connections'
-  )
+  const { insertAlpacaConnection, listAlpacaConnectionPublicRows } =
+    await import('../packages/db/src/queries/alpaca-connections')
   const {
     listUserMemberships,
     findActiveWorkspaceId,
@@ -40,7 +39,7 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
     '../packages/db/src/queries/crypto-wallets'
   )
   const { accounts, users } = await import('../packages/db/src/schema/auth')
-  const { credentialAad, encryptSecret, parseEncryptionKeys } = await import(
+  const { encryptCredential, parseEncryptionKeys } = await import(
     '../apps/web/lib/crypto/secret-box-core'
   )
 
@@ -156,7 +155,10 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
 
     if (alpaca && keys) {
       const name = alpaca.environment === 'live' ? 'Main live' : 'Main paper'
-      const stored = await listAlpacaConnections(workspaceId)
+      const stored = await listAlpacaConnectionPublicRows({
+        userId,
+        workspaceId,
+      })
       // Names are unique per workspace ignoring case, like the database index.
       const existingConnection = stored.find(
         (connection) => connection.name.toLowerCase() === name.toLowerCase()
@@ -168,32 +170,34 @@ async function migrateOwner(ownerEmail: string): Promise<void> {
           `Connection "${existingConnection.name}" already exists; its keys were left unchanged.`
         )
       } else {
+        // Stored as valid, so ask Alpaca first, like a save from Account.
+        await verifyAlpacaKeys(alpaca)
+
         connectionId = crypto.randomUUID()
-        const newConnectionId = connectionId
-        const aad = (field: 'keyId' | 'secret') =>
-          credentialAad({
-            connectionId: newConnectionId,
-            environment: alpaca.environment,
-            field,
-          })
+        const binding = {
+          connectionId,
+          environment: alpaca.environment,
+          workspaceId,
+        }
 
         await insertAlpacaConnection({
           createdByUserId: userId,
           environment: alpaca.environment,
           id: connectionId,
-          keyIdCiphertext: encryptSecret({
-            aad: aad('keyId'),
+          keyIdCiphertext: encryptCredential({
+            binding: { ...binding, field: 'keyId' },
             keys,
             plaintext: alpaca.keyId,
           }),
           keyIdLast4: alpaca.keyId.slice(-4),
-          lastVerifiedAt: now,
+          lastVerifiedAt: new Date(),
           name,
-          secretCiphertext: encryptSecret({
-            aad: aad('secret'),
+          secretCiphertext: encryptCredential({
+            binding: { ...binding, field: 'secret' },
             keys,
             plaintext: alpaca.secret,
           }),
+          userId,
           workspaceId,
         })
         console.log(`Stored encrypted Alpaca keys as "${name}".`)
@@ -284,6 +288,36 @@ function readAlpacaEnv(): AlpacaEnvKeys | undefined {
   }
 
   return { environment, keyId, secret }
+}
+
+const ALPACA_TRADING_BASE_URLS = {
+  live: 'https://api.alpaca.markets',
+  paper: 'https://paper-api.alpaca.markets',
+} as const
+
+/**
+ * Asks Alpaca to accept the env keys for their environment. Throws without
+ * echoing the keys when Alpaca rejects them or cannot be reached.
+ */
+async function verifyAlpacaKeys(alpaca: AlpacaEnvKeys): Promise<void> {
+  const response = await fetch(
+    new URL('/v2/account', ALPACA_TRADING_BASE_URLS[alpaca.environment]),
+    {
+      headers: {
+        Accept: 'application/json',
+        'APCA-API-KEY-ID': alpaca.keyId,
+        'APCA-API-SECRET-KEY': alpaca.secret,
+      },
+      redirect: 'error',
+      signal: AbortSignal.timeout(10_000),
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Alpaca rejected the ${alpaca.environment} keys in ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY (HTTP ${response.status}). No Alpaca connection was stored.`
+    )
+  }
 }
 
 interface DepositAddressEnv {

@@ -1,11 +1,10 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -15,17 +14,18 @@ import { searchAssets } from '@/hooks/use-asset-search'
 import { useCreateOrder } from '@/hooks/use-create-order'
 import type { CreateOrderRequest } from '@/lib/alpaca/schemas'
 import { showSuccessToast } from '@/lib/app-toast'
-import { isTradePath } from '@/lib/navigation'
 import {
   createTicketDraft,
   openTicketDraft,
   reconcileTicket,
   selectTicketAsset,
+  withPageAsset,
 } from '@/lib/order-ticket/draft'
 import { isSameTicketSubmission } from '@/lib/order-ticket/request'
 import type { TradeLock } from '@/lib/workspaces/permissions'
 import type {
   OpenTicketOptions,
+  TicketAsset,
   TicketDraft,
 } from '@/models/order-ticket/ticket'
 
@@ -43,7 +43,13 @@ export interface TicketContextValue {
   orderSuccess: string | null
   /** Resolves true once the broker accepts the order. */
   submitOrder: (request: CreateOrderRequest) => Promise<boolean>
+  /** Opens the ticket, on the current screen's asset when `options` names none. */
   openTicket: (options?: OpenTicketOptions) => Promise<void>
+  /**
+   * Registers the asset of the screen the trader is on, or clears it with null.
+   * Stable across renders, so screens can set it from an effect.
+   */
+  setPageAsset: (asset: TicketAsset | null) => void
   /** Why this person cannot trade on the active connection, if they cannot. */
   tradeLock: TradeLock | null
   updateDraft: (patch: Partial<TicketDraft>) => void
@@ -80,8 +86,8 @@ export function OrderTicketProvider({
   const resolution = useRef<AbortController | null>(null)
   // One idempotency key per draft, so a retried request can't place a second order.
   const orderKey = useRef<string | null>(null)
-  const pathname = usePathname()
-  const inline = isTradePath(pathname)
+  // The asset of the screen the trader is on. Only read when the ticket opens.
+  const pageAsset = useRef<TicketAsset | null>(null)
   const draftRef = useRef(draft)
   const accountKeyRef = useRef(accountKey)
   // Ignore an in-flight order after the trader switches accounts.
@@ -105,10 +111,9 @@ export function OrderTicketProvider({
     setOrderSuccess(null)
   }, [accountKey])
 
-  // The Trade page shows the ticket inline, so a floating copy would duplicate it.
-  useEffect(() => {
-    if (inline) setIsOpen(false)
-  }, [inline])
+  const setPageAsset = useCallback((asset: TicketAsset | null) => {
+    pageAsset.current = asset
+  }, [])
 
   /** Hides the last order's success or failure message. */
   function clearOrderMessages(): void {
@@ -129,17 +134,22 @@ export function OrderTicketProvider({
   }
 
   /** Opens immediately and resolves a symbol without letting older searches win. */
-  async function openTicket(options: OpenTicketOptions = {}): Promise<void> {
+  async function openTicket(requested: OpenTicketOptions = {}): Promise<void> {
     if (submitting.current) return
     resolution.current?.abort()
-    if (!isOpen && !inline)
+    if (!isOpen)
       returnFocus.current =
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null
-    if (!inline) setIsOpen(true)
+    setIsOpen(true)
     clearOrderMessages()
     const current = draftRef.current
+    const options = withPageAsset({
+      current,
+      options: requested,
+      pageAsset: pageAsset.current,
+    })
     const opened = openTicketDraft({ current, options })
     if (!isSameTicketSubmission({ current, next: opened.draft }))
       orderKey.current = null
@@ -242,6 +252,7 @@ export function OrderTicketProvider({
         orderSuccess,
         submitOrder,
         openTicket,
+        setPageAsset,
         tradeLock,
         updateDraft,
       }}

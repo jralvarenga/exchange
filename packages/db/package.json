@@ -14,6 +14,7 @@
   "exports": {
     "./workspace-roles": "./src/workspace-roles.ts",
     "./client": "./src/client.ts",
+    "./member-scope": "./src/member-scope.ts",
     "./schema/auth": "./src/schema/auth.ts",
     "./queries/rate-limits": "./src/queries/rate-limits.ts",
     "./schema/crypto-wallets": "./src/schema/crypto-wallets.ts",

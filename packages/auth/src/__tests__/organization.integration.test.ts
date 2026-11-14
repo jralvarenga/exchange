@@ -39,7 +39,9 @@ const { workspaces, workspaceMembers, workspaceInvitations } = await import(
 )
 const { and, eq, inArray } = await import('drizzle-orm')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-const { workspaceSqlExtras } = await import('@workspace/db/sql-extras')
+const { credentialSqlExtras, workspaceSqlExtras } = await import(
+  '@workspace/db/sql-extras'
+)
 const probe = new Pool({
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 1000,
@@ -303,6 +305,46 @@ describe('Better Auth workspace organizations', () => {
         expect(triggers.rows.map((row) => row.tgname)).toEqual([
           ...workspaceSqlExtras.triggers,
         ])
+        const credentialFunctions = await freshPool.query(
+          `SELECT proname FROM pg_proc
+           WHERE pronamespace = 'public'::regnamespace
+             AND proname = ANY($1::text[])
+           ORDER BY proname`,
+          [credentialSqlExtras.functions]
+        )
+        expect(credentialFunctions.rows.map((row) => row.proname)).toEqual([
+          ...credentialSqlExtras.functions,
+        ])
+        const credentialTriggers = await freshPool.query(
+          `SELECT tgname FROM pg_trigger
+           WHERE NOT tgisinternal AND tgname = ANY($1::text[])
+           ORDER BY tgname`,
+          [credentialSqlExtras.triggers]
+        )
+        expect(credentialTriggers.rows.map((row) => row.tgname)).toEqual([
+          ...credentialSqlExtras.triggers,
+        ])
+        const credentialConstraints = await freshPool.query(
+          `SELECT conname FROM pg_constraint
+           WHERE conname = ANY($1::text[])
+           ORDER BY conname`,
+          [credentialSqlExtras.constraints]
+        )
+        expect(credentialConstraints.rows.map((row) => row.conname)).toEqual([
+          ...credentialSqlExtras.constraints,
+        ])
+        const security = await freshPool.query(
+          `SELECT c.relrowsecurity AS enabled,
+                  array_agg(p.policyname::text ORDER BY p.policyname) AS policies
+           FROM pg_class c
+           LEFT JOIN pg_policies p ON p.tablename = c.relname
+           WHERE c.relname = 'alpaca_connections'
+           GROUP BY c.relrowsecurity`
+        )
+        expect(security.rows[0]).toEqual({
+          enabled: true,
+          policies: ['alpaca_connections_member_access'],
+        })
       } finally {
         await freshPool.end()
         await pool.query(`DROP DATABASE "${databaseName}"`)

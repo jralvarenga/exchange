@@ -1,0 +1,12 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "env": ["PUBLIC_APP_URL", "PUBLIC_SUPPORT_EMAIL"]
+    },
+    "dev": {
+      "env": ["PUBLIC_APP_URL", "PUBLIC_SUPPORT_EMAIL"]
+    }
+  }
+}

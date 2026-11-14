@@ -51,8 +51,10 @@ mock.module('@workspace/auth/server', () => ({
 
 const { afterAll, beforeAll, describe, expect, test } = await import('bun:test')
 const { migrate } = await import('drizzle-orm/node-postgres/migrator')
-const { and, eq, inArray } = await import('drizzle-orm')
+const { and, eq, inArray, sql } = await import('drizzle-orm')
 const { Pool } = await import('pg')
+const { drizzle } = await import('drizzle-orm/node-postgres')
+const { readFile } = await import('node:fs/promises')
 const { db, pool: databasePool } = await import('@workspace/db/client')
 const { users } = await import('@workspace/db/schema/auth')
 const {
@@ -100,14 +102,25 @@ const { acceptInvitationAction } = await import(
   '@/app/(dashboard)/account/workspace-actions'
 )
 const { hashInvitationToken } = await import('@/lib/workspaces/invitations')
-const { alpacaConnections } = await import(
+const { alpacaConnections, alpacaCredentialUses } = await import(
   '@workspace/db/schema/alpaca-connections'
 )
+
+const { withMemberScope } = await import('@workspace/db/member-scope')
 
 const userA = crypto.randomUUID()
 const userB = crypto.randomUUID()
 const databaseReady = await postgresIsTreid()
 const integrationTest = databaseReady ? test : test.skip
+// The app's pool runs as this restricted role, like production with
+// packages/db/sql/app-role.sql. The owner pool migrates and inspects ciphertext.
+const APP_ROLE = 'treid_app_test'
+const ownerPool = new Pool({ connectionString: process.env.DATABASE_URL })
+const ownerDb = drizzle(ownerPool, { casing: 'snake_case' })
+const migrationsFolder = new URL(
+  '../../../../packages/db/src/migrations',
+  import.meta.url
+).pathname
 
 describe('alpaca connections', () => {
   beforeAll(async () => {
@@ -115,12 +128,13 @@ describe('alpaca connections', () => {
       return
     }
 
-    await migrate(db, {
-      migrationsFolder: new URL(
-        '../../../../packages/db/src/migrations',
-        import.meta.url
-      ).pathname,
+    await migrate(ownerDb, { migrationsFolder })
+    await grantAppRole()
+    databasePool.on('connect', (client) => {
+      client.query(`SET ROLE ${APP_ROLE}`)
     })
+    const role = await db.execute(sql`select current_user as name`)
+    expect(role.rows[0]?.name).toBe(APP_ROLE)
     const now = new Date()
     await db.insert(users).values([
       {
@@ -179,7 +193,7 @@ describe('alpaca connections', () => {
       (row) => row.workspaceId === owned.workspaceId
     )
     const connections = await db
-      .select()
+      .select({ id: alpacaConnections.id })
       .from(alpacaConnections)
       .where(eq(alpacaConnections.workspaceId, owned.workspaceId))
 
@@ -227,6 +241,7 @@ describe('alpaca connections', () => {
     }
 
     await databasePool.end()
+    await ownerPool.end()
   })
 
   integrationTest(
@@ -257,13 +272,21 @@ describe('alpaca connections', () => {
       expect(saved.keyIdMasked).toBe('PK••••AA12')
       expect(JSON.stringify(saved)).not.toContain('secret-aaaabbbb')
       expect(JSON.stringify(saved)).not.toContain('PKUSERAAAA12')
-      const listed = await listMaskedConnections(workspaceA.workspaceId)
+      const listed = await listMaskedConnections({
+        userId: userA,
+        workspaceId: workspaceA.workspaceId,
+      })
       expect(listed.find((row) => row.id === saved.id)?.keyIdMasked).toBe(
         '••••AA12'
       )
       expect(JSON.stringify(listed)).not.toContain('secret-aaaabbbb')
       expect(JSON.stringify(listed)).not.toContain('PKUSERAAAA12')
-      expect(await listMaskedConnections(workspaceB.workspaceId)).toEqual([])
+      expect(
+        await listMaskedConnections({
+          userId: userB,
+          workspaceId: workspaceB.workspaceId,
+        })
+      ).toEqual([])
 
       // The first connection becomes the workspace default.
       const refreshed = await resolveActiveWorkspace({
@@ -278,6 +301,70 @@ describe('alpaca connections', () => {
       await expect(
         resolveAlpacaRequestContext(workspaceB)
       ).rejects.toBeInstanceOf(AlpacaCredentialsError)
+
+      // Stored as v2, bound to workspace A, and the row cannot be moved.
+      const [stored] = await ownerDb
+        .select({
+          keyIdCiphertext: alpacaConnections.keyIdCiphertext,
+          secretCiphertext: alpacaConnections.secretCiphertext,
+        })
+        .from(alpacaConnections)
+        .where(eq(alpacaConnections.id, saved.id))
+      expect(stored?.keyIdCiphertext.startsWith('v2:')).toBe(true)
+      expect(stored?.secretCiphertext.startsWith('v2:')).toBe(true)
+      await expect(
+        ownerDb
+          .update(alpacaConnections)
+          .set({ workspaceId: workspaceB.workspaceId })
+          .where(eq(alpacaConnections.id, saved.id))
+          .execute()
+      ).rejects.toThrow()
+
+      // The app role cannot read ciphertext, and row-level security hides
+      // workspace A's connection from anyone who is not a member of it.
+      await expect(
+        db
+          .select({ secret: alpacaConnections.secretCiphertext })
+          .from(alpacaConnections)
+          .execute()
+      ).rejects.toThrow()
+      const visible = (userId: string) =>
+        withMemberScope(userId, (tx) =>
+          tx
+            .select({ id: alpacaConnections.id })
+            .from(alpacaConnections)
+            .where(eq(alpacaConnections.id, saved.id))
+        )
+      expect(await visible(userA)).toHaveLength(1)
+      expect(await visible(userB)).toHaveLength(0)
+      expect(
+        await db
+          .select({ id: alpacaConnections.id })
+          .from(alpacaConnections)
+          .where(eq(alpacaConnections.id, saved.id))
+      ).toHaveLength(0)
+      expect(
+        await withMemberScope(userB, (tx) =>
+          tx
+            .update(alpacaConnections)
+            .set({ status: 'invalid' })
+            .where(eq(alpacaConnections.id, saved.id))
+            .returning({ id: alpacaConnections.id })
+        )
+      ).toHaveLength(0)
+
+      // Each decrypt is recorded against the member who caused it.
+      const [use] = await db
+        .select({ useCount: alpacaCredentialUses.useCount })
+        .from(alpacaCredentialUses)
+        .where(
+          and(
+            eq(alpacaCredentialUses.connectionId, saved.id),
+            eq(alpacaCredentialUses.userId, userA),
+            eq(alpacaCredentialUses.purpose, 'read')
+          )
+        )
+      expect(use?.useCount).toBeGreaterThanOrEqual(1)
     }
   )
 
@@ -602,7 +689,7 @@ describe('alpaca connections', () => {
 
     expect(
       await db
-        .select()
+        .select({ id: alpacaConnections.id })
         .from(alpacaConnections)
         .where(eq(alpacaConnections.workspaceId, workspaceId))
     ).toHaveLength(0)
@@ -1012,4 +1099,27 @@ function accountFetcher(status: number): typeof fetch {
   }
 
   return fetcher as unknown as typeof fetch
+}
+
+/**
+ * Creates the restricted test role and applies packages/db/sql/app-role.sql to
+ * it, as an operator would in production. psql meta-commands are skipped.
+ */
+async function grantAppRole(): Promise<void> {
+  await ownerPool.query(`DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '${APP_ROLE}') THEN
+      CREATE ROLE ${APP_ROLE};
+    END IF;
+  END $$`)
+  const script = await readFile(
+    new URL('../../../../packages/db/sql/app-role.sql', import.meta.url),
+    'utf8'
+  )
+  await ownerPool.query(
+    script
+      .split('\n')
+      .filter((line) => !line.startsWith('\\'))
+      .join('\n')
+      .replaceAll(':"app_role"', APP_ROLE)
+  )
 }

@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm'
 
 import { db } from '../client'
+import { setMemberScope, withMemberScope } from '../member-scope'
 import { alpacaConnections } from '../schema/alpaca-connections'
 import { users } from '../schema/auth'
 import {
@@ -85,18 +86,21 @@ export type WorkspaceSummaryRow = {
 export async function listUserWorkspaceSummaries(
   userId: string
 ): Promise<WorkspaceSummaryRow[]> {
-  const rows = await db
-    .select({
-      connectionCount: sql<number>`(select count(*) from ${alpacaConnections} where ${alpacaConnections.workspaceId} = ${workspaces.id})::int`,
-      memberCount: sql<number>`(select count(*) from ${workspaceMembers} as others where others.workspace_id = ${workspaces.id})::int`,
-      role: workspaceMembers.role,
-      workspaceId: workspaces.id,
-      workspaceName: workspaces.name,
-    })
-    .from(workspaceMembers)
-    .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
-    .where(eq(workspaceMembers.userId, userId))
-    .orderBy(asc(workspaceMembers.createdAt))
+  // Scoped so row-level security lets the connection count see this member's workspaces.
+  const rows = await withMemberScope(userId, (tx) =>
+    tx
+      .select({
+        connectionCount: sql<number>`(select count(*) from ${alpacaConnections} where ${alpacaConnections.workspaceId} = ${workspaces.id})::int`,
+        memberCount: sql<number>`(select count(*) from ${workspaceMembers} as others where others.workspace_id = ${workspaces.id})::int`,
+        role: workspaceMembers.role,
+        workspaceId: workspaces.id,
+        workspaceName: workspaces.name,
+      })
+      .from(workspaceMembers)
+      .innerJoin(workspaces, eq(workspaces.id, workspaceMembers.workspaceId))
+      .where(eq(workspaceMembers.userId, userId))
+      .orderBy(asc(workspaceMembers.createdAt))
+  )
 
   return rows.map((row) => ({ ...row, role: toWorkspaceRole(row.role) }))
 }
@@ -191,9 +195,11 @@ export async function setDefaultConnectionIfUnset(
  */
 export async function deleteConnectionAndRepairDefault(input: {
   connectionId: string
+  userId: string
   workspaceId: string
 }): Promise<void> {
   await db.transaction(async (tx) => {
+    await setMemberScope(tx, input.userId)
     await tx
       .select({ id: workspaces.id })
       .from(workspaces)
@@ -229,11 +235,12 @@ export async function deleteConnectionAndRepairDefault(input: {
 
 /**
  * Picks a replacement default after the old one is removed: the oldest valid
- * paper connection, else the oldest valid live one.
+ * paper connection, else the oldest valid live one. Run it inside a member
+ * scope; row-level security hides every connection otherwise.
  */
 export async function findFallbackConnectionId(
   workspaceId: string,
-  executor: Transaction | typeof db = db
+  executor: Transaction
 ): Promise<string | undefined> {
   const rows = await executor
     .select({

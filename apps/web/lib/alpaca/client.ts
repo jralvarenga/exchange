@@ -1,5 +1,6 @@
 import 'server-only'
 
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
 import type {
@@ -85,6 +86,13 @@ const PAPER_TRADING_BASE_URL = 'https://paper-api.alpaca.markets'
 const DEFAULT_TIMEOUT_MS = 10_000
 const ASSET_CATALOG_TTL_MS = 5 * 60 * 1_000
 
+/** The only origins that may receive Alpaca key headers. */
+const ALPACA_ORIGINS: ReadonlySet<string> = new Set([
+  DEFAULT_DATA_BASE_URL,
+  LIVE_TRADING_BASE_URL,
+  PAPER_TRADING_BASE_URL,
+])
+
 export interface ResolvedClientOptions {
   apiKeyId: string
   apiSecretKey: string
@@ -166,6 +174,7 @@ interface AssetRequestOptions extends AlpacaClientOptions {
 }
 
 const assetCatalogCaches = new Map<string, AssetCatalogCache>()
+let nextAssetCatalogSweepAt = 0
 
 const alpacaErrorBodySchema = z.object({
   code: z.number().optional(),
@@ -789,6 +798,12 @@ export async function alpacaFetch<Schema extends z.ZodType>(
   const url = new URL(options.path, options.baseUrl)
   url.search = options.query?.toString() ?? ''
 
+  // Every transport, including injected ones, only ever targets Alpaca.
+  if (!isAlpacaOrigin(url)) {
+    clearTimeout(timeout)
+    throw new Error('Refusing to send Alpaca keys outside Alpaca.')
+  }
+
   try {
     const response = await options.client.fetcher(url, {
       body:
@@ -803,6 +818,8 @@ export async function alpacaFetch<Schema extends z.ZodType>(
           : { 'Content-Type': 'application/json' }),
       },
       method: options.method ?? 'GET',
+      // Fetch keeps custom headers on a cross-origin redirect.
+      redirect: 'error',
       signal: controller.signal,
     })
 
@@ -825,12 +842,48 @@ export async function alpacaFetch<Schema extends z.ZodType>(
   }
 }
 
+/** True for an https Alpaca origin with no embedded user info. */
+export function isAlpacaOrigin(url: URL): boolean {
+  return (
+    ALPACA_ORIGINS.has(url.origin) && url.username === '' && url.password === ''
+  )
+}
+
+/**
+ * Cache key for one account's catalog. Hashed so the process never holds a
+ * table of plaintext key ids.
+ */
+function assetCatalogCacheKey(options: AlpacaClientOptions): string {
+  return createHash('sha256')
+    .update(`${options.environment}:${options.apiKeyId}`)
+    .digest('base64url')
+}
+
+/**
+ * Drops expired catalogs so replaced or deleted keys do not linger. Sweeps at
+ * most once per TTL, so a search does not scan every cached account.
+ */
+function evictExpiredAssetCatalogs(now: number): void {
+  if (now < nextAssetCatalogSweepAt) {
+    return
+  }
+
+  nextAssetCatalogSweepAt = now + ASSET_CATALOG_TTL_MS
+
+  for (const [key, cached] of assetCatalogCaches) {
+    if (cached.expiresAt <= now) {
+      assetCatalogCaches.delete(key)
+    }
+  }
+}
+
 /** Returns a short-lived catalog cached separately for paper and live. */
 async function getAssetCatalog(
   options: AlpacaClientOptions
 ): Promise<AlpacaAsset[]> {
-  const cacheKey = `${options.environment}:${options.apiKeyId}`
+  const cacheKey = assetCatalogCacheKey(options)
   const now = Date.now()
+  evictExpiredAssetCatalogs(now)
   const cached = assetCatalogCaches.get(cacheKey)
 
   if (cached && cached.expiresAt > now) {
@@ -1093,7 +1146,7 @@ function resolveDataBaseUrl(dataBaseUrl: string | undefined): string {
 
   const parsed = z.string().url().safeParse(configured)
 
-  if (!parsed.success) {
+  if (!parsed.success || !isAlpacaOrigin(new URL(parsed.data))) {
     throw new Error('ALPACA_DATA_BASE_URL is invalid.')
   }
 

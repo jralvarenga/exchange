@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test'
 
-import { isTradePath } from '@/lib/navigation'
 import { getAssetHref } from '@/lib/portfolio/asset-href'
 import {
   decodeTradeSymbol,
@@ -31,11 +30,5 @@ describe('trade symbols', () => {
     )
     expect(getAssetHref({ assetId: 'abc' })).toBe('/trade/abc')
     expect(getAssetHref({})).toBeUndefined()
-  })
-
-  test('recognizes Trade paths', () => {
-    expect(isTradePath('/trade')).toBe(true)
-    expect(isTradePath('/trade/BTC%2FUSD')).toBe(true)
-    expect(isTradePath('/trades')).toBe(false)
   })
 })
