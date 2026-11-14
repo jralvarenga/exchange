@@ -31,8 +31,7 @@ let currentSession: {
   }
 } | null = null
 
-process.env.DATABASE_URL =
-  'postgresql://treid:treid@127.0.0.1:5432/treid'
+process.env.DATABASE_URL = 'postgresql://treid:treid@127.0.0.1:5432/treid'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-at-least-32-chars'
 process.env.BETTER_AUTH_URL = 'http://127.0.0.1:3000'
 process.env.CREDENTIALS_ENCRYPTION_KEYS = `k1:${randomBytes(32).toString('base64url')}`

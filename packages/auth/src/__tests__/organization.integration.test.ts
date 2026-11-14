@@ -24,8 +24,7 @@ mock.module('../email', () => ({
 }))
 
 // Always use the disposable local/CI database, never an application env file.
-process.env.DATABASE_URL =
-  'postgresql://treid:treid@127.0.0.1:5432/treid'
+process.env.DATABASE_URL = 'postgresql://treid:treid@127.0.0.1:5432/treid'
 process.env.BETTER_AUTH_SECRET =
   'organization-test-secret-at-least-32-characters'
 process.env.BETTER_AUTH_URL = 'http://127.0.0.1:3000'
