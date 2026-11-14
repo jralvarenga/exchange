@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { NextRequest } from 'next/server'
 
-import { proxy } from '@/proxy'
+import { config, proxy } from '@/proxy'
 
 describe('authentication proxy', () => {
   test('redirects an unauthenticated page request to login', () => {
@@ -74,5 +74,23 @@ describe('authentication proxy', () => {
 
       expect(response.status).toBe(200)
     }
+  })
+})
+
+describe('proxy matcher', () => {
+  /** Mirrors how Next applies the single matcher pattern to a pathname. */
+  function isMatched(pathname: string): boolean {
+    const source = config.matcher[0]?.replace('/(', '^/(') ?? ''
+
+    return new RegExp(`${source}$`, 'u').test(pathname)
+  }
+
+  test('skips public icons so they load before sign-in', () => {
+    expect(isMatched('/icons/google.svg')).toBe(false)
+  })
+
+  test('still gates pages and API routes', () => {
+    expect(isMatched('/portfolio')).toBe(true)
+    expect(isMatched('/api/alpaca/account')).toBe(true)
   })
 })
