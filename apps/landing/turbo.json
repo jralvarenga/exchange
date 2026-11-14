@@ -3,10 +3,20 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "env": ["PUBLIC_APP_URL", "PUBLIC_SITE_URL", "PUBLIC_SUPPORT_EMAIL"]
+      "env": [
+        "PUBLIC_APP_URL",
+        "PUBLIC_GOOGLE_SITE_VERIFICATION",
+        "PUBLIC_SITE_URL",
+        "PUBLIC_SUPPORT_EMAIL"
+      ]
     },
     "dev": {
-      "env": ["PUBLIC_APP_URL", "PUBLIC_SITE_URL", "PUBLIC_SUPPORT_EMAIL"]
+      "env": [
+        "PUBLIC_APP_URL",
+        "PUBLIC_GOOGLE_SITE_VERIFICATION",
+        "PUBLIC_SITE_URL",
+        "PUBLIC_SUPPORT_EMAIL"
+      ]
     }
   }
 }
