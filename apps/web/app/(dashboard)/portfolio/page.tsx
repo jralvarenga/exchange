@@ -1,3 +1,5 @@
+import type { Metadata } from 'next'
+
 import { PageTabs } from '@/components/page-tabs'
 import { PortfolioActivity } from '@/components/portfolio/portfolio-activity'
 import { PortfolioBalances } from '@/components/portfolio/portfolio-balances'
@@ -16,6 +18,10 @@ interface PageProps {
   searchParams: Promise<{
     tab?: string | string[]
   }>
+}
+
+export const metadata: Metadata = {
+  title: 'Portfolio',
 }
 
 /** Renders the portfolio: positions, orders, activity, balances and documents in tabs. */

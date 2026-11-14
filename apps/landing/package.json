@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^7.1.8",
+    "@astrojs/sitemap": "^3.7.5",
     "@tailwindcss/vite": "^4.3.5",
     "@vercel/analytics": "^2.0.1",
     "@workspace/ui": "workspace:*",

@@ -5,15 +5,40 @@ import { Font } from 'astro:assets'
 
 import '@/styles/globals.css'
 
+import {
+  type JsonLd,
+  serializeJsonLd,
+  siteMeta,
+  siteStructuredData,
+} from '@/lib/seo'
+
 interface Props {
   description?: string
+  /** Page-specific JSON-LD, added after the site-wide Organization and WebSite graph. */
+  jsonLd?: JsonLd[]
+  /** Keeps the page out of search results while still following its links. */
+  noindex?: boolean
+  /** The full document title, used as-is. */
   title?: string
+  type?: 'article' | 'website'
 }
 
 const {
-  description = 'A quiet trading desk for your Alpaca account. Paper or live, on your own or with a team.',
-  title = 'Treid · Trade on Alpaca without the noise',
+  description = siteMeta.description,
+  jsonLd = [],
+  noindex = false,
+  title = siteMeta.title,
+  type = 'website',
 } = Astro.props
+
+// `site` is always set in astro.config, from `PUBLIC_SITE_URL`.
+const site = Astro.site ?? new URL(Astro.url.origin)
+const canonical = new URL(Astro.url.pathname, site).toString()
+const image = new URL(siteMeta.image.path, site).toString()
+const robots = noindex
+  ? 'noindex, follow'
+  : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'
+const structuredData = [siteStructuredData({ site }), ...jsonLd]
 ---
 
 <!doctype html>
@@ -21,13 +46,50 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    {noindex ? null : <link rel="canonical" href={canonical} />}
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="application-name" content={siteMeta.name} />
+    <meta name="apple-mobile-web-app-title" content={siteMeta.name} />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content={siteMeta.themeColor.light} />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content={siteMeta.themeColor.dark} />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={siteMeta.name} />
+    <meta property="og:locale" content={siteMeta.locale} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:secure_url" content={image} />
+    <meta property="og:image:type" content={siteMeta.image.type} />
+    <meta property="og:image:width" content={String(siteMeta.image.width)} />
+    <meta property="og:image:height" content={String(siteMeta.image.height)} />
+    <meta property="og:image:alt" content={siteMeta.image.alt} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+    <meta name="twitter:image:alt" content={siteMeta.image.alt} />
+
+    {
+      structuredData.map((data) => (
+        <script is:inline type="application/ld+json" set:html={serializeJsonLd(data)} />
+      ))
+    }
+
     <meta name="generator" content={Astro.generator} />
     <Font cssVariable="--font-sans" preload />
     <Font cssVariable="--font-mono" />
-    <title>{title}</title>
     <!-- Cookieless page-view counts. Only reports when deployed on Vercel. -->
     <Analytics />
     <!--

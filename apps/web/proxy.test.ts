@@ -89,6 +89,24 @@ describe('proxy matcher', () => {
     expect(isMatched('/icons/google.svg')).toBe(false)
   })
 
+  test('skips crawler files, the manifest, app icons and link previews', () => {
+    const paths = [
+      '/robots.txt',
+      '/sitemap.xml',
+      '/manifest.webmanifest',
+      '/favicon.ico',
+      '/icon.svg',
+      '/apple-icon.png',
+      '/opengraph-image.png',
+      '/twitter-image.png',
+      '/icons/icon-512.png',
+    ]
+
+    for (const pathname of paths) {
+      expect(isMatched(pathname)).toBe(false)
+    }
+  })
+
   test('still gates pages and API routes', () => {
     expect(isMatched('/portfolio')).toBe(true)
     expect(isMatched('/api/alpaca/account')).toBe(true)

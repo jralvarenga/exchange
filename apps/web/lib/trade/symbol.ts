@@ -22,3 +22,18 @@ export function decodeTradeSymbol(segment: string): string {
 export function getNewsSymbol(symbol: string): string {
   return symbol.replace('/', '')
 }
+
+/** A ticker or crypto pair, as opposed to an asset id. */
+const tickerPattern = /^[A-Z0-9][A-Z0-9./-]{0,14}$/i
+
+/**
+ * Builds the tab title for a Trade route, such as `AAPL · Trade`. Asset ids
+ * and anything that is not a ticker fall back to `Trade`.
+ */
+export function getTradeTitle(identifier: string): string {
+  const symbol = identifier.trim()
+
+  return tickerPattern.test(symbol)
+    ? `${symbol.toUpperCase()} · Trade`
+    : 'Trade'
+}

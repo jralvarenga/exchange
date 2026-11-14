@@ -1,5 +1,6 @@
 import { auth } from '@workspace/auth/server'
 import { toWorkspaceRole } from '@workspace/db/queries/workspaces'
+import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -10,6 +11,12 @@ import { findInvitationByLink } from '@/lib/workspaces/invitations'
 
 interface PageProps {
   params: Promise<{ token: string }>
+}
+
+export const metadata: Metadata = {
+  // The token in the URL is a credential. Never send it to another site.
+  referrer: 'no-referrer',
+  title: 'Workspace invitation',
 }
 
 /** Shows a workspace invitation to the signed-in user and lets them join. */

@@ -4,6 +4,7 @@ import {
   listPendingInvitationsForEmail,
   listUserMemberships,
 } from '@workspace/db/queries/workspaces'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 import { AuthPage } from '@/components/login/auth-page'
@@ -16,6 +17,10 @@ import type { IncomingInvitation } from '@/models/workspace/members'
 
 interface PageProps {
   searchParams: Promise<{ step?: string | string[] }>
+}
+
+export const metadata: Metadata = {
+  title: 'Get started',
 }
 
 /**

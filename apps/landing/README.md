@@ -38,13 +38,15 @@ shipped to the browser.
 | Variable         | Purpose                                   | Default                 |
 | :--------------- | :---------------------------------------- | :---------------------- |
 | `PUBLIC_APP_URL` | Web app origin for the sign up and log in links | `http://localhost:3000` |
+| `PUBLIC_SITE_URL` | Public origin of this site, for canonical URLs, Open Graph tags, `robots.txt` and the sitemap | `https://treid.app` |
 | `PUBLIC_SUPPORT_EMAIL` | Support address shown in the footer and on the legal pages | `support@example.com` |
 
 Copy `.env.example` to `.env` to change it. It is typed and validated through
-`astro:env`. The defaults only suit local development: set both variables for
-every production build, or the sign up and log in links point to localhost and
+`astro:env`. The `PUBLIC_APP_URL` and `PUBLIC_SUPPORT_EMAIL` defaults only suit local
+development: set both for every production build, or the sign up and log in links point to localhost and
 the footer and legal pages show `support@example.com`. A missing value does not
-fail the build. The hosted site runs at `https://treid.app` with
+fail the build. Set `PUBLIC_SITE_URL` when the site runs anywhere other than
+`https://treid.app`, such as a self-hosted copy. The hosted site runs at `https://treid.app` with
 `PUBLIC_APP_URL=https://app.treid.app`.
 
 ## Commands
