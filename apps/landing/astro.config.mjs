@@ -66,8 +66,8 @@ export default defineConfig({
         default: 'http://localhost:3000',
         url: true,
       }),
-      // Token for a URL-prefix property in Google Search Console. Optional, as
-      // a Domain property verified through DNS needs no tag.
+      // Optional site ownership token, rendered as a
+      // `google-site-verification` meta tag when set.
       PUBLIC_GOOGLE_SITE_VERIFICATION: envField.string({
         access: 'public',
         context: 'client',

@@ -53,8 +53,7 @@ const structuredData = [siteStructuredData({ site }), ...jsonLd]
     {noindex ? null : <link rel="canonical" href={canonical} />}
     <link rel="sitemap" href="/sitemap-index.xml" />
     {
-      // Only needed for a URL-prefix Search Console property. A Domain
-      // property is verified through DNS instead.
+      // Optional ownership token from `PUBLIC_GOOGLE_SITE_VERIFICATION`.
       PUBLIC_GOOGLE_SITE_VERIFICATION ? (
         <meta name="google-site-verification" content={PUBLIC_GOOGLE_SITE_VERIFICATION} />
       ) : null
