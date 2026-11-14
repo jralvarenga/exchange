@@ -36,6 +36,20 @@
       "when": 1794551342098,
       "tag": "0004_better_auth_workspaces",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794640578315,
+      "tag": "0005_credential_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794641557513,
+      "tag": "0006_alpaca_connection_rls",
+      "breakpoints": true
     }
   ]
 }

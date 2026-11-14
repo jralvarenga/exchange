@@ -18,9 +18,17 @@ function createEnvSchema(nodeEnv: string | undefined) {
         emptyToUndefined,
         z.enum(['bs-1', 'eu-1', 'us', 'us-1', 'us-2']).optional()
       ),
+      // Alpaca key headers go to this host, so only Alpaca's own is accepted.
       ALPACA_DATA_BASE_URL: z.preprocess(
         emptyToUndefined,
-        z.string().url().optional()
+        z
+          .string()
+          .url()
+          .refine(
+            (value) => new URL(value).origin === 'https://data.alpaca.markets',
+            'ALPACA_DATA_BASE_URL must be https://data.alpaca.markets.'
+          )
+          .optional()
       ),
       AUTH_ALLOWED_EMAILS: z.preprocess(
         emptyToUndefined,

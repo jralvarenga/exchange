@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { auth } from '@workspace/auth/server'
+import { consumeRateLimit } from '@workspace/db/queries/rate-limits'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 
@@ -11,6 +12,7 @@ import {
   loadActiveAlpacaConnection,
   markConnectionInvalid,
 } from '@/lib/alpaca/connections'
+import { serializeWithoutCredentials } from '@/lib/alpaca/credential-guard'
 import { alpacaEnvironmentSchema } from '@/lib/alpaca/schemas'
 import { tradeLock } from '@/lib/workspaces/permissions'
 import {
@@ -43,6 +45,22 @@ interface CreateApiResponseOptions {
 
 const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
+}
+
+/** Per member and connection. Alpaca allows 200 requests a minute per account. */
+export const TRADING_RATE_LIMIT = {
+  max: 60,
+  windowMs: 60 * 1000,
+} as const
+
+interface TradingRateLimitKeyInput {
+  connectionId: string
+  userId: string
+}
+
+/** Builds the Postgres rate-limit key for one member trading on one connection. */
+export function tradingRateLimitKey(input: TradingRateLimitKeyInput): string {
+  return `treid:trade:${input.userId}:${input.connectionId}`
 }
 
 /**
@@ -102,14 +120,59 @@ export async function createApiResponse(
       )
     }
 
-    request = decryptAlpacaRequestContext({ row, workspace })
+    if (options.trading) {
+      const limit = await consumeRateLimit({
+        key: tradingRateLimitKey({
+          connectionId: row.id,
+          userId: workspace.userId,
+        }),
+        max: TRADING_RATE_LIMIT.max,
+        windowMs: TRADING_RATE_LIMIT.windowMs,
+      })
+
+      if (!limit.allowed) {
+        return createErrorResponse(
+          {
+            error: {
+              code: 'RATE_LIMITED',
+              message: 'Too many trading requests. Try again in a minute.',
+            },
+          },
+          429
+        )
+      }
+    }
+
+    request = await decryptAlpacaRequestContext({
+      purpose: options.trading ? 'trade' : 'read',
+      row,
+      workspace,
+    })
 
     const data = await handler({
       actor: request.actor,
       alpaca: request.alpaca,
     })
+    const body = serializeWithoutCredentials({ alpaca: request.alpaca, data })
 
-    return Response.json(data, { headers: PRIVATE_NO_STORE_HEADERS })
+    if (body === undefined) {
+      return createErrorResponse(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'The server could not complete the request.',
+          },
+        },
+        500
+      )
+    }
+
+    return new Response(body, {
+      headers: {
+        ...PRIVATE_NO_STORE_HEADERS,
+        'Content-Type': 'application/json',
+      },
+    })
   } catch (error) {
     if (error instanceof NoWorkspaceError) {
       return createErrorResponse(
@@ -133,6 +196,7 @@ export async function createApiResponse(
       await markConnectionInvalid({
         connectionId: request.actor.connectionId,
         updatedAt: request.connectionUpdatedAt,
+        userId: request.actor.userId,
         workspaceId: request.actor.workspaceId,
       })
 

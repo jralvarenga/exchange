@@ -37,10 +37,12 @@ jobs:
       - name: Apply migrations
         working-directory: packages/db
         env:
+          # The table owner. Needed once DATABASE_URL uses the restricted app role.
+          DATABASE_MIGRATOR_URL: ${{ secrets.DATABASE_MIGRATOR_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Set the DATABASE_URL secret on the production environment."
+          if [ -z "$DATABASE_MIGRATOR_URL" ] && [ -z "$DATABASE_URL" ]; then
+            echo "::error::Set the DATABASE_MIGRATOR_URL or DATABASE_URL secret on the production environment."
             exit 1
           fi
           bun run db:migrate

@@ -1,12 +1,16 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { z } from 'zod'
 
-const VERSION = 'v1'
+/** `v1` boxes bind connection, environment and field. `v2` adds the workspace. */
+export const BOX_VERSIONS = ['v1', 'v2'] as const
+const CURRENT_VERSION: BoxVersion = 'v2'
 const IV_BYTES = 12
 const TAG_BYTES = 16
 const KEY_BYTES = 32
 
 const keyIdSchema = z.string().regex(/^[A-Za-z0-9_-]+$/u)
+
+export type BoxVersion = (typeof BOX_VERSIONS)[number]
 
 interface EncryptionKey {
   id: string
@@ -17,6 +21,7 @@ interface EncryptSecretInput {
   aad: string
   keys: EncryptionKey[]
   plaintext: string
+  version?: BoxVersion
 }
 
 interface DecryptSecretInput {
@@ -25,18 +30,85 @@ interface DecryptSecretInput {
   payload: string
 }
 
-interface CredentialAadInput {
+/** The row and column a stored Alpaca credential belongs to. */
+export type CredentialBinding = {
   connectionId: string
   environment: string
   field: 'keyId' | 'secret'
+  workspaceId: string
+}
+
+interface CredentialAadInput extends CredentialBinding {
+  version: BoxVersion
+}
+
+interface EncryptCredentialInput {
+  binding: CredentialBinding
+  keys: EncryptionKey[]
+  plaintext: string
+}
+
+interface DecryptCredentialInput {
+  binding: CredentialBinding
+  keys: EncryptionKey[]
+  payload: string
+}
+
+interface NeedsRewrapInput {
+  keys: EncryptionKey[]
+  payload: string
 }
 
 /**
- * Binds a ciphertext to one connection, environment, and field.
- * A copy pasted into another row or column fails to decrypt.
+ * Binds a ciphertext to one workspace, connection, environment and field.
+ * A copy pasted into another row, column or workspace fails to decrypt.
+ * `v1` predates the workspace binding and is only read until rows are rewrapped.
  */
 export function credentialAad(input: CredentialAadInput): string {
-  return `connection:${input.connectionId}:${input.environment}:${input.field}`
+  if (input.version === 'v1') {
+    return `connection:${input.connectionId}:${input.environment}:${input.field}`
+  }
+
+  return JSON.stringify([
+    'alpaca-credential',
+    input.version,
+    input.workspaceId,
+    input.connectionId,
+    input.environment,
+    input.field,
+  ])
+}
+
+/** Encrypts one Alpaca credential field with the current box version. */
+export function encryptCredential(input: EncryptCredentialInput): string {
+  return encryptSecret({
+    aad: credentialAad({ ...input.binding, version: CURRENT_VERSION }),
+    keys: input.keys,
+    plaintext: input.plaintext,
+    version: CURRENT_VERSION,
+  })
+}
+
+/** Decrypts one Alpaca credential field, choosing the AAD from its box version. */
+export function decryptCredential(input: DecryptCredentialInput): string {
+  return decryptSecret({
+    aad: credentialAad({
+      ...input.binding,
+      version: readBoxVersion(input.payload),
+    }),
+    keys: input.keys,
+    payload: input.payload,
+  })
+}
+
+/**
+ * True when a stored credential uses an older box version or a key that is no
+ * longer the primary one, so the rewrap script should re-encrypt it.
+ */
+export function needsRewrap(input: NeedsRewrapInput): boolean {
+  const [version, keyId] = input.payload.split(':')
+
+  return version !== CURRENT_VERSION || keyId !== input.keys[0]?.id
 }
 
 /**
@@ -63,7 +135,7 @@ export function parseEncryptionKeys(value: string): EncryptionKey[] {
 
 /**
  * Encrypts a secret with AES-256-GCM.
- * Stored form: `v1:<keyId>:<iv>:<tag>:<ciphertext>`, each binary part base64url.
+ * Stored form: `<version>:<keyId>:<iv>:<tag>:<ciphertext>`, each binary part base64url.
  */
 export function encryptSecret(input: EncryptSecretInput): string {
   const encryptionKey = input.keys[0]
@@ -86,7 +158,7 @@ export function encryptSecret(input: EncryptSecretInput): string {
   }
 
   return [
-    VERSION,
+    input.version ?? CURRENT_VERSION,
     encryptionKey.id,
     iv.toString('base64url'),
     tag.toString('base64url'),
@@ -100,7 +172,7 @@ export function encryptSecret(input: EncryptSecretInput): string {
 export function decryptSecret(input: DecryptSecretInput): string {
   const parts = input.payload.split(':')
 
-  if (parts.length !== 5 || parts[0] !== VERSION) {
+  if (parts.length !== 5 || !isBoxVersion(parts[0])) {
     throw new Error('Unable to decrypt credential.')
   }
 
@@ -138,6 +210,22 @@ export function decryptSecret(input: DecryptSecretInput): string {
   } catch {
     throw new Error('Unable to decrypt credential.')
   }
+}
+
+/** Reads the version prefix of a stored box. Unknown versions fail closed. */
+function readBoxVersion(payload: string): BoxVersion {
+  const version = payload.split(':', 1)[0]
+
+  if (!isBoxVersion(version)) {
+    throw new Error('Unable to decrypt credential.')
+  }
+
+  return version
+}
+
+/** Narrows a string to a supported box version. */
+function isBoxVersion(value: string | undefined): value is BoxVersion {
+  return BOX_VERSIONS.some((version) => version === value)
 }
 
 /** Parses one `keyId:base64` entry into a 32-byte AES key. */

@@ -152,6 +152,7 @@ export async function replaceConnectionKeysAction(
 
     const current = await findAlpacaConnection({
       id: parsed.data.connectionId,
+      userId: workspace.userId,
       workspaceId: workspace.workspaceId,
     })
 
@@ -214,6 +215,7 @@ export async function testConnectionAction(
 
     const current = await findAlpacaConnection({
       id: parsed.data.connectionId,
+      userId: workspace.userId,
       workspaceId: workspace.workspaceId,
     })
 
@@ -284,6 +286,7 @@ export async function renameConnectionAction(
     await renameConnection({ ...parsed.data, workspace })
     const renamed = await findAlpacaConnection({
       id: parsed.data.connectionId,
+      userId: workspace.userId,
       workspaceId: workspace.workspaceId,
     })
 

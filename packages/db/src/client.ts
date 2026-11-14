@@ -2,7 +2,10 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
 import * as activitySchema from './schema/activity'
-import { alpacaConnections } from './schema/alpaca-connections'
+import {
+  alpacaConnections,
+  alpacaCredentialUses,
+} from './schema/alpaca-connections'
 import * as authSchema from './schema/auth'
 import { cryptoWallets } from './schema/crypto-wallets'
 import * as workspaceSchema from './schema/workspaces'
@@ -23,6 +26,7 @@ const schema = {
   ...authSchema,
   ...workspaceSchema,
   alpacaConnections,
+  alpacaCredentialUses,
   cryptoWallets,
 }
 

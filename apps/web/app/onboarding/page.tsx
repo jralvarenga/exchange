@@ -55,9 +55,10 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
   // that this person is allowed to add one to.
   if (params.step === 'connect') {
     const workspace = await resolveActiveWorkspace(session.user)
-    const connections = await listAlpacaConnectionPublicRows(
-      workspace.workspaceId
-    )
+    const connections = await listAlpacaConnectionPublicRows({
+      userId: workspace.userId,
+      workspaceId: workspace.workspaceId,
+    })
 
     if (canManageWorkspace(workspace.role) && connections.length === 0) {
       return (

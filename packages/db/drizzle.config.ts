@@ -7,13 +7,19 @@ import { normalizeDatabaseUrl } from './src/utils'
 
 const configDirectory = dirname(fileURLToPath(import.meta.url))
 
+const MIGRATOR_KEY = 'DATABASE_MIGRATOR_URL'
+const APP_KEY = 'DATABASE_URL'
+
 /**
- * Reads DATABASE_URL from the process, packages/db/.env, or apps/web/.env.local.
- * Fail instead of guessing a database.
+ * Reads the migrator URL, else DATABASE_URL, from the process, packages/db/.env,
+ * or apps/web/.env.local. The migrator owns the tables; the app may use a
+ * restricted role (see sql/app-role.sql). Fail instead of guessing a database.
  */
 function loadDatabaseUrl(): string {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL
+  for (const key of [MIGRATOR_KEY, APP_KEY]) {
+    if (process.env[key]) {
+      return process.env[key]
+    }
   }
 
   const files = [
@@ -21,21 +27,23 @@ function loadDatabaseUrl(): string {
     resolve(configDirectory, '../../apps/web/.env.local'),
   ]
 
-  for (const file of files) {
-    const url = readDatabaseUrlFromFile(file)
+  for (const key of [MIGRATOR_KEY, APP_KEY]) {
+    for (const file of files) {
+      const url = readEnvValueFromFile(file, key)
 
-    if (url) {
-      return url
+      if (url) {
+        return url
+      }
     }
   }
 
   throw new Error(
-    'DATABASE_URL is required. Set it in the environment, packages/db/.env, or apps/web/.env.local.'
+    'DATABASE_MIGRATOR_URL or DATABASE_URL is required. Set it in the environment, packages/db/.env, or apps/web/.env.local.'
   )
 }
 
-/** Parses a KEY=VALUE env file and returns DATABASE_URL when present. */
-function readDatabaseUrlFromFile(file: string): string | undefined {
+/** Parses a KEY=VALUE env file and returns the value of `name` when present. */
+function readEnvValueFromFile(file: string, name: string): string | undefined {
   if (!existsSync(file)) {
     return undefined
   }
@@ -63,7 +71,7 @@ function readDatabaseUrlFromFile(file: string): string | undefined {
       value = value.slice(1, -1)
     }
 
-    if (key === 'DATABASE_URL' && value.length > 0) {
+    if (key === name && value.length > 0) {
       return value
     }
   }

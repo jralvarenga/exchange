@@ -53,7 +53,10 @@ const loadWorkspaceFor = cache(async function loadWorkspaceFor(
 
     throw error
   })
-  const connections = await listMaskedConnections(workspace.workspaceId)
+  const connections = await listMaskedConnections({
+    userId: workspace.userId,
+    workspaceId: workspace.workspaceId,
+  })
   const activeId = activeConnectionId(workspace)
   const active = connections.find((connection) => connection.id === activeId)
 

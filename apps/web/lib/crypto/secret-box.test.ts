@@ -2,9 +2,15 @@ import { mock } from 'bun:test'
 
 mock.module('server-only', () => ({}))
 
-const { decryptSecret, encryptSecret, parseEncryptionKeys } = await import(
-  './secret-box'
-)
+const {
+  credentialAad,
+  decryptCredential,
+  decryptSecret,
+  encryptCredential,
+  encryptSecret,
+  needsRewrap,
+  parseEncryptionKeys,
+} = await import('./secret-box')
 
 import { describe, expect, test } from 'bun:test'
 import { randomBytes } from 'node:crypto'
@@ -96,7 +102,7 @@ describe('secret box', () => {
         aad: 'user-1:live:keyId',
         keys: parsed,
         plaintext: 'next',
-      }).startsWith('v1:k2:')
+      }).startsWith('v2:k2:')
     ).toBe(true)
   })
 
@@ -153,5 +159,96 @@ describe('secret box', () => {
     expect(() => parseEncryptionKeys('k1:not-valid-base64!!!!')).toThrow(
       'CREDENTIALS_ENCRYPTION_KEYS entry is invalid.'
     )
+  })
+
+  test('a credential moved to another workspace fails to decrypt', () => {
+    const encryptionKeys = keys(['k1'])
+    const binding = {
+      connectionId: 'conn-1',
+      environment: 'live',
+      field: 'secret' as const,
+      workspaceId: 'ws-victim',
+    }
+    const payload = encryptCredential({
+      binding,
+      keys: encryptionKeys,
+      plaintext: 'alpaca-secret',
+    })
+
+    expect(payload.startsWith('v2:k1:')).toBe(true)
+    expect(decryptCredential({ binding, keys: encryptionKeys, payload })).toBe(
+      'alpaca-secret'
+    )
+    expect(() =>
+      decryptCredential({
+        binding: { ...binding, workspaceId: 'ws-attacker' },
+        keys: encryptionKeys,
+        payload,
+      })
+    ).toThrow('Unable to decrypt credential.')
+    expect(() =>
+      decryptCredential({
+        binding: { ...binding, field: 'keyId' },
+        keys: encryptionKeys,
+        payload,
+      })
+    ).toThrow('Unable to decrypt credential.')
+  })
+
+  test('still reads a v1 credential and flags it for rewrap', () => {
+    const encryptionKeys = keys(['k1'])
+    const binding = {
+      connectionId: 'conn-1',
+      environment: 'paper',
+      field: 'keyId' as const,
+      workspaceId: 'ws-1',
+    }
+    const payload = encryptSecret({
+      aad: credentialAad({ ...binding, version: 'v1' }),
+      keys: encryptionKeys,
+      plaintext: 'PKLEGACY1234',
+      version: 'v1',
+    })
+
+    expect(decryptCredential({ binding, keys: encryptionKeys, payload })).toBe(
+      'PKLEGACY1234'
+    )
+    expect(needsRewrap({ keys: encryptionKeys, payload })).toBe(true)
+    expect(
+      needsRewrap({
+        keys: encryptionKeys,
+        payload: encryptCredential({
+          binding,
+          keys: encryptionKeys,
+          plaintext: 'PKLEGACY1234',
+        }),
+      })
+    ).toBe(false)
+  })
+
+  test('flags a credential encrypted with a retired key for rewrap', () => {
+    const old = keys(['k1'])
+    const binding = {
+      connectionId: 'conn-1',
+      environment: 'paper',
+      field: 'secret' as const,
+      workspaceId: 'ws-1',
+    }
+    const payload = encryptCredential({ binding, keys: old, plaintext: 's' })
+
+    expect(needsRewrap({ keys: [...keys(['k2']), ...old], payload })).toBe(true)
+  })
+
+  test('rejects an unknown box version', () => {
+    const encryptionKeys = keys(['k1'])
+    const payload = encryptSecret({
+      aad: 'a',
+      keys: encryptionKeys,
+      plaintext: 's',
+    }).replace(/^v2:/u, 'v9:')
+
+    expect(() =>
+      decryptSecret({ aad: 'a', keys: encryptionKeys, payload })
+    ).toThrow('Unable to decrypt credential.')
   })
 })

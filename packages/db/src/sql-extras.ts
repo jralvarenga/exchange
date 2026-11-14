@@ -20,3 +20,17 @@ export const workspaceSqlExtras = {
     'workspace_requires_owner',
   ],
 } as const
+
+/**
+ * Credential guards created only in `0005_credential_hardening.sql`: the
+ * binding lock trigger, the same-workspace foreign keys (Drizzle cannot emit
+ * `ON DELETE` for part of a composite key), and the audited reader.
+ */
+export const credentialSqlExtras = {
+  constraints: [
+    'workspace_members_active_connection_same_workspace',
+    'workspaces_default_connection_same_workspace',
+  ],
+  functions: ['alpaca_connections_lock_binding', 'read_alpaca_credentials'],
+  triggers: ['alpaca_connections_lock_binding'],
+} as const

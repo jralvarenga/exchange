@@ -7,10 +7,12 @@ import type {
 import {
   type AlpacaConnectionPublicRow,
   type AlpacaConnectionRow,
+  type AlpacaCredentialPurpose,
   findAlpacaConnection,
   insertAlpacaConnection,
   listAlpacaConnectionPublicRows,
   markAlpacaConnectionInvalid,
+  readAlpacaCredentials,
   renameAlpacaConnection,
   replaceAlpacaConnectionKeys,
   updateAlpacaConnectionStatus,
@@ -30,9 +32,8 @@ import {
   alpacaEnvironmentSchema,
 } from '@/lib/alpaca/schemas'
 import {
-  credentialAad,
-  decryptSecret,
-  encryptSecret,
+  decryptCredential,
+  encryptCredential,
   parseEncryptionKeys,
 } from '@/lib/crypto/secret-box'
 import { env } from '@/lib/env'
@@ -98,6 +99,12 @@ interface RenameConnectionInput extends ConnectionActionInput {
 interface MarkConnectionInvalidInput {
   connectionId: string
   updatedAt?: Date
+  userId: string
+  workspaceId: string
+}
+
+interface ListMaskedConnectionsInput {
+  userId: string
   workspaceId: string
 }
 
@@ -160,6 +167,7 @@ export async function addConnection(
         environment,
         field: 'keyId',
         plaintext: keys.keyId,
+        workspaceId: input.workspace.workspaceId,
       }),
       keyIdLast4: keys.keyId.slice(-4),
       lastVerifiedAt: new Date(),
@@ -169,7 +177,9 @@ export async function addConnection(
         environment,
         field: 'secret',
         plaintext: keys.secret,
+        workspaceId: input.workspace.workspaceId,
       }),
+      userId: input.workspace.userId,
       workspaceId: input.workspace.workspaceId,
     })
   } catch (error) {
@@ -208,6 +218,7 @@ export async function replaceConnectionKeys(
       environment,
       field: 'keyId',
       plaintext: keys.keyId,
+      workspaceId: row.workspaceId,
     }),
     keyIdLast4: keys.keyId.slice(-4),
     lastVerifiedAt: new Date(),
@@ -216,7 +227,9 @@ export async function replaceConnectionKeys(
       environment,
       field: 'secret',
       plaintext: keys.secret,
+      workspaceId: row.workspaceId,
     }),
+    userId: input.workspace.userId,
     workspaceId: row.workspaceId,
   })
 
@@ -236,7 +249,11 @@ export async function testConnection(
   }
 
   const row = await requireConnection(input)
-  const { apiKeyId, apiSecretKey, environment } = decryptConnection(row)
+  const { apiKeyId, apiSecretKey, environment } = await decryptConnection({
+    purpose: 'test',
+    row,
+    userId: input.workspace.userId,
+  })
 
   try {
     await getAccount({
@@ -251,6 +268,7 @@ export async function testConnection(
       await markAlpacaConnectionInvalid({
         id: row.id,
         updatedAt: row.updatedAt,
+        userId: input.workspace.userId,
         workspaceId: row.workspaceId,
       })
       throw new AlpacaCredentialsError('INVALID')
@@ -264,6 +282,7 @@ export async function testConnection(
     id: row.id,
     lastVerifiedAt: verifiedAt,
     status: 'valid',
+    userId: input.workspace.userId,
     workspaceId: row.workspaceId,
   })
 
@@ -285,6 +304,7 @@ export async function renameConnection(
     await renameAlpacaConnection({
       id: row.id,
       name: connectionNameSchema.parse(input.name),
+      userId: input.workspace.userId,
       workspaceId: row.workspaceId,
     })
   } catch (error) {
@@ -309,6 +329,7 @@ export async function removeConnection(
   const row = await requireConnection(input)
   await deleteConnectionAndRepairDefault({
     connectionId: row.id,
+    userId: input.workspace.userId,
     workspaceId: row.workspaceId,
   })
 
@@ -361,6 +382,7 @@ export async function markConnectionInvalid(
   await markAlpacaConnectionInvalid({
     id: input.connectionId,
     updatedAt: input.updatedAt,
+    userId: input.userId,
     workspaceId: input.workspaceId,
   })
 }
@@ -371,9 +393,9 @@ export async function markConnectionInvalid(
  * page shows `keyIdMasked` built from the stored last four characters.
  */
 export async function listMaskedConnections(
-  workspaceId: string
+  input: ListMaskedConnectionsInput
 ): Promise<MaskedConnection[]> {
-  const rows = await listAlpacaConnectionPublicRows(workspaceId)
+  const rows = await listAlpacaConnectionPublicRows(input)
 
   return rows.flatMap((row) => {
     const environment = alpacaEnvironmentSchema.safeParse(row.environment)
@@ -414,6 +436,7 @@ export async function loadActiveAlpacaConnection(
 
   const row = await findAlpacaConnection({
     id: connectionId,
+    userId: workspace.userId,
     workspaceId: workspace.workspaceId,
   })
 
@@ -429,18 +452,24 @@ export async function loadActiveAlpacaConnection(
 }
 
 interface DecryptAlpacaRequestContextInput {
+  purpose: Exclude<AlpacaCredentialPurpose, 'test'>
   row: AlpacaConnectionRow
   workspace: ActiveWorkspace
 }
 
 /**
- * Decrypts a loaded active connection for an Alpaca call. Trading routes must
- * apply `tradeLock` before calling this so a 403 never unwraps keys.
+ * Decrypts a loaded active connection for an Alpaca call and records the use.
+ * Trading routes must apply `tradeLock` before calling this so a 403 never
+ * unwraps keys.
  */
-export function decryptAlpacaRequestContext(
+export async function decryptAlpacaRequestContext(
   input: DecryptAlpacaRequestContextInput
-): AlpacaRequestContext {
-  const alpaca = decryptConnection(input.row)
+): Promise<AlpacaRequestContext> {
+  const alpaca = await decryptConnection({
+    purpose: input.purpose,
+    row: input.row,
+    userId: input.workspace.userId,
+  })
 
   return {
     actor: {
@@ -463,6 +492,7 @@ export async function resolveAlpacaRequestContext(
   workspace: ActiveWorkspace
 ): Promise<AlpacaRequestContext> {
   return decryptAlpacaRequestContext({
+    purpose: 'read',
     row: await loadActiveAlpacaConnection(workspace),
     workspace,
   })
@@ -488,6 +518,7 @@ async function requireConnection(
 ): Promise<AlpacaConnectionRow> {
   const row = await findAlpacaConnection({
     id: z.string().min(1).parse(input.connectionId),
+    userId: input.workspace.userId,
     workspaceId: input.workspace.workspaceId,
   })
 
@@ -523,23 +554,47 @@ async function verifyKeys(input: VerifyKeysInput): Promise<void> {
   }
 }
 
-/** Decrypts both key fields of a connection row. */
-function decryptConnection(row: AlpacaConnectionRow): AlpacaClientOptions & {
-  environment: 'live' | 'paper'
-} {
+interface DecryptConnectionInput {
+  purpose: AlpacaCredentialPurpose
+  row: AlpacaConnectionRow
+  userId: string
+}
+
+/**
+ * Reads a connection's ciphertext through the audited database function and
+ * decrypts both key fields.
+ */
+async function decryptConnection(
+  input: DecryptConnectionInput
+): Promise<AlpacaClientOptions & { environment: 'live' | 'paper' }> {
+  const { row } = input
   const environment = alpacaEnvironmentSchema.parse(row.environment)
+  const ciphertexts = await readAlpacaCredentials({
+    id: row.id,
+    purpose: input.purpose,
+    userId: input.userId,
+    workspaceId: row.workspaceId,
+  })
+
+  if (!ciphertexts) {
+    throw new AlpacaCredentialsError('MISSING')
+  }
+
+  const binding = {
+    connectionId: row.id,
+    environment,
+    workspaceId: row.workspaceId,
+  }
 
   return {
     apiKeyId: decryptField({
-      ciphertext: row.keyIdCiphertext,
-      connectionId: row.id,
-      environment,
+      ...binding,
+      ciphertext: ciphertexts.keyIdCiphertext,
       field: 'keyId',
     }),
     apiSecretKey: decryptField({
-      ciphertext: row.secretCiphertext,
-      connectionId: row.id,
-      environment,
+      ...binding,
+      ciphertext: ciphertexts.secretCiphertext,
       field: 'secret',
     }),
     environment,
@@ -551,14 +606,17 @@ interface EncryptFieldInput {
   environment: 'live' | 'paper'
   field: 'keyId' | 'secret'
   plaintext: string
+  workspaceId: string
 }
 
-/** Encrypts one key field with AAD bound to its connection. */
+/** Encrypts one key field with AAD bound to its workspace and connection. */
 function encryptField(input: EncryptFieldInput): string {
-  return encryptSecret({
-    aad: credentialAad(input),
+  const { plaintext, ...binding } = input
+
+  return encryptCredential({
+    binding,
     keys: parseEncryptionKeys(env.CREDENTIALS_ENCRYPTION_KEYS),
-    plaintext: input.plaintext,
+    plaintext,
   })
 }
 
@@ -567,15 +625,18 @@ interface DecryptFieldInput {
   connectionId: string
   environment: 'live' | 'paper'
   field: 'keyId' | 'secret'
+  workspaceId: string
 }
 
 /** Decrypts one key field. Failures stay generic and are not logged. */
 function decryptField(input: DecryptFieldInput): string {
+  const { ciphertext, ...binding } = input
+
   try {
-    return decryptSecret({
-      aad: credentialAad(input),
+    return decryptCredential({
+      binding,
       keys: parseEncryptionKeys(env.CREDENTIALS_ENCRYPTION_KEYS),
-      payload: input.ciphertext,
+      payload: ciphertext,
     })
   } catch {
     throw new AlpacaCredentialsError('INVALID')

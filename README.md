@@ -79,8 +79,9 @@ not the `sslmode=require` Neon copies by default. pg 8 already treats
 `require`, `prefer`, and `verify-ca` as `verify-full` and prints a security
 warning about it, so `packages/db` rewrites those modes to `verify-full` unless
 the URL sets `uselibpqcompat`. Apply migrations as a deploy
-step. Do not use `drizzle-kit push`. `bun run db:migrate` reads `DATABASE_URL`
-from the environment, `packages/db/.env`, or `apps/web/.env.local`.
+step. Do not use `drizzle-kit push`. `bun run db:migrate` reads
+`DATABASE_MIGRATOR_URL`, else `DATABASE_URL`, from the environment,
+`packages/db/.env`, or `apps/web/.env.local`.
 
 ```bash
 bun run db:migrate
@@ -105,8 +106,45 @@ Paste `BETTER_AUTH_SECRET` and `CREDENTIALS_ENCRYPTION_KEYS` into
 `apps/web/.env.local` and the deployment environment. The encryption value is
 one or more `keyId:base64` pairs. Each generated key id is unique. The first
 key encrypts new credentials. Every listed key can decrypt. To rotate, generate
-another key, prepend it, and keep the previous keys until every stored row has
-been saved again. Duplicate key ids are rejected.
+another key, prepend it, run `bun run auth:rewrap-credentials`, then remove the
+previous key. Duplicate key ids are rejected.
+
+### Alpaca key protection
+
+No workspace member, owners included, can read a stored key or secret. The server
+decrypts them only to call Alpaca. The database enforces the rest:
+
+- Each key is encrypted with AES-256-GCM and bound to its workspace,
+  connection, environment and field (`v2`). A `CHECK` rejects anything that is
+  not an encrypted value. A trigger blocks moving a connection to another
+  workspace or environment.
+- Member picks and workspace defaults can only point at a connection of the
+  same workspace.
+- The app reads encrypted keys only through `read_alpaca_credentials()`. It
+  checks membership and records each use (member, purpose, count, last use) in
+  `alpaca_credential_uses`.
+- Row-level security on `alpaca_connections` shows a role that does not own
+  the table only the connections of the acting member's workspaces. Queries on
+  that table run inside `withMemberScope(userId, ...)` from
+  `@workspace/db/member-scope`, which sets the member for one transaction. A
+  query outside it sees no rows. The table owner (migrations, scripts) is not
+  subject to it, so it applies once the app uses the restricted role below.
+- API responses that contain a decrypted key are refused, keys are sent only
+  to Alpaca's https hosts with redirects refused, and trading routes allow 60
+  requests a minute per member and connection.
+
+After `0005_credential_hardening.sql`, run `bun run auth:rewrap-credentials`
+once to move existing rows from `v1` to `v2`. Add `--dry-run` to count first.
+
+For database-level enforcement, run the app as a separate role that cannot
+read the encrypted columns or write the usage audit:
+
+1. Create a login role, for example `treid_app`. On Neon, use the console.
+2. As the table owner, after migrating, run
+   `psql "$DATABASE_MIGRATOR_URL" -v app_role=treid_app -f packages/db/sql/app-role.sql`.
+   Rerun it after migrations that add tables.
+3. Set `DATABASE_URL` to the new role and `DATABASE_MIGRATOR_URL` to the
+   owner wherever `db:migrate` and the rewrap script run.
 
 ### Deposit wallets
 
