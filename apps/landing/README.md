@@ -38,6 +38,7 @@ shipped to the browser.
 | Variable         | Purpose                                   | Default                 |
 | :--------------- | :---------------------------------------- | :---------------------- |
 | `PUBLIC_APP_URL` | Web app origin for the sign up and log in links | `http://localhost:3000` |
+| `PUBLIC_GOOGLE_SITE_VERIFICATION` | Optional token, rendered as a `google-site-verification` meta tag | Unset |
 | `PUBLIC_SITE_URL` | Public origin of this site, for canonical URLs, Open Graph tags, `robots.txt` and the sitemap | `https://treid.app` |
 | `PUBLIC_SUPPORT_EMAIL` | Support address shown in the footer and on the legal pages | `support@example.com` |
 
@@ -48,6 +49,9 @@ the footer and legal pages show `support@example.com`. A missing value does not
 fail the build. Set `PUBLIC_SITE_URL` when the site runs anywhere other than
 `https://treid.app`, such as a self-hosted copy. The hosted site runs at `https://treid.app` with
 `PUBLIC_APP_URL=https://app.treid.app`.
+
+The privacy and terms pages show a "Last updated" date from `src/lib/legal.ts`.
+Bump it whenever their text changes.
 
 ## Commands
 

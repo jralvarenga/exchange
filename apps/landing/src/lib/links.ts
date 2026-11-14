@@ -26,8 +26,8 @@ export const externalLinks = {
   github: 'https://github.com/jralvarenga/treid',
   issues: 'https://github.com/jralvarenga/treid/issues/new',
   pullRequests: 'https://github.com/jralvarenga/treid/pulls',
-  /** The README's setup guide, from secrets to the HTTPS proxy. */
-  selfHostGuide: 'https://github.com/jralvarenga/treid#https-deployment',
+  /** The README's self-hosting guide, from secrets to the HTTPS proxy. */
+  selfHostGuide: 'https://github.com/jralvarenga/treid#self-hosting',
 }
 
 /** Pages for the privacy policy and the terms of service. */

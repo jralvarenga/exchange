@@ -1,13 +1,14 @@
 ---
 import LegalPage from '@/components/legal/legal-page.astro'
 import LegalSection from '@/components/legal/legal-section.astro'
+import { legalUpdated } from '@/lib/legal'
 import { externalLinks, legalLinks, support } from '@/lib/links'
 ---
 
 <LegalPage
   description="Treid's terms of service: the rules for using the hosted Treid with your Alpaca account, your API keys and your workspaces."
   title="Terms of service"
-  updated="2026-11-13"
+  updated={legalUpdated['/terms']}
 >
   <LegalSection title="What Treid does">
     <p>
