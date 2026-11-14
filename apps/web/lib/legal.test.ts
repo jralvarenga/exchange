@@ -15,13 +15,13 @@ describe('getLegalLinks', () => {
   })
 
   test('falls back to the local landing dev server when the URL is invalid', () => {
-    expect(getLegalLinks('exchange.example.com')).toEqual(expected)
+    expect(getLegalLinks('treid.app')).toEqual(expected)
   })
 
   test('builds the legal pages on the configured landing origin', () => {
-    expect(getLegalLinks(' https://exchange.example.com/ ')).toEqual({
-      privacy: 'https://exchange.example.com/privacy',
-      terms: 'https://exchange.example.com/terms',
+    expect(getLegalLinks(' https://treid.app/ ')).toEqual({
+      privacy: 'https://treid.app/privacy',
+      terms: 'https://treid.app/terms',
     })
   })
 })

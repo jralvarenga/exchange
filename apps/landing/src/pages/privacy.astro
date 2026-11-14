@@ -5,13 +5,22 @@ import { externalLinks, support } from '@/lib/links'
 ---
 
 <LegalPage
-  description="What the hosted Exchange stores, what stays at Alpaca and what stays in your browser."
+  description="What the hosted Treid stores, what stays at Alpaca and what stays in your browser."
   title="Privacy policy"
   updated="2026-11-13"
 >
   <LegalSection title="Scope">
     <p>
-      This page covers the hosted Exchange on this site. Exchange is open source, so other people run
+      <strong>Treid requires your own Alpaca account.</strong> Alpaca is your broker and holds your
+      money and trading data. Treid connects to it with the API keys you add.
+    </p>
+    <p>
+      Treid is the infrastructure in between. It gives you the screens and the server to use what
+      Alpaca does, and workspaces so a team can trade together. It only stores what it needs to do
+      that, listed below.
+    </p>
+    <p>
+      This page covers the hosted Treid on this site. Treid is open source, so other people run
       their own copies. If you sign in to someone else's copy, they hold your data, not us.
     </p>
   </LegalSection>
@@ -38,7 +47,7 @@ import { externalLinks, support } from '@/lib/links'
         can tell connections apart.
       </li>
       <li>
-        <strong>Order history:</strong> every order placed through Exchange, with who placed it,
+        <strong>Order history:</strong> every order placed through Treid, with who placed it,
         through which connection, the symbol, side, quantity or amount, prices and status, and when it
         was replaced or canceled.
       </li>
@@ -60,7 +69,7 @@ import { externalLinks, support } from '@/lib/links'
   <LegalSection title="What stays at Alpaca">
     <p>
       Your balance, positions, orders, watchlists and account details live in your Alpaca account.
-      Exchange fetches them from Alpaca with your keys when you open a page. We don't keep a copy,
+      Treid fetches them from Alpaca with your keys when you open a page. We don't keep a copy,
       except the order history described above. Alpaca's own <a href={externalLinks.alpaca}
         >privacy policy</a
       > covers what Alpaca does with your data.
@@ -72,12 +81,15 @@ import { externalLinks, support } from '@/lib/links'
       <li>A secure session cookie that keeps you signed in.</li>
       <li>Your theme, your chart type and your chart zoom, saved in local storage.</li>
     </ul>
-    <p>That's all. There are no analytics, no ads and no tracking scripts.</p>
+    <p>
+      That's all. The app has no analytics, no ads and no tracking scripts. This site counts page
+      views with Vercel Web Analytics, which is anonymous and sets no cookies.
+    </p>
   </LegalSection>
 
   <LegalSection title="Who else is involved">
     <ul>
-      <li><strong>Alpaca</strong> receives every request Exchange makes with your keys.</li>
+      <li><strong>Alpaca</strong> receives every request Treid makes with your keys.</li>
       <li><strong>Google</strong>, only if you sign in with Google.</li>
       <li>
         <strong>Resend</strong> sends the verification, password reset and invitation emails, so it
@@ -136,6 +148,12 @@ import { externalLinks, support } from '@/lib/links'
       >, so you can check this yourself. To report a security problem, email <a href={support.href}
         >{support.email}</a
       > instead of opening a public issue.
+    </p>
+    <p>
+      Encryption protects the keys we store, not copies kept anywhere else. Keeping your keys and
+      secrets private is up to you, on this site and on a copy you host yourself. If you run your own
+      copy, you hold the database and the encryption keys, so its security is yours to manage. If a
+      key may have leaked, revoke it in Alpaca and add a new one.
     </p>
   </LegalSection>
 

@@ -1,0 +1,16 @@
+---
+import { cn } from '@workspace/ui/lib/utils'
+
+interface Props {
+  /** Layout only. Set the height; the width follows the logo's 3.5:1 ratio. */
+  class?: string
+}
+
+const { class: className } = Astro.props
+---
+
+<!-- Alpaca's logo, with a dark wordmark on the light theme and a white one on the dark theme. -->
+<span class={cn('inline-flex h-8', className)}>
+  <img alt="Alpaca" class="h-full w-auto dark:hidden" height="309" src="/alpaca.svg" width="1081" />
+  <img alt="Alpaca" class="hidden h-full w-auto dark:block" height="309" src="/alpaca-dark.svg" width="1081" />
+</span>

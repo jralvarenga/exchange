@@ -11,7 +11,7 @@ describe('invitationEmail', () => {
     })
 
     expect(email.subject).toBe(
-      'Join Desk Bcc: attacker@example.com on Exchange'
+      'Join Desk Bcc: attacker@example.com on Treid'
     )
     expect(email.subject).not.toMatch(/[\r\n]/u)
   })

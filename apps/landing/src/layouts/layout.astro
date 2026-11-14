@@ -1,4 +1,6 @@
 ---
+import Analytics from '@vercel/analytics/astro'
+
 import { Font } from 'astro:assets'
 
 import '@/styles/globals.css'
@@ -10,7 +12,7 @@ interface Props {
 
 const {
   description = 'A quiet trading desk for your Alpaca account. Paper or live, on your own or with a team.',
-  title = 'Exchange · Trade on Alpaca without the noise',
+  title = 'Treid · Trade on Alpaca without the noise',
 } = Astro.props
 ---
 
@@ -26,6 +28,8 @@ const {
     <Font cssVariable="--font-sans" preload />
     <Font cssVariable="--font-mono" />
     <title>{title}</title>
+    <!-- Cookieless page-view counts. Only reports when deployed on Vercel. -->
+    <Analytics />
     <!--
       Follows the system theme before paint. The app's saved theme lives in its
       own origin's storage, so the landing page has no stored choice to read.

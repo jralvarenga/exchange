@@ -62,7 +62,7 @@ describe('workspace history', () => {
     })
   })
 
-  test('names a cancel of an order placed outside Exchange', () => {
+  test('names a cancel of an order placed outside Treid', () => {
     expect(
       orderEventToEntry({ ...placed, order: null, type: 'canceled' }).title
     ).toBe('Canceled an order')

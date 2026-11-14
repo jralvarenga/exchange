@@ -25,7 +25,7 @@ describe('normalizeDatabaseUrl', () => {
   })
 
   test('leaves URLs without an SSL mode unchanged', () => {
-    const local = 'postgresql://exchange:exchange@127.0.0.1:5432/exchange'
+    const local = 'postgresql://treid:treid@127.0.0.1:5432/treid'
 
     expect(normalizeDatabaseUrl(local)).toBe(local)
   })

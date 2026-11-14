@@ -132,9 +132,9 @@ function createAuth() {
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async function sendResetPassword({ url, user }) {
         await queueAuthEmail({
-          html: `<p>Reset the password for your Exchange account.</p><p><a href="${escapeHtml(url)}">Choose a new password</a></p>`,
-          subject: 'Reset your Exchange password',
-          text: `Reset your Exchange password: ${url}`,
+          html: `<p>Reset the password for your Treid account.</p><p><a href="${escapeHtml(url)}">Choose a new password</a></p>`,
+          subject: 'Reset your Treid password',
+          text: `Reset your Treid password: ${url}`,
           to: user.email,
         })
       },
@@ -147,9 +147,9 @@ function createAuth() {
         user,
       }) {
         await sendAuthEmail({
-          html: `<p>Confirm this address to finish creating your Exchange account.</p><p><a href="${escapeHtml(url)}">Verify email</a></p>`,
-          subject: 'Verify your Exchange email',
-          text: `Verify your Exchange email: ${url}`,
+          html: `<p>Confirm this address to finish creating your Treid account.</p><p><a href="${escapeHtml(url)}">Verify email</a></p>`,
+          subject: 'Verify your Treid email',
+          text: `Verify your Treid email: ${url}`,
           to: user.email,
         })
       },

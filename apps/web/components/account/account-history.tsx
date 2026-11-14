@@ -30,7 +30,7 @@ export function AccountHistory({ currentUserId, entries, members }: Props) {
     <Section className="max-w-3xl" id="history" titleId="history-title">
       <SectionHeader id="history-title" title="History">
         <p className="text-muted-foreground">
-          Orders and changes made through Exchange in this workspace.
+          Orders and changes made through Treid in this workspace.
         </p>
       </SectionHeader>
       {entries.length > 0 ? (

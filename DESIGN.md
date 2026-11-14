@@ -4,7 +4,7 @@ The portfolio home (`/`) is the reference implementation. When in doubt, match i
 
 ## Direction
 
-Exchange is a personal trading desk on Alpaca for one self-directed trader, checked on a phone during the day and used on a desktop to trade.
+Treid is a personal trading desk on Alpaca for one self-directed trader, checked on a phone during the day and used on a desktop to trade.
 
 The interface is **open and editorial**: content sits directly on the page background, not inside cards. Numbers are the hero, large, bold and calm. Structure comes from typography, spacing and hairline dividers, never from boxes, heavy borders or color fills. It should feel quiet and expensive, closer to a private banking app than a terminal.
 

@@ -27,7 +27,7 @@ interface EnforceAlpacaCredentialGuardInput {
 export function alpacaCredentialRateLimitKey(
   input: AlpacaCredentialRateLimitKeyInput
 ): string {
-  return `exchange:settings:alpaca:${input.action}:${input.userId}`
+  return `treid:settings:alpaca:${input.action}:${input.userId}`
 }
 
 /**

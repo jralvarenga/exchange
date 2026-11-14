@@ -16,8 +16,8 @@ const fontMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Exchange',
-    template: '%s · Exchange',
+    default: 'Treid',
+    template: '%s · Treid',
   },
 }
 

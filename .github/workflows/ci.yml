@@ -23,13 +23,13 @@ jobs:
       postgres:
         image: postgres:17.6
         env:
-          POSTGRES_DB: exchange
-          POSTGRES_PASSWORD: exchange
-          POSTGRES_USER: exchange
+          POSTGRES_DB: treid
+          POSTGRES_PASSWORD: treid
+          POSTGRES_USER: treid
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U exchange -d exchange"
+          --health-cmd "pg_isready -U treid -d treid"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -40,8 +40,8 @@ jobs:
       BETTER_AUTH_SECRET: ci-placeholder-secret-at-least-32-characters
       BETTER_AUTH_URL: http://localhost:3000
       CREDENTIALS_ENCRYPTION_KEYS: k1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-      DATABASE_URL: postgresql://exchange:exchange@127.0.0.1:5432/exchange
-      EMAIL_FROM: Exchange <ci@example.com>
+      DATABASE_URL: postgresql://treid:treid@127.0.0.1:5432/treid
+      EMAIL_FROM: Treid <ci@example.com>
       GOOGLE_CLIENT_ID: ci-placeholder
       GOOGLE_CLIENT_SECRET: ci-placeholder
       RESEND_API_KEY: re_ci_placeholder

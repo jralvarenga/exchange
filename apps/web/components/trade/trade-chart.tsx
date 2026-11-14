@@ -17,7 +17,7 @@ interface Props {
   symbol: string
 }
 
-const chartTypeStorageKey = 'exchange:asset-chart-type'
+const chartTypeStorageKey = 'treid:asset-chart-type'
 
 /** Shows the line or candle price chart with its ranges and a remembered chart type. */
 export function TradeChart({ price, symbol }: Props) {

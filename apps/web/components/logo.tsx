@@ -6,7 +6,7 @@ interface Props {
   tone?: 'default' | 'inverse'
 }
 
-/** The Exchange mark, a rising line in a coin, beside the wordmark. */
+/** The Treid mark, a rising line in a coin, beside the wordmark. */
 export function Logo({ className, tone = 'default' }: Props) {
   const inverse = tone === 'inverse'
 
@@ -33,7 +33,7 @@ export function Logo({ className, tone = 'default' }: Props) {
         />
         <circle className="fill-market-up" cx="23.5" cy="11" r="2.5" />
       </svg>
-      <span className="font-bold text-xl tracking-tight">Exchange</span>
+      <span className="font-bold text-xl tracking-tight">Treid</span>
     </span>
   )
 }

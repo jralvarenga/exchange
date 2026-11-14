@@ -1,6 +1,6 @@
 # Landing
 
-Astro marketing site for Exchange. It is a workspace in the Bun monorepo and
+Astro marketing site for Treid. It is a workspace in the Bun monorepo and
 is configured to use the shared styles and components from `@workspace/ui`.
 
 ## Project structure
@@ -44,7 +44,8 @@ Copy `.env.example` to `.env` to change it. It is typed and validated through
 `astro:env`. The defaults only suit local development: set both variables for
 every production build, or the sign up and log in links point to localhost and
 the footer and legal pages show `support@example.com`. A missing value does not
-fail the build.
+fail the build. The hosted site runs at `https://treid.app` with
+`PUBLIC_APP_URL=https://app.treid.app`.
 
 ## Commands
 

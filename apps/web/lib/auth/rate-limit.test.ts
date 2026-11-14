@@ -63,6 +63,6 @@ describe('alpacaCredentialRateLimitKey', () => {
         action: 'save',
         userId: 'user-1',
       })
-    ).toBe('exchange:settings:alpaca:save:user-1')
+    ).toBe('treid:settings:alpaca:save:user-1')
   })
 })

@@ -5,16 +5,29 @@ import { externalLinks, legalLinks, support } from '@/lib/links'
 ---
 
 <LegalPage
-  description="The rules for using the hosted Exchange with your Alpaca account."
+  description="The rules for using the hosted Treid with your Alpaca account."
   title="Terms of service"
   updated="2026-11-13"
 >
-  <LegalSection title="What Exchange does">
+  <LegalSection title="What Treid does">
     <p>
-      Exchange is an app that uses your Alpaca API keys to show your Alpaca account and send orders to
-      it. <strong>Alpaca is your broker, not Exchange.</strong> Alpaca holds your money and positions,
-      fills your orders and is bound by its own terms with you. Exchange never holds funds, and
-      nothing in Exchange is investment advice.
+      Treid is an app that uses your Alpaca API keys to show your Alpaca account and send orders to
+      it. <strong>Alpaca is your broker, not Treid.</strong> Alpaca holds your money and positions,
+      fills your orders and is bound by its own terms with you. Treid never holds funds, and
+      nothing in Treid is investment advice.
+    </p>
+    <p>
+      Treid is infrastructure. It gives you the screens and the server to use what your Alpaca
+      account already does: trade stocks, ETFs, options and crypto, manage orders and positions,
+      follow market data and keep deposit addresses. On top of that it adds workspaces, so a team
+      can trade together on shared connections with roles and a full history. Treid acts only on the
+      instructions you and your workspace members give it.
+    </p>
+    <p>
+      <strong>You need your own Alpaca account to use Treid.</strong> Treid doesn't open one for you.
+      A paper account is enough to start, and you can <a href={externalLinks.alpacaSignUp}
+        >sign up at Alpaca</a
+      >.
     </p>
     <p>By signing up you agree to these terms and to the <a href={legalLinks.privacy}>privacy policy</a>.</p>
   </LegalSection>
@@ -23,7 +36,6 @@ import { externalLinks, legalLinks, support } from '@/lib/links'
     <ul>
       <li>You must verify your email before you can sign in with a password.</li>
       <li>Sign-up may be closed, or open only to invited email addresses.</li>
-      <li>You need your own Alpaca account. Exchange doesn't open one for you.</li>
       <li>Keep your password to yourself. What happens in your account is your responsibility.</li>
     </ul>
   </LegalSection>
@@ -31,22 +43,47 @@ import { externalLinks, legalLinks, support } from '@/lib/links'
   <LegalSection title="Your keys and your orders">
     <ul>
       <li>
-        Adding keys lets Exchange read that Alpaca account and place, change and cancel orders in it
+        Adding keys lets Treid read that Alpaca account and place, change and cancel orders in it
         when you or a workspace member asks.
       </li>
       <li>
-        Exchange sends each order as entered. Check the symbol, side, quantity, order type and whether
+        Treid sends each order as entered. Check the symbol, side, quantity, order type and whether
         you're on paper or live before you confirm.
       </li>
       <li>
         Closing a position or canceling all orders acts on every matching item in that Alpaca account,
-        including ones placed outside Exchange.
+        including ones placed outside Treid.
       </li>
       <li>
         Prices, charts and news come from Alpaca and can be delayed or wrong. Alpaca's own records are
         the final word on what was filled and at what price.
       </li>
     </ul>
+  </LegalSection>
+
+  <LegalSection title="Keeping your keys safe">
+    <p>
+      <strong>Your Alpaca keys are your responsibility.</strong> A key ID and secret can do whatever
+      Alpaca allows for that account, live trading included. Treid encrypts the keys it stores, but it
+      can't control keys that are copied, shared or leaked anywhere else.
+    </p>
+    <ul>
+      <li>Treat the secret like a password. Paste it only into a Treid connection you control.</li>
+      <li>Never send keys in chat, email, screenshots or code, and never commit them to a repository.</li>
+      <li>
+        Add live keys to a workspace only when you trust every member whose role lets them trade.
+        Those members can place orders with that account through Treid.
+      </li>
+      <li>Use paper keys while you learn the app or try a new workspace.</li>
+      <li>
+        If you think a key was exposed, revoke it in the Alpaca dashboard right away and create a new
+        one. Treid can't revoke Alpaca keys for you.
+      </li>
+    </ul>
+    <p>
+      Losses from keys you shared, leaked or let others use are yours, not Treid's. The same applies
+      when you run your own copy of Treid.
+    </p>
   </LegalSection>
 
   <LegalSection title="Workspaces">
@@ -63,7 +100,7 @@ import { externalLinks, legalLinks, support } from '@/lib/links'
 
   <LegalSection title="Crypto deposit addresses">
     <p>
-      Exchange shows the deposit addresses exactly as you saved them. Crypto sent to a wrong address
+      Treid shows the deposit addresses exactly as you saved them. Crypto sent to a wrong address
       or on the wrong network usually can't be recovered. Check the address and the network against
       Alpaca before you send anything.
     </p>
@@ -72,7 +109,7 @@ import { externalLinks, legalLinks, support } from '@/lib/links'
   <LegalSection title="Things you can't do">
     <ul>
       <li>Use keys or an Alpaca account you aren't allowed to use.</li>
-      <li>Use Exchange to break the law, Alpaca's terms or market rules.</li>
+      <li>Use Treid to break the law, Alpaca's terms or market rules.</li>
       <li>Try to get into other people's accounts or workspaces, or overload the service.</li>
     </ul>
   </LegalSection>
@@ -82,11 +119,16 @@ import { externalLinks, legalLinks, support } from '@/lib/links'
       The code is <a href={externalLinks.github}>public on GitHub</a>. These terms cover the hosted
       service on this site only. If you run your own copy, you run it on your own terms.
     </p>
+    <p>
+      Self-hosting moves the responsibility to whoever runs the server. That person keeps the
+      database, the encryption keys and the Alpaca keys safe, decides who can sign in, and keeps the
+      copy up to date. Everyone who uses a self-hosted copy still answers for their own keys.
+    </p>
   </LegalSection>
 
   <LegalSection title="No guarantees">
     <p>
-      Exchange is provided as is. It can have bugs and outages, and Alpaca can too. As far as the law
+      Treid is provided as is. It can have bugs and outages, and Alpaca can too. As far as the law
       allows, we aren't liable for trading losses, orders that didn't go through, orders sent as
       entered, or losses from delayed or wrong data.
     </p>

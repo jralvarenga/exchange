@@ -2,11 +2,11 @@ services:
   postgres:
     image: postgres:17.6
     environment:
-      POSTGRES_DB: exchange
-      POSTGRES_PASSWORD: exchange
-      POSTGRES_USER: exchange
+      POSTGRES_DB: treid
+      POSTGRES_PASSWORD: treid
+      POSTGRES_USER: treid
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U exchange -d exchange']
+      test: ['CMD-SHELL', 'pg_isready -U treid -d treid']
       interval: 5s
       timeout: 5s
       retries: 10

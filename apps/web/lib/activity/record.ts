@@ -110,7 +110,7 @@ export async function recordOrderPlaced(
   }
 }
 
-/** Records a replace or cancel and links it to the order when Exchange placed it. */
+/** Records a replace or cancel and links it to the order when Treid placed it. */
 export async function recordOrderEvent(
   input: RecordOrderEventInput
 ): Promise<void> {
