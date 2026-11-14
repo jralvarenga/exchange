@@ -5,6 +5,7 @@ import { defineConfig, envField, fontProviders } from 'astro/config'
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://treid.app',
   env: {
     schema: {
       PUBLIC_APP_URL: envField.string({

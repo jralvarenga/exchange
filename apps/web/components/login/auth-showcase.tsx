@@ -27,12 +27,12 @@ const marqueeItems = [0, 1].flatMap((copy) =>
 
 /**
  * The brand panel beside every auth form: the pitch over slowly drifting violet glows,
- * and a slow strip of the stocks and ETFs people trade with Exchange.
+ * and a slow strip of the stocks and ETFs people trade with Treid.
  */
 export function AuthShowcase() {
   return (
     <aside
-      aria-label="About Exchange"
+      aria-label="About Treid"
       className="sticky top-3 isolate hidden h-[calc(100svh-1.5rem)] flex-col justify-between overflow-hidden rounded-[2rem] bg-primary p-10 text-primary-foreground lg:flex"
     >
       <div aria-hidden="true" className="absolute inset-0 -z-10">

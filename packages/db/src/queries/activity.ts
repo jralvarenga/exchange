@@ -68,7 +68,7 @@ interface ListRecentInput {
   workspaceId: string
 }
 
-/** Records an order placed through Exchange together with its `placed` event. */
+/** Records an order placed through Treid together with its `placed` event. */
 export async function insertOrder(input: InsertOrderInput): Promise<string> {
   const id = crypto.randomUUID()
   const now = new Date()
@@ -138,7 +138,7 @@ export async function insertOrder(input: InsertOrderInput): Promise<string> {
 /**
  * Records a replace: the `replaced` event and pointing the order at the id
  * Alpaca gave its replacement, together in one transaction, so later events
- * on the replacement (a cancel, say) still find the order Exchange placed.
+ * on the replacement (a cancel, say) still find the order Treid placed.
  */
 export async function recordOrderReplacement(input: {
   actor: ActivityActor
@@ -174,7 +174,7 @@ export async function recordOrderReplacement(input: {
   })
 }
 
-/** Finds the Exchange record of an Alpaca order in a workspace. */
+/** Finds the Treid record of an Alpaca order in a workspace. */
 export async function findOrderByAlpacaId(input: {
   alpacaOrderId: string
   workspaceId: string

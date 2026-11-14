@@ -31,12 +31,11 @@ let currentSession: {
   }
 } | null = null
 
-process.env.DATABASE_URL =
-  'postgresql://exchange:exchange@127.0.0.1:5432/exchange'
+process.env.DATABASE_URL = 'postgresql://treid:treid@127.0.0.1:5432/treid'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-at-least-32-chars'
 process.env.BETTER_AUTH_URL = 'http://127.0.0.1:3000'
 process.env.CREDENTIALS_ENCRYPTION_KEYS = `k1:${randomBytes(32).toString('base64url')}`
-process.env.EMAIL_FROM = 'Exchange <test@example.com>'
+process.env.EMAIL_FROM = 'Treid <test@example.com>'
 process.env.GOOGLE_CLIENT_ID = 'google-client-id'
 process.env.GOOGLE_CLIENT_SECRET = 'google-client-secret'
 process.env.RESEND_API_KEY ??= 're_test'
@@ -107,7 +106,7 @@ const { alpacaConnections } = await import(
 
 const userA = crypto.randomUUID()
 const userB = crypto.randomUUID()
-const databaseReady = await postgresIsExchange()
+const databaseReady = await postgresIsTreid()
 const integrationTest = databaseReady ? test : test.skip
 
 describe('alpaca connections', () => {
@@ -955,8 +954,8 @@ async function insertInvitation(
   return { email: input.email.toLowerCase(), id, token }
 }
 
-/** True when compose Postgres is up and the current database is exchange. */
-async function postgresIsExchange(): Promise<boolean> {
+/** True when compose Postgres is up and the current database is treid. */
+async function postgresIsTreid(): Promise<boolean> {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     connectionTimeoutMillis: 1000,
@@ -967,7 +966,7 @@ async function postgresIsExchange(): Promise<boolean> {
       'select current_database() as name'
     )
 
-    return result.rows[0]?.name === 'exchange'
+    return result.rows[0]?.name === 'treid'
   } catch {
     return false
   } finally {

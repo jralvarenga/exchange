@@ -1,4 +1,4 @@
-# Exchange
+# Treid
 
 A trading dashboard. People sign in with Better Auth. Each account stores its
 own Alpaca paper and live keys, encrypted at rest, and those keys are used for
@@ -73,7 +73,7 @@ docker compose up -d
 ```
 
 `DATABASE_URL` for that database is
-`postgresql://exchange:exchange@127.0.0.1:5432/exchange`. Production uses a Neon
+`postgresql://treid:treid@127.0.0.1:5432/treid`. Production uses a Neon
 pooled connection string in the same variable. Set `sslmode=verify-full` on it,
 not the `sslmode=require` Neon copies by default. pg 8 already treats
 `require`, `prefer`, and `verify-ca` as `verify-full` and prints a security
@@ -139,10 +139,11 @@ login page. After a successful login, remove `DASHBOARD_PASSWORD_HASH`,
 The `dev` and `start` scripts bind Next.js to `127.0.0.1`, so it is not exposed
 directly. Run the HTTPS reverse proxy on the same host so it can connect to
 `127.0.0.1:3000`. You cannot place the proxy on a different machine when the
-app binds to loopback. A minimal Caddy site is:
+app binds to loopback. A minimal Caddy site, with your own hostname in place of
+`app.example.com`, is:
 
 ```caddyfile
-dashboard.example.com {
+app.example.com {
   reverse_proxy 127.0.0.1:3000
 }
 ```
@@ -155,7 +156,7 @@ Caddy `basic_auth` may be added as an optional second door, but must never
 replace the app login:
 
 ```caddyfile
-dashboard.example.com {
+app.example.com {
   basic_auth {
     operator <caddy-generated-hash>
   }
@@ -194,14 +195,14 @@ to closed. Preview deploys stay open unless `AUTH_DISABLE_SIGNUP` or
 `AUTH_ALLOWED_EMAILS` is set.
 
 `BETTER_AUTH_URL` must be the public production HTTPS origin, for example
-`https://dashboard.example.com`. Preview deploys set Better Auth's base URL
+`https://app.treid.app`. Preview deploys set Better Auth's base URL
 from `VERCEL_URL` so email verification, password reset, and session cookies
 target that preview. Google sign-in on a preview still needs that preview's
 callback URI in Google Cloud; otherwise use email and password there. Add
 extra CSRF origins with a comma-separated `BETTER_AUTH_TRUSTED_ORIGINS` if
 needed.
 `NEXT_PUBLIC_LANDING_URL` is the landing site origin, for example
-`https://example.com`. The login and sign-up pages link its `/terms` and
+`https://treid.app`. The login and sign-up pages link its `/terms` and
 `/privacy` pages. Next.js inlines it at build time, so redeploy after changing
 it. It defaults to the Astro dev server, `http://127.0.0.1:4321`.
 `ALPACA_CRYPTO_LOCATION` and `ALPACA_DATA_BASE_URL` stay optional. After

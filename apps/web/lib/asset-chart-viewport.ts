@@ -59,7 +59,7 @@ export const WHEEL_ZOOM_IN_FACTOR = 0.9
 export const WHEEL_ZOOM_OUT_FACTOR = 1.12
 export const PAN_WINDOW_RATIO = 0.25
 
-const viewportStorageKey = 'exchange:asset-chart-viewport'
+const viewportStorageKey = 'treid:asset-chart-viewport'
 
 const chartViewportSchema = z.object({
   startRatio: z.number().min(0).max(1),

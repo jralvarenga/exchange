@@ -33,7 +33,7 @@ function actorColumns() {
   }
 }
 
-/** Every buy or sell order placed through Exchange, one row per Alpaca order. */
+/** Every buy or sell order placed through Treid, one row per Alpaca order. */
 export const orders = pgTable(
   'orders',
   {
@@ -83,8 +83,8 @@ export const orders = pgTable(
 )
 
 /**
- * An order's lifecycle as seen from Exchange: placed, replaced or canceled.
- * `orderId` is null when the order was placed outside Exchange.
+ * An order's lifecycle as seen from Treid: placed, replaced or canceled.
+ * `orderId` is null when the order was placed outside Treid.
  */
 export const orderEvents = pgTable(
   'order_events',

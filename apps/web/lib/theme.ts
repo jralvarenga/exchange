@@ -4,7 +4,7 @@ export const DARK_MODE_QUERY = '(prefers-color-scheme: dark)'
 export const THEME_STORAGE_KEY = 'theme'
 
 /** Event fired in this tab whenever the stored theme changes. */
-export const THEME_CHANGE_EVENT = 'exchange:theme-change'
+export const THEME_CHANGE_EVENT = 'treid:theme-change'
 
 let sessionTheme: Theme = 'system'
 
