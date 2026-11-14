@@ -8,6 +8,18 @@ export type AppUrlSource = {
   VERCEL_URL?: string
 }
 
+/**
+ * Reads each variable with a direct `process.env.NAME` access, so Next inlines
+ * `NEXT_PUBLIC_APP_URL` at build time instead of looking it up at runtime.
+ */
+function readAppUrlEnv(): AppUrlSource {
+  return {
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    PORT: process.env.PORT,
+    VERCEL_URL: process.env.VERCEL_URL,
+  }
+}
+
 /** Names and copy shared by the root metadata, the manifest and link previews. */
 export const siteMeta = {
   description:
@@ -38,7 +50,7 @@ function toOrigin(value: string | undefined): string | undefined {
  * `NEXT_PUBLIC_APP_URL` first, then the Vercel deployment host, then the
  * local dev server. An invalid value falls through instead of failing.
  */
-export function getAppUrl(source: AppUrlSource = process.env): URL {
+export function getAppUrl(source: AppUrlSource = readAppUrlEnv()): URL {
   const origin =
     toOrigin(source.NEXT_PUBLIC_APP_URL) ??
     toOrigin(source.VERCEL_URL ? `https://${source.VERCEL_URL}` : undefined) ??
