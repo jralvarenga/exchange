@@ -36,7 +36,7 @@ export function AlpacaRequirement() {
       <a
         className={buttonVariants({
           className: 'self-start sm:self-auto',
-          size: 'lg',
+          size: 'xl',
           variant: 'outline',
         })}
         href={ALPACA_URL}
