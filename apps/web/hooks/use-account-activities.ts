@@ -1,12 +1,18 @@
 import {
+  type InfiniteData,
   keepPreviousData,
   type UseQueryResult,
+  type UseSuspenseInfiniteQueryResult,
   type UseSuspenseQueryResult,
   useQuery,
+  useSuspenseInfiniteQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query'
 
-import { getAccountActivitiesQueryKey } from '@/lib/alpaca/query-keys'
+import {
+  getAccountActivitiesQueryKey,
+  getAccountActivityPagesQueryKey,
+} from '@/lib/alpaca/query-keys'
 import type {
   AccountActivities,
   GetAccountActivitiesOptions,
@@ -14,6 +20,11 @@ import type {
 import { accountActivitiesSchema } from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
+
+interface UseAccountActivityPagesOptions {
+  category?: GetAccountActivitiesOptions['category']
+  pageSize: NonNullable<GetAccountActivitiesOptions['pageSize']>
+}
 
 interface UseAccountActivitiesOptions {
   activityTypes?: GetAccountActivitiesOptions['activityTypes']
@@ -96,5 +107,28 @@ export function useAccountActivitiesPage(
     queryFn: () => fetchAccountActivities(options),
     queryKey: getAccountActivitiesQueryKey(options),
     refetchInterval: 30_000,
+  })
+}
+
+/** Suspends while loading the newest activity, then loads older pages on demand. */
+export function useAccountActivityPages(
+  options: UseAccountActivityPagesOptions
+): UseSuspenseInfiniteQueryResult<
+  InfiniteData<AccountActivities, string | undefined>,
+  Error
+> {
+  return useSuspenseInfiniteQuery({
+    getNextPageParam: (page: AccountActivities) => page.nextPageToken,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      fetchAccountActivities({
+        category: options.category,
+        direction: 'desc',
+        pageSize: options.pageSize,
+        pageToken: pageParam,
+      }),
+    queryKey: getAccountActivityPagesQueryKey(options),
+    refetchInterval: (query) =>
+      (query.state.data?.pages.length ?? 0) > 1 ? false : 30_000,
   })
 }

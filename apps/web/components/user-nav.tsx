@@ -21,6 +21,7 @@ import { UserAvatar } from '@/components/user-avatar'
 import { WorkspaceMark } from '@/components/workspace/workspace-mark'
 import { useSignOut } from '@/hooks/use-sign-out'
 import { useWorkspaceSwitcher } from '@/hooks/use-workspace-switcher'
+import { getAccountSectionHref } from '@/lib/account/sections'
 import type {
   ShellConnection,
   ShellUser,
@@ -157,7 +158,9 @@ export function UserNav({ user, workspace }: Props) {
           </DropdownMenuRadioGroup>
           {workspace.connections.length === 0 &&
           canManageWorkspace(workspace.role) ? (
-            <DropdownMenuItem render={<Link href="/account#connections" />}>
+            <DropdownMenuItem
+              render={<Link href={getAccountSectionHref('connections')} />}
+            >
               <Plus aria-hidden="true" />
               Add a connection
             </DropdownMenuItem>

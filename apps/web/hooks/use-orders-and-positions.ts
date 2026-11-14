@@ -1,16 +1,35 @@
 import {
+  type InfiniteData,
   keepPreviousData,
   type UseQueryResult,
+  type UseSuspenseInfiniteQueryResult,
   type UseSuspenseQueryResult,
   useQuery,
+  useSuspenseInfiniteQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query'
+import { z } from 'zod'
 
-import { getOrdersAndPositionsQueryKey } from '@/lib/alpaca/query-keys'
-import type { GetOrdersOptions, OrdersAndPositions } from '@/lib/alpaca/schemas'
-import { ordersAndPositionsSchema } from '@/lib/alpaca/schemas'
+import {
+  getOrderPagesQueryKey,
+  getOrdersAndPositionsQueryKey,
+} from '@/lib/alpaca/query-keys'
+import type {
+  AccountOrder,
+  GetOrdersOptions,
+  OrdersAndPositions,
+} from '@/lib/alpaca/schemas'
+import {
+  accountOrderSchema,
+  ordersAndPositionsSchema,
+} from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
+
+interface UseOrderPagesOptions {
+  limit: NonNullable<GetOrdersOptions['limit']>
+  status?: GetOrdersOptions['status']
+}
 
 interface UseOrdersAndPositionsOptions {
   beforeOrderId?: GetOrdersOptions['beforeOrderId']
@@ -21,10 +40,27 @@ interface UseOrdersAndPositionsOptions {
   symbols?: GetOrdersOptions['symbols']
 }
 
-/** Fetches crypto and equity orders together with all open positions. */
+type FetchOrdersOptions = UseOrdersAndPositionsOptions & {
+  ordersOnly?: boolean
+}
+
+type OrderPage = { orders: AccountOrder[] }
+
+const orderPageSchema = z.object({ orders: z.array(accountOrderSchema) })
+
+/** Fetches orders without positions. */
+async function fetchOrdersAndPositions(
+  options: FetchOrdersOptions & { ordersOnly: true }
+): Promise<OrderPage>
+/** Fetches orders and positions. */
 async function fetchOrdersAndPositions(
   options: UseOrdersAndPositionsOptions
-): Promise<OrdersAndPositions> {
+): Promise<OrdersAndPositions>
+
+/** Fetches orders, optionally including all open positions. */
+async function fetchOrdersAndPositions(
+  options: FetchOrdersOptions
+): Promise<OrdersAndPositions | OrderPage> {
   const query = new URLSearchParams()
 
   setSearchParam(query, 'beforeOrderId', options.beforeOrderId)
@@ -41,7 +77,10 @@ async function fetchOrdersAndPositions(
   )
 
   const search = query.toString()
-  const path = search ? `/api/alpaca/orders?${search}` : '/api/alpaca/orders'
+  const endpoint = options.ordersOnly
+    ? '/api/alpaca/orders/history'
+    : '/api/alpaca/orders'
+  const path = search ? `${endpoint}?${search}` : endpoint
   const response = await fetch(getApiUrl(path), {
     cache: 'no-store',
     headers: { Accept: 'application/json' },
@@ -49,8 +88,10 @@ async function fetchOrdersAndPositions(
 
   return parseApiJson(
     response,
-    ordersAndPositionsSchema,
-    'Unable to retrieve orders and positions.'
+    options.ordersOnly ? orderPageSchema : ordersAndPositionsSchema,
+    options.ordersOnly
+      ? 'Unable to retrieve orders.'
+      : 'Unable to retrieve orders and positions.'
   )
 }
 
@@ -85,5 +126,34 @@ export function useOrdersPage(
     queryFn: () => fetchOrdersAndPositions(options),
     queryKey: getOrdersAndPositionsQueryKey(options),
     refetchInterval: 30_000,
+  })
+}
+
+/**
+ * Suspends while loading the newest orders, then loads older pages on demand.
+ * A full page means there may be more, so the next page starts before its
+ * last order.
+ */
+export function useOrderPages(
+  options: UseOrderPagesOptions
+): UseSuspenseInfiniteQueryResult<
+  InfiniteData<OrderPage, string | undefined>,
+  Error
+> {
+  return useSuspenseInfiniteQuery({
+    getNextPageParam: (page: OrderPage) =>
+      page.orders.length === options.limit ? page.orders.at(-1)?.id : undefined,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      fetchOrdersAndPositions({
+        ordersOnly: true,
+        beforeOrderId: pageParam,
+        direction: 'desc',
+        limit: options.limit,
+        status: options.status,
+      }),
+    queryKey: getOrderPagesQueryKey(options),
+    refetchInterval: (query) =>
+      (query.state.data?.pages.length ?? 0) > 1 ? false : 30_000,
   })
 }

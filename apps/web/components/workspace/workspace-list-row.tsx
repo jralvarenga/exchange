@@ -5,6 +5,7 @@ import Link from 'next/link'
 
 import { WorkspaceMark } from '@/components/workspace/workspace-mark'
 import { useWorkspaceSwitcher } from '@/hooks/use-workspace-switcher'
+import { getAccountSectionHref } from '@/lib/account/sections'
 import { workspaceRoleLabel } from '@/lib/workspaces/roles'
 import type { WorkspaceSummary } from '@/models/workspace/members'
 
@@ -40,7 +41,7 @@ export function WorkspaceListRow({ workspace }: Props) {
         <Button
           className="shrink-0"
           nativeButton={false}
-          render={<Link href="/account#workspace" />}
+          render={<Link href={getAccountSectionHref('workspace')} />}
           variant="ghost"
         >
           Manage

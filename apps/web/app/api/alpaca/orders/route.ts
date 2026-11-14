@@ -4,23 +4,14 @@ import {
   createApiResponse,
   createValidationErrorResponse,
 } from '@/lib/alpaca/http'
-import {
-  createOrderRequestSchema,
-  ordersAndPositionsQuerySchema,
-} from '@/lib/alpaca/schemas'
+import { parseOrdersQuery } from '@/lib/alpaca/orders-query'
+import { createOrderRequestSchema } from '@/lib/alpaca/schemas'
 import { cancelAllOrders } from '@/lib/alpaca/trading'
 
 /** Returns crypto and equity orders together with all open positions. */
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url)
-  const query = ordersAndPositionsQuerySchema.safeParse({
-    beforeOrderId: url.searchParams.get('beforeOrderId'),
-    direction: url.searchParams.get('direction'),
-    limit: url.searchParams.get('limit'),
-    nested: url.searchParams.get('nested'),
-    status: url.searchParams.get('status'),
-    symbols: url.searchParams.get('symbols'),
-  })
+  const query = parseOrdersQuery(url.searchParams)
 
   if (!query.success) {
     return createValidationErrorResponse(query.error)

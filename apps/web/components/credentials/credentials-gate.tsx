@@ -2,7 +2,7 @@
 
 import { useQueryClient } from '@tanstack/react-query'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { CredentialsPrompt } from '@/components/credentials/credentials-prompt'
 import { isAlpacaCredentialError } from '@/lib/api/error'
@@ -30,14 +30,24 @@ export function CredentialsGate({
   const queryClient = useQueryClient()
   const [failed, setFailed] = useState(false)
   const [seenVersion, setSeenVersion] = useState(connectionVersion)
+  const clearedVersion = useRef(connectionVersion)
 
   // Saving, testing, or switching a connection or workspace changes the
   // version. Drop cached account data before children render, then let the
   // server status decide.
   const versionChanged = seenVersion !== connectionVersion
 
-  if (versionChanged) {
+  // The switch renders in a transition. When a child suspends on its refetch,
+  // React throws that render away, state set during it included, and renders
+  // again once the data arrives. Clearing on every attempt would cancel that
+  // fetch and suspend again forever, so a ref (which survives discarded
+  // renders) makes the clear run once per version.
+  if (clearedVersion.current !== connectionVersion) {
+    clearedVersion.current = connectionVersion
     queryClient.removeQueries()
+  }
+
+  if (versionChanged) {
     setSeenVersion(connectionVersion)
     setFailed(false)
   }

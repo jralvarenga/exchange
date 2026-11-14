@@ -72,9 +72,9 @@ The utilities live in [globals.css](packages/ui/src/styles/globals.css) and read
 
 | Utility | Look | Used by |
 | --- | --- | --- |
-| `elevation-raised` | Top sheen and inner highlight, darker inner bottom edge, faint 1px inner edge (never an outer border), soft drop shadow | `Button` (all variants but `ghost` and `link`), pressed `ghost` toggles, `SelectTrigger`, checked `Checkbox`, `Switch` thumb, active default `TabsTrigger` (line tabs stay flat) |
+| `elevation-raised` | Top sheen and inner highlight, darker inner bottom edge, faint 1px inner edge (never an outer border), soft drop shadow | `Button` (all variants but `ghost` and `link`), pressed `ghost` toggles, `SelectTrigger`, checked `Checkbox`, `Switch` thumb, active default `TabsTrigger` (it is a `secondary` button) |
 | `elevation-pressed` | Sheen flips, inner shadow, no drop | Press of every raised control (`:active`; Base UI `data-pressed` on `SelectTrigger`) |
-| `elevation-well` | Inner top shadow and a lit bottom lip. Fill is set by the control, not the utility | `Input`, `Textarea`, `InputGroup`, unchecked `Checkbox` (`bg-muted/50`), `Switch` track (`bg-input` / `bg-primary`), default `TabsList` (`bg-muted`) |
+| `elevation-well` | Inner top shadow and a lit bottom lip. Fill is set by the control, not the utility | `Input`, `Textarea`, `InputGroup`, unchecked `Checkbox` (`bg-muted/50`), `Switch` track (`bg-input` / `bg-primary`) |
 
 - Never stack elevation on content containers or rows; it marks something you can operate.
 - New interactive primitives pick one of the three utilities instead of a `shadow-*` class.
@@ -105,6 +105,7 @@ Use the shared components as they are. Never pass classes that restyle them (hei
 | --- | --- |
 | `Button` | Prefer existing variants (`default`, `outline`, `secondary`, `ghost`, `destructive`, `link`). Toggle groups use `ghost` |
 | `Switch` | Binary settings: recessed track, raised thumb |
+| `Tabs` | Switching between views of one screen. A bare row of real buttons built from `buttonVariants`: inactive tabs are `ghost`, the active tab `secondary`, so they look exactly like `PillGroup`. No border or fill behind the row. `size` matches `Button` / `Input` heights (`default` 32px like `PillGroup`; `lg` uses Button `xl`, 44px). `variant="line"` is a flat row with a 2px `foreground` underline |
 | `PillGroup` | Single-choice filters (chart period, asset class, order status): default-size `ghost` buttons, the active one `aria-pressed` and `secondary` (a raised bubble), no size or color overrides |
 | `SectionHeader` | Section title with an optional "View all →" link and controls below |
 | `Chart` (`ChartContainer`) | Recharts wrapper; area charts have no axes, a fading gradient fill and a dashed `border` cursor |
@@ -120,6 +121,8 @@ Row patterns:
 
 - **Position row:** logo · symbol (+ `Crypto` / `Short` tag) and `qty × price` · value and return. A thin allocation bar with its percentage runs underneath.
 - **Order row:** logo · symbol and `Buy · type · time` · size and status pill, plus a round ghost `×` to cancel open orders. The symbol is a stretched link so the row stays clickable next to the button.
+- **Activity row:** logo (or a kind icon on `bg-muted`) · symbol or kind and `Buy · Fill · time` · amount, with `qty × price` under fills. `/portfolio` groups them under muted day headings (Today, Yesterday, then dates).
+- **Tabbed screens:** any screen split into views uses `PageTabs` ([page-tabs.tsx](apps/web/components/page-tabs.tsx)): default-size `Tabs` in a horizontally scrollable strip, the open tab kept in a search param (`/portfolio?tab=`, `/account?section=`, the default left bare), legacy `#hash` links opened as tabs, and only the open panel mounted. Link to a tab with `getPortfolioTabHref` / `getAccountSectionHref`, never a `#hash`. Filters and form choices stay `PillGroup` / `TicketPills`. Long lists page with an outline "Show older …" button, not numbered pages.
 
 ## States
 
@@ -153,4 +156,3 @@ Row patterns:
 
 - `success` is still neutral black / white instead of matching a brand or `market-up` color.
 - Default `Button` height (32px) is under the 44px touch target; pills use it as is.
-- `/portfolio` still uses the previous card and table design and should move to this system.

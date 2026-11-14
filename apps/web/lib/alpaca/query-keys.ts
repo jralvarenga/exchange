@@ -57,6 +57,18 @@ export function getAccountActivitiesQueryKey(
   return [...accountActivitiesQueryKey, options] as const
 }
 
+/** Returns the cache key for a growing list of activity pages, loaded by "Show more". */
+export function getAccountActivityPagesQueryKey(
+  options: Partial<GetAccountActivitiesOptions> = {}
+) {
+  return [...accountActivitiesQueryKey, 'pages', options] as const
+}
+
+/** Returns the cache key for a growing list of order pages, loaded by "Show more". */
+export function getOrderPagesQueryKey(options: Partial<GetOrdersOptions> = {}) {
+  return [...ordersAndPositionsQueryKey, 'pages', options] as const
+}
+
 /** Returns the cache key for combined Alpaca orders and open positions. */
 export function getOrdersAndPositionsQueryKey(
   options: Partial<GetOrdersOptions> = {}

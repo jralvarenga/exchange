@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 import { StatusPill } from '@/components/status-pill'
+import { getAccountSectionHref } from '@/lib/account/sections'
 import { getCredentialStatusInfo } from '@/lib/account/status'
 import type { ShellConnection } from '@/lib/navigation'
 
@@ -53,7 +54,7 @@ export function CredentialsPromptRow({
               'inline-flex min-h-11 items-center gap-1.5 font-medium outline-none',
               'after:absolute after:inset-0 after:rounded-2xl'
             )}
-            href="/account#connections"
+            href={getAccountSectionHref('connections')}
           >
             <span className="sr-only">
               {label}

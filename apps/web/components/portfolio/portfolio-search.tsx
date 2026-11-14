@@ -4,22 +4,27 @@ import { Input } from '@workspace/ui/components/input'
 
 interface Props {
   id: string
+  label: string
   onChange: (value: string) => void
   placeholder: string
   value: string
 }
 
-/** Filters the visible table rows by a free-text query. */
-export function PortfolioTableFilter({
+/** Narrows the list in a portfolio tab by a typed symbol or name. */
+export function PortfolioSearch({
   id,
+  label,
   onChange,
   placeholder,
   value,
 }: Props) {
   return (
-    <div className="flex flex-col gap-2 px-1">
+    <div className="w-full sm:max-w-xs">
+      <label className="sr-only" htmlFor={id}>
+        {label}
+      </label>
       <Input
-        className="md:max-w-xs"
+        autoComplete="off"
         id={id}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
