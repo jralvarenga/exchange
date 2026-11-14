@@ -1,7 +1,7 @@
 'use client'
 
 import { createFirstWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
-import { AlpacaRequirement } from '@/components/onboarding/alpaca-requirement'
+import { AlpacaRequirement } from '@/components/alpaca-requirement'
 import { OnboardingHeader } from '@/components/onboarding/onboarding-header'
 import { IncomingInvitation } from '@/components/workspace/incoming-invitation'
 import { WorkspaceNameForm } from '@/components/workspace/workspace-name-form'

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 
 import { createWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
+import { AlpacaRequirement } from '@/components/alpaca-requirement'
 import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import { IncomingInvitation } from '@/components/workspace/incoming-invitation'
@@ -63,6 +64,7 @@ export function WorkspaceList({ invitations, workspaces }: Props) {
             You own it and can invite people once it exists.
           </p>
         </SectionHeader>
+        <AlpacaRequirement />
         <WorkspaceNameForm
           action={createWorkspaceAction}
           label="Workspace name"

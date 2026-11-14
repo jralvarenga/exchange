@@ -5,8 +5,8 @@ import Image from 'next/image'
 const ALPACA_URL = 'https://app.alpaca.markets'
 
 /**
- * Tells someone creating a workspace that trading runs through their own
- * Alpaca account, with a link to sign in to it or open one.
+ * Tells someone setting up a workspace or connection that trading runs
+ * through their own Alpaca account, with a link to sign in or open one.
  */
 export function AlpacaRequirement() {
   return (

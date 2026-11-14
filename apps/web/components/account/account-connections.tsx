@@ -14,6 +14,7 @@ import {
 } from '@/app/(dashboard)/account/actions'
 import { ConnectionForm } from '@/components/account/connection-form'
 import { ConnectionRow } from '@/components/account/connection-row'
+import { AlpacaRequirement } from '@/components/alpaca-requirement'
 import { Section } from '@/components/section'
 import { SectionHeader } from '@/components/section-header'
 import type { MaskedConnection } from '@/lib/alpaca/connections'
@@ -132,13 +133,12 @@ export function AccountConnections({
             />
           ))}
         </ul>
-      ) : (
+      ) : canManage ? null : (
         <p className="border-border border-y py-8 text-muted-foreground">
-          {canManage
-            ? 'No connections yet. Add a paper key pair to start; one is enough.'
-            : 'No connections yet. Ask a workspace owner to add one.'}
+          No connections yet. Ask a workspace owner to add one.
         </p>
       )}
+      {canManage && adding ? <AlpacaRequirement /> : null}
       {canManage && adding ? (
         <ConnectionForm
           key={workspaceId}
