@@ -45,7 +45,7 @@ export function PortfolioPositionsList({ filter, query }: Props) {
   }
 
   return (
-    <ul className={cn('flex flex-col', revealClassName)}>
+    <ul aria-live="polite" className={cn('flex flex-col', revealClassName)}>
       {positions.map((position) => (
         <TopPositionRow
           allocation={

@@ -100,7 +100,7 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
                 size: size === 'lg' ? 'xl' : 'default',
                 variant: state.active ? 'secondary' : 'ghost',
               }),
-          'group-data-vertical/tabs:justify-start',
+          'aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-vertical/tabs:justify-start',
           typeof className === 'function' ? className(state) : className
         )
       }

@@ -30,7 +30,11 @@ export function PortfolioPositionsSummary() {
       <div className={cn('flex flex-col gap-2 py-6 sm:pr-8', revealClassName)}>
         <dt className="font-medium text-muted-foreground">
           Market value
-          <span className="sr-only"> of {summary.positionCount} positions</span>
+          <span className="sr-only">
+            {' '}
+            of {summary.positionCount}{' '}
+            {summary.positionCount === 1 ? 'position' : 'positions'}
+          </span>
         </dt>
         <dd className="font-bold text-3xl tabular-nums tracking-tight">
           <TextMorph as="span" duration={700} ease={morphEase} locale="en-US">

@@ -54,7 +54,9 @@ const activityLabels: Record<string, ActivityKindInfo> = {
 
 /** Names an activity and groups it into a kind the UI can give an icon. */
 export function getActivityKind(activity: AccountActivity): ActivityKindInfo {
-  const known = activityLabels[activity.activityType]
+  const known = Object.hasOwn(activityLabels, activity.activityType)
+    ? activityLabels[activity.activityType]
+    : undefined
 
   if (activity.activityType === 'FILL' && activity.type === 'partial_fill') {
     return { kind: 'trade', label: 'Partial fill' }

@@ -1,36 +1,17 @@
-import { Skeleton } from '@workspace/ui/components/skeleton'
-import { cn } from '@workspace/ui/lib/utils'
+import { StatsStripFallback } from '@/components/stats-strip-fallback'
 
 const stats = [
-  { className: 'sm:pr-8', label: 'Market value', width: 'w-44' },
-  { className: 'sm:px-8', label: 'Cost basis', width: 'w-40' },
-  { className: 'sm:pl-8', label: 'Unrealized return', width: 'w-48' },
+  { label: 'Market value', width: 'w-44' },
+  { label: 'Cost basis', width: 'w-40' },
+  { label: 'Unrealized return', width: 'w-48' },
 ]
 
-/** Mirrors the positions summary strip with real labels and value-sized blocks. */
+/** Mirrors the stats strip while values load. */
 export function PortfolioPositionsSummaryFallback() {
   return (
-    <div
-      className="grid grid-cols-1 divide-y divide-border border-border border-y sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-      role="status"
-    >
-      {stats.map((stat) => (
-        <div
-          className={cn('flex flex-col gap-2 py-6', stat.className)}
-          key={stat.label}
-        >
-          <p
-            aria-hidden="true"
-            className="font-medium text-muted-foreground/50"
-          >
-            {stat.label}
-          </p>
-          <div className="flex h-9 items-center">
-            <Skeleton className={cn('h-7 rounded-lg', stat.width)} />
-          </div>
-        </div>
-      ))}
-      <span className="sr-only">Loading positions summary</span>
-    </div>
+    <StatsStripFallback
+      stats={stats}
+      loadingLabel="Loading positions summary"
+    />
   )
 }

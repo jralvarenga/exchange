@@ -8,13 +8,21 @@ import {
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query'
+import { z } from 'zod'
 
 import {
   getOrderPagesQueryKey,
   getOrdersAndPositionsQueryKey,
 } from '@/lib/alpaca/query-keys'
-import type { GetOrdersOptions, OrdersAndPositions } from '@/lib/alpaca/schemas'
-import { ordersAndPositionsSchema } from '@/lib/alpaca/schemas'
+import type {
+  AccountOrder,
+  GetOrdersOptions,
+  OrdersAndPositions,
+} from '@/lib/alpaca/schemas'
+import {
+  accountOrderSchema,
+  ordersAndPositionsSchema,
+} from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
 
@@ -24,6 +32,7 @@ interface UseOrderPagesOptions {
 }
 
 interface UseOrdersAndPositionsOptions {
+  ordersOnly?: boolean
   beforeOrderId?: GetOrdersOptions['beforeOrderId']
   direction?: GetOrdersOptions['direction']
   limit?: GetOrdersOptions['limit']
@@ -32,10 +41,23 @@ interface UseOrdersAndPositionsOptions {
   symbols?: GetOrdersOptions['symbols']
 }
 
+type OrderPage = { orders: AccountOrder[] }
+
+const orderPageSchema = z.object({ orders: z.array(accountOrderSchema) })
+
+/** Fetches orders without positions. */
+async function fetchOrdersAndPositions(
+  options: UseOrdersAndPositionsOptions & { ordersOnly: true }
+): Promise<OrderPage>
+/** Fetches orders and positions. */
+async function fetchOrdersAndPositions(
+  options: UseOrdersAndPositionsOptions
+): Promise<OrdersAndPositions>
+
 /** Fetches crypto and equity orders together with all open positions. */
 async function fetchOrdersAndPositions(
   options: UseOrdersAndPositionsOptions
-): Promise<OrdersAndPositions> {
+): Promise<OrdersAndPositions | OrderPage> {
   const query = new URLSearchParams()
 
   setSearchParam(query, 'beforeOrderId', options.beforeOrderId)
@@ -52,7 +74,10 @@ async function fetchOrdersAndPositions(
   )
 
   const search = query.toString()
-  const path = search ? `/api/alpaca/orders?${search}` : '/api/alpaca/orders'
+  const endpoint = options.ordersOnly
+    ? '/api/alpaca/orders/history'
+    : '/api/alpaca/orders'
+  const path = search ? `${endpoint}?${search}` : endpoint
   const response = await fetch(getApiUrl(path), {
     cache: 'no-store',
     headers: { Accept: 'application/json' },
@@ -60,8 +85,10 @@ async function fetchOrdersAndPositions(
 
   return parseApiJson(
     response,
-    ordersAndPositionsSchema,
-    'Unable to retrieve orders and positions.'
+    options.ordersOnly ? orderPageSchema : ordersAndPositionsSchema,
+    options.ordersOnly
+      ? 'Unable to retrieve orders.'
+      : 'Unable to retrieve orders and positions.'
   )
 }
 
@@ -107,21 +134,23 @@ export function useOrdersPage(
 export function useOrderPages(
   options: UseOrderPagesOptions
 ): UseSuspenseInfiniteQueryResult<
-  InfiniteData<OrdersAndPositions, string | undefined>,
+  InfiniteData<OrderPage, string | undefined>,
   Error
 > {
   return useSuspenseInfiniteQuery({
-    getNextPageParam: (page: OrdersAndPositions) =>
+    getNextPageParam: (page: OrderPage) =>
       page.orders.length === options.limit ? page.orders.at(-1)?.id : undefined,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam }) =>
       fetchOrdersAndPositions({
+        ordersOnly: true,
         beforeOrderId: pageParam,
         direction: 'desc',
         limit: options.limit,
         status: options.status,
       }),
     queryKey: getOrderPagesQueryKey(options),
-    refetchInterval: 30_000,
+    refetchInterval: (query) =>
+      (query.state.data?.pages.length ?? 0) > 1 ? false : 30_000,
   })
 }

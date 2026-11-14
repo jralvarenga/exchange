@@ -40,6 +40,7 @@ export function PageTabs<T extends string>({
   urlDefault,
 }: Props<T>) {
   const [value, setValue] = useState<T>(defaultValue)
+  const [ready, setReady] = useState(false)
 
   /** Records a tab in the URL without adding a history entry. */
   function writeUrl(next: T): void {
@@ -77,6 +78,7 @@ export function PageTabs<T extends string>({
       setValue(tab.value)
       writeUrl(tab.value)
     }
+    setReady(true)
   }, [])
 
   return (
@@ -90,11 +92,12 @@ export function PageTabs<T extends string>({
           ))}
         </TabsList>
       </div>
-      {tabs.map((tab) => (
-        <TabsContent key={tab.value} value={tab.value}>
-          {panels[tab.value]}
-        </TabsContent>
-      ))}
+      {ready &&
+        tabs.map((tab) => (
+          <TabsContent key={tab.value} value={tab.value}>
+            {panels[tab.value]}
+          </TabsContent>
+        ))}
     </Tabs>
   )
 }
