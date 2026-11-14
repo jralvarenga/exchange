@@ -1,16 +1,27 @@
 import {
+  type InfiniteData,
   keepPreviousData,
   type UseQueryResult,
+  type UseSuspenseInfiniteQueryResult,
   type UseSuspenseQueryResult,
   useQuery,
+  useSuspenseInfiniteQuery,
   useSuspenseQuery,
 } from '@tanstack/react-query'
 
-import { getOrdersAndPositionsQueryKey } from '@/lib/alpaca/query-keys'
+import {
+  getOrderPagesQueryKey,
+  getOrdersAndPositionsQueryKey,
+} from '@/lib/alpaca/query-keys'
 import type { GetOrdersOptions, OrdersAndPositions } from '@/lib/alpaca/schemas'
 import { ordersAndPositionsSchema } from '@/lib/alpaca/schemas'
 import { parseApiJson } from '@/lib/api/error'
 import { getApiUrl } from '@/lib/utils'
+
+interface UseOrderPagesOptions {
+  limit: NonNullable<GetOrdersOptions['limit']>
+  status?: GetOrdersOptions['status']
+}
 
 interface UseOrdersAndPositionsOptions {
   beforeOrderId?: GetOrdersOptions['beforeOrderId']
@@ -84,6 +95,33 @@ export function useOrdersPage(
     placeholderData: keepPreviousData,
     queryFn: () => fetchOrdersAndPositions(options),
     queryKey: getOrdersAndPositionsQueryKey(options),
+    refetchInterval: 30_000,
+  })
+}
+
+/**
+ * Suspends while loading the newest orders, then loads older pages on demand.
+ * A full page means there may be more, so the next page starts before its
+ * last order.
+ */
+export function useOrderPages(
+  options: UseOrderPagesOptions
+): UseSuspenseInfiniteQueryResult<
+  InfiniteData<OrdersAndPositions, string | undefined>,
+  Error
+> {
+  return useSuspenseInfiniteQuery({
+    getNextPageParam: (page: OrdersAndPositions) =>
+      page.orders.length === options.limit ? page.orders.at(-1)?.id : undefined,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      fetchOrdersAndPositions({
+        beforeOrderId: pageParam,
+        direction: 'desc',
+        limit: options.limit,
+        status: options.status,
+      }),
+    queryKey: getOrderPagesQueryKey(options),
     refetchInterval: 30_000,
   })
 }

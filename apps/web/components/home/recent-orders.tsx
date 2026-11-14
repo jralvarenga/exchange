@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/section-header'
 import { SectionUnavailable } from '@/components/section-unavailable'
 import { ordersAndPositionsQueryKey } from '@/lib/alpaca/query-keys'
 import type { OrderStatusFilter } from '@/lib/orders/status'
+import { getPortfolioTabHref } from '@/lib/portfolio/tabs'
 
 const statusOptions: PillOption<OrderStatusFilter>[] = [
   { label: 'All', value: 'all' },
@@ -36,7 +37,7 @@ export function RecentOrders() {
   return (
     <Section titleId="recent-orders-title">
       <SectionHeader
-        href="/portfolio"
+        href={getPortfolioTabHref('orders')}
         id="recent-orders-title"
         title="Recent orders"
       >

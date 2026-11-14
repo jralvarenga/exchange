@@ -5,7 +5,7 @@ interface Props {
   children: ReactNode
   /** Layout only, such as a max width. Spacing belongs to this component. */
   className?: string
-  /** Anchor for links like `/account#workspace`. */
+  /** Anchor for in-page links, such as `#balances`. */
   id?: string
   /** The id of the section's heading, usually its `SectionHeader`. */
   titleId: string
