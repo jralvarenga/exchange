@@ -24,7 +24,7 @@ export function Navbar({ user, workspace }: Props) {
             className="pointer-events-auto shrink-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             href="/"
           >
-            <Logo className="h-5 sm:h-6" />
+            <Logo />
           </Link>
           <search className="pointer-events-auto min-w-0 flex-1 sm:max-w-80">
             <NavbarSearch />

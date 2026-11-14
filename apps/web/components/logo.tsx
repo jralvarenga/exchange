@@ -12,7 +12,7 @@ export function Logo({ className, tone = 'default' }: Props) {
     <svg
       aria-label="treid."
       className={cn(
-        'h-6 w-auto shrink-0',
+        'h-5 w-auto shrink-0',
         tone === 'inverse' ? 'text-primary-foreground' : 'text-foreground',
         className
       )}
