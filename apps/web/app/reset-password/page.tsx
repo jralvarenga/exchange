@@ -1,7 +1,14 @@
+import type { Metadata } from 'next'
 import { Suspense } from 'react'
 
 import { AuthPage } from '@/components/login/auth-page'
 import { ResetPasswordToken } from '@/components/login/reset-password-token'
+
+export const metadata: Metadata = {
+  // The token in the URL is a credential. Never send it to another site.
+  referrer: 'no-referrer',
+  title: 'Reset password',
+}
 
 /** Renders the password reset form after the email link is opened. */
 export default function ResetPasswordPage() {

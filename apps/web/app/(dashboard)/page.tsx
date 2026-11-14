@@ -1,7 +1,13 @@
+import type { Metadata } from 'next'
+
 import { Balance } from '@/components/balance/balance'
 import { Balances } from '@/components/balance/balances'
 import { RecentOrders } from '@/components/home/recent-orders'
 import { TopPositions } from '@/components/home/top-positions'
+
+export const metadata: Metadata = {
+  title: 'Home',
+}
 
 /** Renders the portfolio home: live balance, account stats, holdings, orders. */
 export default function Home() {

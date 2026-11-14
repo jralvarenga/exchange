@@ -2,6 +2,7 @@ import {
   listPendingInvitationsForEmail,
   listUserWorkspaceSummaries,
 } from '@workspace/db/queries/workspaces'
+import type { Metadata } from 'next'
 
 import { WorkspaceList } from '@/components/workspace/workspace-list'
 import { requireSession } from '@/lib/auth/require-session'
@@ -10,6 +11,10 @@ import type {
   IncomingInvitation,
   WorkspaceSummary,
 } from '@/models/workspace/members'
+
+export const metadata: Metadata = {
+  title: 'Workspaces',
+}
 
 /** Lists every workspace the user belongs to, with invitations and a way to start another. */
 export default async function WorkspacesPage() {

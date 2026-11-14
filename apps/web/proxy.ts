@@ -53,6 +53,10 @@ export function proxy(request: NextRequest): NextResponse {
 
 export const config = {
   // Public assets such as `/icons/google.svg` load on the signed-out login page,
-  // so they must never be redirected to `/login`.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icons/).*)'],
+  // so they must never be redirected to `/login`. Crawlers and link previews
+  // fetch robots.txt, the sitemap, the manifest, the app icons and the Open
+  // Graph images without a session, so those skip the proxy too.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|icons/|icon\\.svg|apple-icon|opengraph-image|twitter-image|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml).*)',
+  ],
 }

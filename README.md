@@ -228,6 +228,7 @@ EMAIL_FROM
 CREDENTIALS_ENCRYPTION_KEYS
 AUTH_ALLOWED_EMAILS
 AUTH_DISABLE_SIGNUP
+NEXT_PUBLIC_APP_URL # Production only
 NEXT_PUBLIC_LANDING_URL
 ```
 
@@ -248,6 +249,12 @@ needed.
 `https://treid.app`. The login and sign-up pages link its `/terms` and
 `/privacy` pages. Next.js inlines it at build time, so redeploy after changing
 it. It defaults to the Astro dev server, `http://127.0.0.1:4321`.
+`NEXT_PUBLIC_APP_URL` is the app's public origin, for example
+`https://app.treid.app`. Link previews, the canonical login and sign-up URLs,
+`robots.txt` and `sitemap.xml` are built from it. Next.js inlines it at build
+time. Without it they use the Vercel deployment URL, then localhost. Set it
+for the Production environment only: server-side API calls also use it, so a
+preview deploy must keep its own `VERCEL_URL`.
 `ALPACA_CRYPTO_LOCATION` and `ALPACA_DATA_BASE_URL` stay optional. After
 `bun run auth:migrate-owner` succeeds, remove the legacy password, Alpaca, and
 `ADDRESS_*` variables from Vercel.

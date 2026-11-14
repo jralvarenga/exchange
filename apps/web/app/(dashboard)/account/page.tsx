@@ -3,6 +3,7 @@ import {
   listWorkspaceMembers,
   toWorkspaceRole,
 } from '@workspace/db/queries/workspaces'
+import type { Metadata } from 'next'
 
 import { AccountBalances } from '@/components/account/account-balances'
 import { AccountBuyingPower } from '@/components/account/account-buying-power'
@@ -41,6 +42,10 @@ interface PageProps {
   searchParams: Promise<{
     section?: string | string[]
   }>
+}
+
+export const metadata: Metadata = {
+  title: 'Account',
 }
 
 /** Renders the account in tabs: balances, limits, trading, connections, workspace, history, funding and appearance. */

@@ -1,0 +1,65 @@
+/** The local Next dev server, used when no public origin is configured. */
+const defaultAppUrl = 'http://localhost:3000'
+
+/** Process-env-shaped input for {@link getAppUrl}. */
+export type AppUrlSource = {
+  NEXT_PUBLIC_APP_URL?: string
+  PORT?: string
+  VERCEL_URL?: string
+}
+
+/**
+ * Reads each variable with a direct `process.env.NAME` access, so Next inlines
+ * `NEXT_PUBLIC_APP_URL` at build time instead of looking it up at runtime.
+ */
+function readAppUrlEnv(): AppUrlSource {
+  return {
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    PORT: process.env.PORT,
+    VERCEL_URL: process.env.VERCEL_URL,
+  }
+}
+
+/** Names and copy shared by the root metadata, the manifest and link previews. */
+export const siteMeta = {
+  description:
+    'A quiet trading desk for your Alpaca account. Trade on paper or live, on your own or in a workspace with your team.',
+  name: 'Treid',
+  /** Page background in each theme, so browser chrome blends into the app. */
+  themeColor: { dark: '#0c0a09', light: '#ffffff' },
+}
+
+/** Returns the origin of an http(s) URL, or undefined when the value is blank, invalid or uses another scheme. */
+function toOrigin(value: string | undefined): string | undefined {
+  const trimmed = value?.trim()
+
+  if (!trimmed) {
+    return undefined
+  }
+
+  if (!URL.canParse(trimmed)) {
+    return undefined
+  }
+
+  const url = new URL(trimmed)
+
+  return url.protocol === 'http:' || url.protocol === 'https:'
+    ? url.origin
+    : undefined
+}
+
+/**
+ * Resolves the public origin of the web app for absolute metadata URLs such
+ * as Open Graph images, canonical links, robots.txt and the sitemap. Reads
+ * `NEXT_PUBLIC_APP_URL` first, then the Vercel deployment host, then the
+ * local dev server. An invalid value falls through instead of failing.
+ */
+export function getAppUrl(source: AppUrlSource = readAppUrlEnv()): URL {
+  const origin =
+    toOrigin(source.NEXT_PUBLIC_APP_URL) ??
+    toOrigin(source.VERCEL_URL ? `https://${source.VERCEL_URL}` : undefined) ??
+    toOrigin(source.PORT ? `http://localhost:${source.PORT}` : undefined) ??
+    defaultAppUrl
+
+  return new URL(origin)
+}

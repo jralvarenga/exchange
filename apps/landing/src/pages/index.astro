@@ -11,9 +11,16 @@ import Preview from '@/components/preview/preview.astro'
 import Security from '@/components/security/security.astro'
 import Workspaces from '@/components/workspaces/workspaces.astro'
 import Layout from '@/layouts/layout.astro'
+import { appStructuredData, siteMeta } from '@/lib/seo'
+
+const site = Astro.site ?? new URL(Astro.url.origin)
 ---
 
-<Layout>
+<Layout
+  description={siteMeta.description}
+  jsonLd={[appStructuredData({ site })]}
+  title={siteMeta.title}
+>
   <Navbar />
   <main>
     <Hero />

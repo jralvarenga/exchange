@@ -1,0 +1,27 @@
+---
+import { buttonVariants } from '@workspace/ui/components/button'
+
+import EdgeFade from '@/components/edge-fade.astro'
+import Footer from '@/components/footer.astro'
+import Navbar from '@/components/navbar.astro'
+import Layout from '@/layouts/layout.astro'
+---
+
+<!-- Shown for any address the site doesn't serve. Kept out of search results. -->
+<Layout
+  description="This page doesn't exist. Head back to Treid, a quiet trading desk for your Alpaca account."
+  noindex
+  title="Page not found · Treid"
+>
+  <Navbar />
+  <main class="mx-auto flex min-h-svh max-w-3xl flex-col items-start justify-center gap-6 px-4 pt-40 pb-24 sm:px-6">
+    <p class="font-medium text-muted-foreground">404</p>
+    <h1 class="text-balance font-bold text-5xl tracking-tighter md:text-6xl">Page not found</h1>
+    <p class="max-w-md text-lg text-muted-foreground">
+      The page you were looking for moved or never existed.
+    </p>
+    <a class={buttonVariants({ size: 'xl' })} href="/">Back to the home page</a>
+  </main>
+  <Footer />
+  <EdgeFade edge="bottom" />
+</Layout>

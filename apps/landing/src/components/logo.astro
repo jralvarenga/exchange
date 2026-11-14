@@ -1,4 +1,6 @@
 ---
+import { wordmark } from '@workspace/ui/lib/brand'
+
 interface Props {
   class?: string
 }
@@ -6,17 +8,15 @@ interface Props {
 const { class: className } = Astro.props
 ---
 
-<!-- The Treid mark, a rising line in a coin, beside the wordmark. -->
-<span class:list={['inline-flex items-center gap-2.5', className]}>
-  <svg aria-hidden="true" class="size-8" fill="none" viewBox="0 0 32 32">
-    <circle class="fill-foreground" cx="16" cy="16" r="16"></circle>
-    <path
-      class="stroke-background"
-      d="M8 20.5l4.5-4.5 3.5 3 7.5-8"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-width="2.5"></path>
-    <circle class="fill-market-up" cx="23.5" cy="11" r="2.5"></circle>
-  </svg>
-  <span class="font-bold text-xl tracking-tight">Treid</span>
-</span>
+<!-- The Treid wordmark, "treid." set as a single path. Size it with a height class. -->
+<svg
+  aria-label="treid."
+  class:list={['h-5 w-auto shrink-0 text-foreground', className]}
+  fill="none"
+  role="img"
+  viewBox={wordmark.viewBox}
+>
+  <path
+    d={wordmark.path}
+    fill="currentColor"></path>
+</svg>
