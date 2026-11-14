@@ -38,6 +38,7 @@ shipped to the browser.
 | Variable         | Purpose                                   | Default                 |
 | :--------------- | :---------------------------------------- | :---------------------- |
 | `PUBLIC_APP_URL` | Web app origin for the sign up and log in links | `http://localhost:3000` |
+| `PUBLIC_GOOGLE_SITE_VERIFICATION` | Optional Google Search Console token, rendered as a `google-site-verification` meta tag | Unset |
 | `PUBLIC_SITE_URL` | Public origin of this site, for canonical URLs, Open Graph tags, `robots.txt` and the sitemap | `https://treid.app` |
 | `PUBLIC_SUPPORT_EMAIL` | Support address shown in the footer and on the legal pages | `support@example.com` |
 
@@ -48,6 +49,24 @@ the footer and legal pages show `support@example.com`. A missing value does not
 fail the build. Set `PUBLIC_SITE_URL` when the site runs anywhere other than
 `https://treid.app`, such as a self-hosted copy. The hosted site runs at `https://treid.app` with
 `PUBLIC_APP_URL=https://app.treid.app`.
+
+## Search Console
+
+The site ships what Google needs: `robots.txt`, a sitemap at
+`/sitemap-index.xml`, canonical URLs and `noindex` on the 404 page. The legal
+pages send their "Last updated" date as `<lastmod>`, from `src/lib/legal.ts`, so
+bump that date whenever their text changes.
+
+1. Add `treid.app` as a **Domain property**, verified with the DNS TXT record
+   Google gives you. It covers every subdomain and protocol, `www` and `app`
+   included, and needs no code. If you can't edit DNS, add a **URL-prefix
+   property** for `https://treid.app` instead, choose the HTML tag method and set
+   `PUBLIC_GOOGLE_SITE_VERIFICATION` to the tag's `content` value, then redeploy.
+2. In **Sitemaps**, submit `https://treid.app/sitemap-index.xml`.
+3. In **URL Inspection**, inspect `https://treid.app/` and choose **Request
+   indexing**.
+4. In Vercel's domain settings, redirect `www.treid.app` to `treid.app`, so only
+   one host is indexed and it matches the canonical URLs.
 
 ## Commands
 
