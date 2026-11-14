@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   type AnyPgColumn,
   check,
+  foreignKey,
   index,
   integer,
   pgPolicy,
@@ -17,9 +18,11 @@ import { workspaces } from './workspaces'
 /**
  * A stored secret box: `<version>:<keyId>:<iv>:<tag>:<ciphertext>`, base64url
  * parts, a 12-byte IV and a 16-byte tag. A raw Alpaca key never matches.
+ * Only known versions pass. `v1` stays readable until rows are rewrapped; new
+ * writes must be `v2` (trigger in `0007_credential_review_fixes.sql`).
  */
 const SECRET_BOX_PATTERN =
-  '^v[0-9]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]{16}:[A-Za-z0-9_-]{22}:[A-Za-z0-9_-]+$'
+  '^v[12]:[A-Za-z0-9_-]+:[A-Za-z0-9_-]{16}:[A-Za-z0-9_-]{22}:[A-Za-z0-9_-]+$'
 
 /**
  * True when the member set by `withMemberScope` belongs to the row's workspace.
@@ -115,7 +118,7 @@ export const alpacaConnections = pgTable(
 /**
  * Who used a connection's keys, how, and when. One row per connection, user
  * and purpose. Written only by `read_alpaca_credentials` (SECURITY DEFINER in
- * `0005_credential_hardening.sql`), never by application queries.
+ * `0007_credential_review_fixes.sql`), never by application queries.
  */
 export const alpacaCredentialUses = pgTable(
   'alpaca_credential_uses',
@@ -140,6 +143,12 @@ export const alpacaCredentialUses = pgTable(
       table.purpose
     ),
     index('alpaca_credential_uses_workspace_idx').on(table.workspaceId),
+    // A use is always recorded under the workspace that owns the connection.
+    foreignKey({
+      columns: [table.workspaceId, table.connectionId],
+      foreignColumns: [alpacaConnections.workspaceId, alpacaConnections.id],
+      name: 'alpaca_credential_uses_connection_same_workspace',
+    }).onDelete('cascade'),
     check(
       'alpaca_credential_uses_purpose_check',
       sql`${table.purpose} in ('read', 'trade', 'test')`

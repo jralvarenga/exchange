@@ -1,5 +1,12 @@
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { loadEnvConfig } from '@next/env'
+import { parse } from 'dotenv'
+
+// Same precedence as drizzle.config.ts: the process, then packages/db/.env,
+// then apps/web/.env.local.
+const processEnv = { ...process.env }
+const databasePackageEnv = readEnvFile(path.resolve('packages/db/.env'))
 
 loadEnvConfig(path.resolve('apps/web'))
 
@@ -13,9 +20,22 @@ type ScriptEnvName =
   | 'DATABASE_MIGRATOR_URL'
   | 'DATABASE_URL'
 
-/** Reads one of the env values this script uses; blank counts as unset. */
+/**
+ * Reads one of the env values this script uses, in drizzle.config.ts order.
+ * Blank counts as unset.
+ */
 function readEnv(name: ScriptEnvName): string | undefined {
-  return process.env[name] || undefined
+  return (
+    processEnv[name] ||
+    databasePackageEnv[name] ||
+    process.env[name] ||
+    undefined
+  )
+}
+
+/** Parses a KEY=VALUE env file, or returns nothing when it does not exist. */
+function readEnvFile(file: string): Record<string, string> {
+  return existsSync(file) ? parse(readFileSync(file, 'utf8')) : {}
 }
 
 type CredentialRow = {

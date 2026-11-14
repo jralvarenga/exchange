@@ -22,6 +22,20 @@ describe('serializeWithoutCredentials', () => {
     )
   })
 
+  test('refuses a key that JSON escapes inside the body', () => {
+    const escaped = {
+      apiKeyId: 'PKTEST',
+      apiSecretKey: 'sec"ret\\with\nnewline',
+    }
+
+    expect(
+      serializeWithoutCredentials({
+        alpaca: escaped,
+        data: { leaked: escaped.apiSecretKey },
+      })
+    ).toBeUndefined()
+  })
+
   test('refuses a result that spreads the credentials', () => {
     expect(
       serializeWithoutCredentials({ alpaca, data: { ...alpaca, cash: 10 } })
@@ -53,7 +67,7 @@ describe('Alpaca destinations', () => {
     )
   })
 
-  test('never sends keys to another host and refuses redirects', async () => {
+  test('never sends keys to another host, even through an injected fetcher, and refuses redirects', async () => {
     const calls: Array<{ init?: RequestInit; url: string }> = []
     const fetcher = (async (url: URL | string, init?: RequestInit) => {
       calls.push({ init, url: String(url) })
@@ -65,7 +79,6 @@ describe('Alpaca destinations', () => {
       cryptoLocation: 'us',
       dataBaseUrl: 'https://data.alpaca.markets',
       fetcher,
-      injectedFetcher: false,
       timeoutMs: 1_000,
       tradingBaseUrl: 'https://paper-api.alpaca.markets',
     }

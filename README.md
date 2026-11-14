@@ -105,9 +105,14 @@ bun run auth:secrets
 Paste `BETTER_AUTH_SECRET` and `CREDENTIALS_ENCRYPTION_KEYS` into
 `apps/web/.env.local` and the deployment environment. The encryption value is
 one or more `keyId:base64` pairs. Each generated key id is unique. The first
-key encrypts new credentials. Every listed key can decrypt. To rotate, generate
-another key, prepend it, run `bun run auth:rewrap-credentials`, then remove the
-previous key. Duplicate key ids are rejected.
+key encrypts new credentials. Every listed key can decrypt. Duplicate key ids
+are rejected. To rotate:
+
+1. Generate another key and prepend it, everywhere the app runs.
+2. Run `bun run auth:rewrap-credentials`.
+3. Remove the previous key only once the script exits 0. A non-zero exit means
+   some rows could not be decrypted or still use the old key, and removing it
+   would make them unreadable.
 
 ### Alpaca key protection
 
@@ -262,7 +267,10 @@ it up once:
 
 1. In the repository settings, create an environment named `production`.
 2. Add a `DATABASE_URL` secret to it with the Neon pooled connection string,
-   using `sslmode=verify-full`.
+   using `sslmode=verify-full`. Once the app runs as the restricted role from
+   "Alpaca key protection", also add a `DATABASE_MIGRATOR_URL` secret with the
+   table owner's connection string; the workflow migrates with it. Without it,
+   `DATABASE_URL` must stay the owner.
 3. Set required reviewers on that environment so each migration waits for approval.
 
 Vercel deploys `main` at the same time, so the new code can go live before the

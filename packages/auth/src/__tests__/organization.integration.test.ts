@@ -333,6 +333,18 @@ describe('Better Auth workspace organizations', () => {
         expect(credentialConstraints.rows.map((row) => row.conname)).toEqual([
           ...credentialSqlExtras.constraints,
         ])
+        const security = await freshPool.query(
+          `SELECT c.relrowsecurity AS enabled,
+                  array_agg(p.policyname ORDER BY p.policyname) AS policies
+           FROM pg_class c
+           LEFT JOIN pg_policies p ON p.tablename = c.relname
+           WHERE c.relname = 'alpaca_connections'
+           GROUP BY c.relrowsecurity`
+        )
+        expect(security.rows[0]).toEqual({
+          enabled: true,
+          policies: ['alpaca_connections_member_access'],
+        })
       } finally {
         await freshPool.end()
         await pool.query(`DROP DATABASE "${databaseName}"`)

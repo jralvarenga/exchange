@@ -47,20 +47,56 @@ const PRIVATE_NO_STORE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
 }
 
-/** Per member and connection. Alpaca allows 200 requests a minute per account. */
-export const TRADING_RATE_LIMIT = {
-  max: 60,
-  windowMs: 60 * 1000,
+/**
+ * Trading requests per minute. Alpaca allows 200 requests a minute per
+ * account, reads included, so all members of a connection share one bucket
+ * that leaves room for reads, and each member also has their own smaller one.
+ */
+export const TRADING_RATE_LIMITS = {
+  connection: { max: 100, windowMs: 60 * 1000 },
+  member: { max: 60, windowMs: 60 * 1000 },
 } as const
 
 interface TradingRateLimitKeyInput {
   connectionId: string
+  /** Omit for the bucket every member of the connection shares. */
+  userId?: string
+}
+
+/** Builds the Postgres rate-limit key for a connection, or one member on it. */
+export function tradingRateLimitKey(input: TradingRateLimitKeyInput): string {
+  return input.userId
+    ? `treid:trade:${input.connectionId}:member:${input.userId}`
+    : `treid:trade:${input.connectionId}`
+}
+
+interface ConsumeTradingRateLimitsInput {
+  connectionId: string
   userId: string
 }
 
-/** Builds the Postgres rate-limit key for one member trading on one connection. */
-export function tradingRateLimitKey(input: TradingRateLimitKeyInput): string {
-  return `treid:trade:${input.userId}:${input.connectionId}`
+/**
+ * Counts one trading request against the member's and the connection's
+ * buckets. Returns false when either is exhausted.
+ */
+async function consumeTradingRateLimits(
+  input: ConsumeTradingRateLimitsInput
+): Promise<boolean> {
+  const member = await consumeRateLimit({
+    key: tradingRateLimitKey(input),
+    ...TRADING_RATE_LIMITS.member,
+  })
+
+  if (!member.allowed) {
+    return false
+  }
+
+  const connection = await consumeRateLimit({
+    key: tradingRateLimitKey({ connectionId: input.connectionId }),
+    ...TRADING_RATE_LIMITS.connection,
+  })
+
+  return connection.allowed
 }
 
 /**
@@ -120,27 +156,22 @@ export async function createApiResponse(
       )
     }
 
-    if (options.trading) {
-      const limit = await consumeRateLimit({
-        key: tradingRateLimitKey({
-          connectionId: row.id,
-          userId: workspace.userId,
-        }),
-        max: TRADING_RATE_LIMIT.max,
-        windowMs: TRADING_RATE_LIMIT.windowMs,
-      })
-
-      if (!limit.allowed) {
-        return createErrorResponse(
-          {
-            error: {
-              code: 'RATE_LIMITED',
-              message: 'Too many trading requests. Try again in a minute.',
-            },
+    if (
+      options.trading &&
+      !(await consumeTradingRateLimits({
+        connectionId: row.id,
+        userId: workspace.userId,
+      }))
+    ) {
+      return createErrorResponse(
+        {
+          error: {
+            code: 'RATE_LIMITED',
+            message: 'Too many trading requests. Try again in a minute.',
           },
-          429
-        )
-      }
+        },
+        429
+      )
     }
 
     request = await decryptAlpacaRequestContext({

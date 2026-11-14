@@ -50,6 +50,13 @@
       "when": 1794641557513,
       "tag": "0006_alpaca_connection_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794643016671,
+      "tag": "0007_credential_review_fixes",
+      "breakpoints": true
     }
   ]
 }

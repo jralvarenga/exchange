@@ -87,7 +87,7 @@ const DEFAULT_TIMEOUT_MS = 10_000
 const ASSET_CATALOG_TTL_MS = 5 * 60 * 1_000
 
 /** The only origins that may receive Alpaca key headers. */
-export const ALPACA_ORIGINS: ReadonlySet<string> = new Set([
+const ALPACA_ORIGINS: ReadonlySet<string> = new Set([
   DEFAULT_DATA_BASE_URL,
   LIVE_TRADING_BASE_URL,
   PAPER_TRADING_BASE_URL,
@@ -99,11 +99,6 @@ export interface ResolvedClientOptions {
   cryptoLocation: string
   dataBaseUrl: string
   fetcher: typeof fetch
-  /**
-   * A test fetcher was injected, so requests never leave the process and any
-   * origin is allowed. With the real fetch, only `ALPACA_ORIGINS` are.
-   */
-  injectedFetcher: boolean
   timeoutMs: number
   tradingBaseUrl: string
 }
@@ -179,6 +174,7 @@ interface AssetRequestOptions extends AlpacaClientOptions {
 }
 
 const assetCatalogCaches = new Map<string, AssetCatalogCache>()
+let nextAssetCatalogSweepAt = 0
 
 const alpacaErrorBodySchema = z.object({
   code: z.number().optional(),
@@ -802,7 +798,8 @@ export async function alpacaFetch<Schema extends z.ZodType>(
   const url = new URL(options.path, options.baseUrl)
   url.search = options.query?.toString() ?? ''
 
-  if (!options.client.injectedFetcher && !isAlpacaOrigin(url)) {
+  // Every transport, including injected ones, only ever targets Alpaca.
+  if (!isAlpacaOrigin(url)) {
     clearTimeout(timeout)
     throw new Error('Refusing to send Alpaca keys outside Alpaca.')
   }
@@ -862,8 +859,17 @@ function assetCatalogCacheKey(options: AlpacaClientOptions): string {
     .digest('base64url')
 }
 
-/** Drops every expired catalog so replaced or deleted keys do not linger. */
+/**
+ * Drops expired catalogs so replaced or deleted keys do not linger. Sweeps at
+ * most once per TTL, so a search does not scan every cached account.
+ */
 function evictExpiredAssetCatalogs(now: number): void {
+  if (now < nextAssetCatalogSweepAt) {
+    return
+  }
+
+  nextAssetCatalogSweepAt = now + ASSET_CATALOG_TTL_MS
+
   for (const [key, cached] of assetCatalogCaches) {
     if (cached.expiresAt <= now) {
       assetCatalogCaches.delete(key)
@@ -1097,7 +1103,6 @@ export function resolveClientOptions(
     cryptoLocation: resolveCryptoLocation(parsed.cryptoLocation),
     dataBaseUrl: resolveDataBaseUrl(parsed.dataBaseUrl),
     fetcher: parsed.fetcher ?? fetch,
-    injectedFetcher: parsed.fetcher !== undefined,
     timeoutMs: parsed.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     tradingBaseUrl:
       parsed.environment === 'live'

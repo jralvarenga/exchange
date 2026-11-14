@@ -362,6 +362,13 @@ describe('order ticket request contract', () => {
     const options = withPageAsset({ current, options: {}, pageAsset: stock })
     expect(options).toEqual({})
     expect(openTicketDraft({ current, options }).draft).toBe(current)
+    expect(
+      withPageAsset({
+        current,
+        options: {},
+        pageAsset: { ...stock, symbol: stock.symbol.toLowerCase() },
+      })
+    ).toEqual({})
     const contract = makeDraft({
       asset: { ...option, underlying: { ...stock, assetClass: 'us_equity' } },
     })

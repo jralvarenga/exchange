@@ -24,10 +24,15 @@ function createEnvSchema(nodeEnv: string | undefined) {
         z
           .string()
           .url()
-          .refine(
-            (value) => new URL(value).origin === 'https://data.alpaca.markets',
-            'ALPACA_DATA_BASE_URL must be https://data.alpaca.markets.'
-          )
+          .refine((value) => {
+            const url = new URL(value)
+
+            return (
+              url.origin === 'https://data.alpaca.markets' &&
+              url.username === '' &&
+              url.password === ''
+            )
+          }, 'ALPACA_DATA_BASE_URL must be https://data.alpaca.markets.')
           .optional()
       ),
       AUTH_ALLOWED_EMAILS: z.preprocess(

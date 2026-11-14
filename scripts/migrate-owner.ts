@@ -315,7 +315,7 @@ async function verifyAlpacaKeys(alpaca: AlpacaEnvKeys): Promise<void> {
 
   if (!response.ok) {
     throw new Error(
-      `Alpaca rejected the ${alpaca.environment} keys in ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY (HTTP ${response.status}). Nothing was stored.`
+      `Alpaca rejected the ${alpaca.environment} keys in ALPACA_API_KEY_ID and ALPACA_API_SECRET_KEY (HTTP ${response.status}). No Alpaca connection was stored.`
     )
   }
 }

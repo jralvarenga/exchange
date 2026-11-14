@@ -15,7 +15,7 @@ const clientOptions = {
   apiKeyId: 'key',
   apiSecretKey: 'secret',
   cryptoLocation: 'us' as const,
-  dataBaseUrl: 'https://data.example.test',
+  dataBaseUrl: 'https://data.alpaca.markets',
   environment: 'paper' as const,
 }
 

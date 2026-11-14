@@ -3,7 +3,6 @@ import { mock } from 'bun:test'
 mock.module('server-only', () => ({}))
 
 const {
-  credentialAad,
   decryptCredential,
   decryptSecret,
   encryptCredential,
@@ -203,8 +202,9 @@ describe('secret box', () => {
       field: 'keyId' as const,
       workspaceId: 'ws-1',
     }
+    // The historical v1 AAD, spelled out so a change to credentialAad shows up.
     const payload = encryptSecret({
-      aad: credentialAad({ ...binding, version: 'v1' }),
+      aad: `connection:${binding.connectionId}:${binding.environment}:${binding.field}`,
       keys: encryptionKeys,
       plaintext: 'PKLEGACY1234',
       version: 'v1',

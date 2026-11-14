@@ -1,6 +1,5 @@
 import { and, asc, eq, sql } from 'drizzle-orm'
 
-import { db } from '../client'
 import { withMemberScope } from '../member-scope'
 import { alpacaConnections } from '../schema/alpaca-connections'
 
@@ -162,8 +161,11 @@ export async function findAlpacaConnection(
 export async function readAlpacaCredentials(
   input: ReadAlpacaCredentialsInput
 ): Promise<AlpacaConnectionCiphertexts | undefined> {
-  const result = await db.execute(
-    sql`select key_id_ciphertext, secret_ciphertext from read_alpaca_credentials(${input.id}, ${input.workspaceId}, ${input.userId}, ${input.purpose})`
+  // The function authorizes and audits the member set by withMemberScope.
+  const result = await withMemberScope(input.userId, (tx) =>
+    tx.execute(
+      sql`select key_id_ciphertext, secret_ciphertext from read_alpaca_credentials(${input.id}, ${input.workspaceId}, ${input.purpose})`
+    )
   )
   const row = result.rows[0]
 

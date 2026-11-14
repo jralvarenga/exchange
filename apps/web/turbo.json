@@ -37,7 +37,8 @@
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "PORT",
-        "RESEND_API_KEY"
+        "RESEND_API_KEY",
+        "VERCEL_URL"
       ]
     }
   }

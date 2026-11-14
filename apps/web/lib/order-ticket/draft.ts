@@ -184,7 +184,8 @@ export function withPageAsset({
   if (!pageAsset || options.asset || options.assetIdentifier?.trim()) {
     return options
   }
-  if (getTicketUnderlying(current.asset)?.symbol === pageAsset.symbol) {
+  const currentSymbol = getTicketUnderlying(current.asset)?.symbol
+  if (currentSymbol?.toUpperCase() === pageAsset.symbol.toUpperCase()) {
     return options
   }
   return { ...options, asset: pageAsset }

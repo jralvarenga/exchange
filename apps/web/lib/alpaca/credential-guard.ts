@@ -17,8 +17,13 @@ export function serializeWithoutCredentials(
   input: SerializeWithoutCredentialsInput
 ): string | undefined {
   const body = JSON.stringify(input.data) ?? 'null'
+  // Match the raw value and its JSON-escaped form: a key with a quote, a
+  // backslash or a control character is escaped inside the body.
   const leaked = [input.alpaca.apiKeyId, input.alpaca.apiSecretKey].some(
-    (value) => value.length > 0 && body.includes(value)
+    (value) =>
+      value.length > 0 &&
+      (body.includes(value) ||
+        body.includes(JSON.stringify(value).slice(1, -1)))
   )
 
   return leaked ? undefined : body

@@ -39,5 +39,5 @@ GRANT UPDATE (
 -- The usage audit is written only by read_alpaca_credentials().
 REVOKE INSERT, UPDATE, DELETE ON alpaca_credential_uses FROM :"app_role";
 
-GRANT EXECUTE ON FUNCTION read_alpaca_credentials(text, text, text, text)
+GRANT EXECUTE ON FUNCTION read_alpaca_credentials(text, text, text)
   TO :"app_role";
