@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@workspace/ui/components/button'
-import { cn } from '@workspace/ui/lib/utils'
 import { ShoppingCart } from 'lucide-react'
 
 import { useOrderTicket } from '@/contexts/order-ticket-context'
@@ -21,7 +20,8 @@ export function TicketFab({ className }: Props) {
   return (
     <Button
       aria-label="Buy or sell"
-      className={cn('size-16 rounded-full [&_svg]:size-6', className)}
+      className={className}
+      size="fab"
       onClick={() => void openTicket()}
       type="button"
     >

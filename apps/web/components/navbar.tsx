@@ -21,7 +21,7 @@ export function Navbar({ user, workspace }: Props) {
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-6">
           <Link
             aria-label="Treid home"
-            className="pointer-events-auto shrink-0 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="pointer-events-auto inline-flex min-h-11 shrink-0 items-center rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
             href="/"
           >
             <Logo />

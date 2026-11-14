@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, envField, fontProviders } from 'astro/config'
 import { loadEnv } from 'vite'
 
-/** The hosted landing site, used when `PUBLIC_SITE_URL` is unset or invalid. */
+/** The hosted landing site, used when `PUBLIC_SITE_URL` is unset. */
 const defaultSiteUrl = 'https://treid.app'
 
 /**
@@ -16,11 +16,16 @@ const defaultSiteUrl = 'https://treid.app'
  * @returns {string} The origin, without a trailing slash.
  */
 function resolveSiteUrl(value) {
-  try {
-    return new URL(value?.trim() || defaultSiteUrl).origin
-  } catch {
-    return defaultSiteUrl
+  const raw = value?.trim() || defaultSiteUrl
+  const url = URL.canParse(raw) ? new URL(raw) : undefined
+
+  // Fail the build like the env schema does, rather than publish canonical
+  // and sitemap URLs on a host nobody configured.
+  if (url?.protocol !== 'http:' && url?.protocol !== 'https:') {
+    throw new Error(`PUBLIC_SITE_URL must be an http(s) URL, got "${raw}".`)
   }
+
+  return url.origin
 }
 
 const { PUBLIC_SITE_URL } = loadEnv(

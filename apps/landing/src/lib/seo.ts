@@ -69,6 +69,12 @@ export function siteStructuredData({ site }: StructuredDataOptions): JsonLd {
  */
 export function appStructuredData({ site }: StructuredDataOptions): JsonLd {
   const url = new URL('/', site).toString()
+  const appUrl = new URL('/', PUBLIC_APP_URL)
+  // The schema default points at the local dev server. Leave it out rather
+  // than advertise localhost to search engines when it is not configured.
+  const isLocalApp = ['localhost', '127.0.0.1', '[::1]'].includes(
+    appUrl.hostname
+  )
 
   return {
     '@context': 'https://schema.org',
@@ -81,7 +87,7 @@ export function appStructuredData({ site }: StructuredDataOptions): JsonLd {
     name: siteMeta.name,
     operatingSystem: 'Any',
     publisher: { '@id': `${url}#organization` },
-    url: new URL('/', PUBLIC_APP_URL).toString(),
+    ...(isLocalApp ? {} : { url: appUrl.toString() }),
   }
 }
 

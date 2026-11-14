@@ -29,7 +29,7 @@ export const siteMeta = {
   themeColor: { dark: '#0c0a09', light: '#ffffff' },
 }
 
-/** Returns the origin of a URL, or undefined when the value is blank or invalid. */
+/** Returns the origin of an http(s) URL, or undefined when the value is blank, invalid or uses another scheme. */
 function toOrigin(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
 
@@ -37,11 +37,15 @@ function toOrigin(value: string | undefined): string | undefined {
     return undefined
   }
 
-  try {
-    return new URL(trimmed).origin
-  } catch {
+  if (!URL.canParse(trimmed)) {
     return undefined
   }
+
+  const url = new URL(trimmed)
+
+  return url.protocol === 'http:' || url.protocol === 'https:'
+    ? url.origin
+    : undefined
 }
 
 /**
@@ -54,7 +58,8 @@ export function getAppUrl(source: AppUrlSource = readAppUrlEnv()): URL {
   const origin =
     toOrigin(source.NEXT_PUBLIC_APP_URL) ??
     toOrigin(source.VERCEL_URL ? `https://${source.VERCEL_URL}` : undefined) ??
-    (source.PORT ? `http://localhost:${source.PORT}` : defaultAppUrl)
+    toOrigin(source.PORT ? `http://localhost:${source.PORT}` : undefined) ??
+    defaultAppUrl
 
   return new URL(origin)
 }

@@ -27,4 +27,16 @@ describe('getAppUrl', () => {
       'http://localhost:3100/'
     )
   })
+
+  test('skips non-http schemes and a malformed port', () => {
+    expect(
+      getAppUrl({
+        NEXT_PUBLIC_APP_URL: 'ftp://app.treid.app',
+        VERCEL_URL: 'treid-git-feat.vercel.app',
+      }).toString()
+    ).toBe('https://treid-git-feat.vercel.app/')
+    expect(getAppUrl({ PORT: 'not-a-port' }).toString()).toBe(
+      'http://localhost:3000/'
+    )
+  })
 })
