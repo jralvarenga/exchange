@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, envField, fontProviders } from 'astro/config'
 import { loadEnv } from 'vite'
 
+import { legalUpdated } from './src/lib/legal.ts'
+
 /** The hosted landing site, used when `PUBLIC_SITE_URL` is unset. */
 const defaultSiteUrl = 'https://treid.app'
 
@@ -26,6 +28,22 @@ function resolveSiteUrl(value) {
   }
 
   return url.origin
+}
+
+/**
+ * Adds `<lastmod>` to the legal pages, from the same dates they show as "Last
+ * updated". Google only trusts `lastmod` when it is accurate, so the home page
+ * gets none rather than a build date that changes on every deploy.
+ * @param {import('@astrojs/sitemap').SitemapItem} item The sitemap entry.
+ * @returns {import('@astrojs/sitemap').SitemapItem} The entry, with `lastmod` when known.
+ */
+function serializeSitemapItem(item) {
+  const path = /** @type {keyof typeof legalUpdated} */ (
+    new URL(item.url).pathname
+  )
+  const lastmod = legalUpdated[path]
+
+  return lastmod ? { ...item, lastmod } : item
 }
 
 const { PUBLIC_SITE_URL } = loadEnv(
@@ -75,7 +93,7 @@ export default defineConfig({
       provider: fontProviders.google(),
     },
   ],
-  integrations: [react(), sitemap()],
+  integrations: [react(), sitemap({ serialize: serializeSitemapItem })],
   vite: {
     plugins: [tailwindcss()],
     // The shared UI package ships TypeScript source, so Vite must bundle it.

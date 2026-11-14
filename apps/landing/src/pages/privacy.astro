@@ -1,13 +1,14 @@
 ---
 import LegalPage from '@/components/legal/legal-page.astro'
 import LegalSection from '@/components/legal/legal-section.astro'
+import { legalUpdated } from '@/lib/legal'
 import { externalLinks, support } from '@/lib/links'
 ---
 
 <LegalPage
   description="Treid's privacy policy: what the hosted Treid stores, what stays at Alpaca, what stays in your browser and how to delete your data."
   title="Privacy policy"
-  updated="2026-11-13"
+  updated={legalUpdated['/privacy']}
 >
   <LegalSection title="Scope">
     <p>
