@@ -139,10 +139,11 @@ login page. After a successful login, remove `DASHBOARD_PASSWORD_HASH`,
 The `dev` and `start` scripts bind Next.js to `127.0.0.1`, so it is not exposed
 directly. Run the HTTPS reverse proxy on the same host so it can connect to
 `127.0.0.1:3000`. You cannot place the proxy on a different machine when the
-app binds to loopback. A minimal Caddy site is:
+app binds to loopback. A minimal Caddy site, with your own hostname in place of
+`app.example.com`, is:
 
 ```caddyfile
-app.treid.app {
+app.example.com {
   reverse_proxy 127.0.0.1:3000
 }
 ```
@@ -155,7 +156,7 @@ Caddy `basic_auth` may be added as an optional second door, but must never
 replace the app login:
 
 ```caddyfile
-app.treid.app {
+app.example.com {
   basic_auth {
     operator <caddy-generated-hash>
   }

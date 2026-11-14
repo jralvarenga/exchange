@@ -23,11 +23,11 @@ export const externalLinks = {
   alpaca: 'https://alpaca.markets',
   /** Alpaca's own sign-up. A new account starts with paper trading. */
   alpacaSignUp: 'https://app.alpaca.markets/signup',
-  github: 'https://github.com/jralvarenga/exchange',
-  issues: 'https://github.com/jralvarenga/exchange/issues/new',
-  pullRequests: 'https://github.com/jralvarenga/exchange/pulls',
+  github: 'https://github.com/jralvarenga/treid',
+  issues: 'https://github.com/jralvarenga/treid/issues/new',
+  pullRequests: 'https://github.com/jralvarenga/treid/pulls',
   /** The README's setup guide, from secrets to the HTTPS proxy. */
-  selfHostGuide: 'https://github.com/jralvarenga/exchange#https-deployment',
+  selfHostGuide: 'https://github.com/jralvarenga/treid#https-deployment',
 }
 
 /** Pages for the privacy policy and the terms of service. */

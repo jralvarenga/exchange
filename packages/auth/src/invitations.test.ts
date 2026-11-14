@@ -10,7 +10,9 @@ describe('invitationEmail', () => {
       workspaceName: 'Desk\r\nBcc: attacker@example.com',
     })
 
-    expect(email.subject).toBe('Join Desk Bcc: attacker@example.com on Treid')
+    expect(email.subject).toBe(
+      'Join Desk Bcc: attacker@example.com on Treid'
+    )
     expect(email.subject).not.toMatch(/[\r\n]/u)
   })
 })
