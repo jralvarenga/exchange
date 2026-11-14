@@ -1,6 +1,7 @@
 'use client'
 
 import { createFirstWorkspaceAction } from '@/app/(dashboard)/account/workspace-actions'
+import { AlpacaRequirement } from '@/components/onboarding/alpaca-requirement'
 import { OnboardingHeader } from '@/components/onboarding/onboarding-header'
 import { IncomingInvitation } from '@/components/workspace/incoming-invitation'
 import { WorkspaceNameForm } from '@/components/workspace/workspace-name-form'
@@ -39,7 +40,7 @@ export function OnboardingWorkspace({ defaultName, invitations }: Props) {
           </ul>
         </section>
       ) : null}
-      <section aria-labelledby="create-title" className="flex flex-col gap-3">
+      <section aria-labelledby="create-title" className="flex flex-col gap-6">
         {invited ? (
           <h2 className="font-bold text-lg" id="create-title">
             Or start your own
@@ -49,6 +50,7 @@ export function OnboardingWorkspace({ defaultName, invitations }: Props) {
             New workspace
           </h2>
         )}
+        <AlpacaRequirement />
         <WorkspaceNameForm
           action={createFirstWorkspaceAction}
           defaultName={defaultName}
