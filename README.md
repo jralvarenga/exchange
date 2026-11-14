@@ -50,7 +50,7 @@ A Bun monorepo run with Turborepo.
 - [Bun](https://bun.sh) 1.2 and Node.js 20 or later.
 - PostgreSQL. `compose.yaml` runs Postgres 17 locally, or use any Postgres
   you already run, such as Neon.
-- A Google OAuth client. The app does not start without
+- A Google OAuth client. Sign-in fails the environment check without
   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 - A [Resend](https://resend.com) API key for verification and password reset
   mail. Production requires it.
@@ -77,7 +77,7 @@ Paste `BETTER_AUTH_SECRET` and `CREDENTIALS_ENCRYPTION_KEYS` into
 `apps/web/.env.local` and the deployment environment. Nobody can store Alpaca
 keys until `CREDENTIALS_ENCRYPTION_KEYS` is set.
 
-The encryption value is one or more `keyId:base64` pairs. Each generated key id
+The encryption value is one or more comma-separated `keyId:base64` pairs. Each generated key id
 is unique and duplicates are rejected. The first key encrypts new credentials
 and every listed key can decrypt. To rotate:
 
@@ -108,7 +108,8 @@ and every listed key can decrypt. To rotate:
 | `ALPACA_CRYPTO_LOCATION`      | Optional Alpaca crypto data location: `us`, `us-1`, `us-2`, `eu-1` or `bs-1` |
 | `ALPACA_DATA_BASE_URL`        | Optional, and only `https://data.alpaca.markets` is accepted            |
 
-The app validates these at build time. There are no shared Alpaca keys:
+`apps/web/lib/env.ts` validates the server variables on first use, such as
+the first sign-in request, not at build time. There are no shared Alpaca keys:
 each user stores their own under Settings.
 
 `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_LANDING_URL` are inlined at build time,
@@ -273,8 +274,9 @@ server decrypts them only to call Alpaca, and the database enforces the rest:
   The table owner (migrations, scripts) bypasses it, so it applies once the app
   uses the [restricted role](#restricted-database-role).
 - API responses that contain a decrypted key are refused. Keys are sent only to
-  Alpaca's https hosts with redirects refused, and trading routes allow 60
-  requests a minute per member and connection.
+  Alpaca's https hosts with redirects refused. Trading routes allow 60
+  requests a minute per member on a connection, and 100 a minute per
+  connection across all members.
 
 ### Workspace authorization
 
@@ -389,7 +391,7 @@ bunx shadcn@latest add button -c apps/web
 It lands in `packages/ui/src/components`. Import it from the `ui` package:
 
 ```tsx
-import { Button } from "@workspace/ui/components/button";
+import { Button } from '@workspace/ui/components/button'
 ```
 
 ## Contributing
